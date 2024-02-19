@@ -1,13 +1,10 @@
 /// Collection of common functions / macros used for generating tests
-use markdown_fmt::FormatterBuilder;
 
 pub fn check_formatted_markdown<'a, 'o>(
     input: &'a str,
     expected_output: &'o str,
 ) -> std::borrow::Cow<'a, str> {
-    let builder = FormatterBuilder::with_code_block_formatter(|_, code_block| code_block);
-    let formatter = builder.build().unwrap();
-    let formatted = formatter.format(input).expect("formatting won't fail");
+    let formatted = markdown_fmt::rewrite_markdown(input).expect("formatting won't fail");
     assert_eq!(formatted, expected_output);
     formatted.into()
 }
