@@ -7,11 +7,28 @@ use pulldown_cmark::escape::StrWrite;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, LinkType, OffsetIter, Tag};
 use pulldown_cmark::{LinkDef, Options, Parser};
 
+use crate::builder::CodeBlockFormatter;
 use crate::links;
 use crate::list::{ListMarker, OrderedListMarker, UnorderedListMarker};
 use crate::table::TableState;
 
-pub struct MarkdownFormatter<'i, F> {
+pub struct MarkdownFormatter {
+    code_block_formatter: CodeBlockFormatter,
+}
+
+impl MarkdownFormatter {
+    pub fn format(self, input: &str) -> std::io::Result<String> {
+        FormatState::new(input, self.code_block_formatter).format()
+    }
+
+    pub(crate) fn new(code_block_formatter: CodeBlockFormatter) -> Self {
+        Self {
+            code_block_formatter,
+        }
+    }
+}
+
+pub(crate) struct FormatState<'i, F> {
     /// Raw markdown input
     input: &'i str,
     pub(crate) last_was_softbreak: bool,
@@ -53,7 +70,7 @@ pub struct MarkdownFormatter<'i, F> {
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
 /// write formatted markdown events. The StrWrite impl helps us centralize this logic.
-impl<'i, F> StrWrite for MarkdownFormatter<'i, F> {
+impl<'i, F> StrWrite for FormatState<'i, F> {
     fn write_str(&mut self, text: &str) -> std::io::Result<()> {
         if self.in_fenced_code_block() || self.in_indented_code_block() {
             self.code_block_buffer.push_str(&text);
@@ -85,7 +102,7 @@ impl<'i, F> StrWrite for MarkdownFormatter<'i, F> {
     }
 }
 
-impl<'i, F> MarkdownFormatter<'i, F> {
+impl<'i, F> FormatState<'i, F> {
     /// Peek at the next Markdown Event
     fn peek(&mut self) -> Option<&Event<'i>> {
         self.events.peek().map(|(e, _)| e)
@@ -343,11 +360,11 @@ impl<'i, F> MarkdownFormatter<'i, F> {
     }
 }
 
-impl<'i, F> MarkdownFormatter<'i, F>
+impl<'i, F> FormatState<'i, F>
 where
     F: Fn(&str, String) -> String,
 {
-    pub fn new(input: &'i str, code_block_formatter: F) -> Self {
+    fn new(input: &'i str, code_block_formatter: F) -> Self {
         let mut options = Options::all();
         options.remove(Options::ENABLE_SMART_PUNCTUATION);
 

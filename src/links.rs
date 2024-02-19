@@ -1,8 +1,8 @@
-use super::MarkdownFormatter;
+use super::formatter::FormatState;
 use pulldown_cmark::escape::StrWrite;
 use std::borrow::Cow;
 
-impl<'i, F> MarkdownFormatter<'i, F> {
+impl<'i, F> FormatState<'i, F> {
     pub(super) fn write_inline_link<S: AsRef<str>>(
         &mut self,
         url: &str,
