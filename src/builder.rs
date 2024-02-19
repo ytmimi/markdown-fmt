@@ -17,8 +17,8 @@ impl FormatterBuilder {
     }
 
     /// Try to build a [MarkdownFormatter](crate::MarkdownFormatter)
-    pub fn build(self) -> Result<crate::MarkdownFormatter, FormatterBuilder> {
-        Ok(crate::MarkdownFormatter::new(self.code_block_formatter))
+    pub fn build(self) -> crate::MarkdownFormatter {
+        crate::MarkdownFormatter::new(self.code_block_formatter)
     }
 
     pub fn code_block_formatter<'a, F>(&mut self, formatter: F) -> &mut Self
