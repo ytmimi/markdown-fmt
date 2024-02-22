@@ -2,8 +2,8 @@ use crate::utils::unicode_str_width;
 use itertools::{EitherOrBoth, Itertools};
 use pulldown_cmark::escape::StrWrite;
 use pulldown_cmark::Alignment;
-use unicode_segmentation::UnicodeSegmentation;
 use std::borrow::Cow;
+use unicode_segmentation::UnicodeSegmentation;
 
 pub(super) struct TableState<'a> {
     /// Alignment markers for HTML rendering
@@ -112,7 +112,9 @@ impl<'a> TableState<'a> {
     }
 
     fn write_wth_padding(buffer: &mut String, value: &str, mut size: usize) -> std::io::Result<()> {
-        let offset = UnicodeSegmentation::graphemes(value, true).map(|grapheme| unicode_str_width(grapheme).saturating_sub(1)).sum();
+        let offset = UnicodeSegmentation::graphemes(value, true)
+            .map(|grapheme| unicode_str_width(grapheme).saturating_sub(1))
+            .sum();
         size = size.saturating_sub(offset);
         write!(buffer, " {value:<0$} |", size)
     }
