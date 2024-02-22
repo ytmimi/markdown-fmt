@@ -12,15 +12,36 @@ use crate::links;
 use crate::list::{ListMarker, OrderedListMarker, UnorderedListMarker};
 use crate::table::TableState;
 
+/// Used to format Markdown inputs.
+///
+/// To get a [MarkdownFormatter] use [FormatterBuilder::build]
+///
+/// [FormatterBuilder::build]: crate::FormatterBuilder::build
 pub struct MarkdownFormatter {
     code_block_formatter: CodeBlockFormatter,
 }
 
 impl MarkdownFormatter {
+    /// Format Markdown input
+    ///
+    /// ```rust
+    /// # use markdown_fmt::FormatterBuilder;
+    /// let builder = FormatterBuilder::default();
+    /// let formatter = builder.build();
+    /// let input = "   #  Header! ";
+    /// let rewrite = formatter.format(input).unwrap();
+    /// assert_eq!(rewrite, String::from("# Header!"));
+    /// ```
     pub fn format(self, input: &str) -> std::io::Result<String> {
         FormatState::new(input, self.code_block_formatter).format()
     }
 
+    /// Helper method to easily initiazlie the [MarkdownFormatter].
+    ///
+    /// This is marked as `pub(crate)` because users are expected to use the [FormatterBuilder]
+    /// When creating a [MarkdownFormatter].
+    ///
+    /// [FormatterBuilder]: crate::FormatterBuilder
     pub(crate) fn new(code_block_formatter: CodeBlockFormatter) -> Self {
         Self {
             code_block_formatter,
