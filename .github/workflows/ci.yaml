@@ -1,0 +1,30 @@
+name: Run CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Nightly Rust Toolchain
+      run: |
+        rustup install --no-self-update --profile minimal nightly
+        rustup component add --toolchain nightly rustfmt
+
+    - name: Format Checks
+      run: cargo +nightly fmt --check
+
+    - name: Run tests
+      run: cargo +nightly test --features gen-tests
