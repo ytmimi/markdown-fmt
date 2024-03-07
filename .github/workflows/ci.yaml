@@ -27,4 +27,4 @@ jobs:
       run: cargo +nightly fmt --check
 
     - name: Run tests
-      run: cargo +nightly test --features gen-tests
+      run: cargo test --features gen-tests
