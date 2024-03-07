@@ -27,4 +27,8 @@ jobs:
       run: cargo +nightly fmt --check
 
     - name: Run tests
-      run: cargo test --features gen-tests
+      run: |
+        rustc -Vv
+        cargo -V
+        cargo build --locked
+        cargo test --features gen-tests
