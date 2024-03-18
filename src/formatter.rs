@@ -544,9 +544,8 @@ where
     }
 
     fn start_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::io::Result<()> {
-        use Tag::*;
         match tag {
-            Paragraph => {
+            Tag::Paragraph => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
@@ -554,7 +553,7 @@ where
                 }
                 self.nested_context.push(tag);
             }
-            Heading(level, _, _) => {
+            Tag::Heading(level, _, _) => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
@@ -591,14 +590,14 @@ where
                     write!(self, "{header}")?;
                 }
             }
-            BlockQuote => {
+            Tag::BlockQuote => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
 
-                if matches!(self.peek(), Some(Event::End(BlockQuote))) {
+                if matches!(self.peek(), Some(Event::End(Tag::BlockQuote))) {
                     // Special case handling for empty block quotes
                     let block_quote_opener =
                         self.input[range].bytes().filter(|b| *b == b'>').count();
@@ -617,7 +616,7 @@ where
                 self.nested_context.push(tag);
                 self.indentation.push("> ".into());
             }
-            CodeBlock(ref kind) => {
+            Tag::CodeBlock(ref kind) => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
@@ -656,7 +655,7 @@ where
 
                         if !matches!(
                             self.peek(),
-                            Some(Event::End(CodeBlock(CodeBlockKind::Indented)))
+                            Some(Event::End(Tag::CodeBlock(CodeBlockKind::Indented)))
                         ) {
                             // Only write indentation if this isn't an empty indented code block
                             self.write_str(indentation)?;
@@ -667,7 +666,7 @@ where
                 }
                 self.nested_context.push(tag);
             }
-            List(value) => {
+            Tag::List(value) => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
@@ -716,14 +715,14 @@ where
                 self.list_markers.push(list_marker);
                 self.nested_context.push(tag);
             }
-            Item => {
+            Tag::Item => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
 
-                let empty_list_item = matches!(self.peek(), Some(Event::End(Item)));
+                let empty_list_item = matches!(self.peek(), Some(Event::End(Tag::Item)));
 
                 // Take list_marker so we can use `write!(self, ...)`
                 let mut list_marker = self
@@ -755,19 +754,19 @@ where
                 self.indentation.push(list_marker.indentation());
                 self.list_markers.push(list_marker)
             }
-            FootnoteDefinition(label) => {
+            Tag::FootnoteDefinition(label) => {
                 write!(self, "[^{label}]: ")?;
             }
-            Emphasis => {
+            Tag::Emphasis => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(1))?;
             }
-            Strong => {
+            Tag::Strong => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(2))?;
             }
-            Strikethrough => {
+            Tag::Strikethrough => {
                 rewrite_marker(self.input, &range, self)?;
             }
-            Link(link_type, ..) => {
+            Tag::Link(link_type, ..) => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
@@ -779,7 +778,7 @@ where
                 self.write_str(opener)?;
                 self.nested_context.push(tag);
             }
-            Image(..) => {
+            Tag::Image(..) => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
@@ -789,7 +788,7 @@ where
                 write!(self, "![")?;
                 self.nested_context.push(tag);
             }
-            Table(ref alignment) => {
+            Tag::Table(ref alignment) => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
@@ -800,17 +799,17 @@ where
                 self.indentation.push("|".into());
                 self.nested_context.push(tag);
             }
-            TableHead => {
+            Tag::TableHead => {
                 self.nested_context.push(tag);
             }
-            TableRow => {
+            Tag::TableRow => {
                 self.nested_context.push(tag);
                 if let Some(state) = self.table_state.as_mut() {
                     state.push_row()
                 }
             }
-            TableCell => {
-                if !matches!(self.peek(), Some(Event::End(TableCell))) {
+            Tag::TableCell => {
+                if !matches!(self.peek(), Some(Event::End(Tag::TableCell))) {
                     return Ok(());
                 }
 
@@ -823,13 +822,12 @@ where
     }
 
     fn end_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::io::Result<()> {
-        use Tag::*;
         match tag {
-            Paragraph => {
+            Tag::Paragraph => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
             }
-            Heading(_, fragment_identifier, classes) => {
+            Tag::Heading(_, fragment_identifier, classes) => {
                 match (fragment_identifier, classes.is_empty()) {
                     (Some(id), false) => {
                         let classes = rewirte_header_classes(classes)?;
@@ -850,7 +848,7 @@ where
                     write!(self, "{marker}")?;
                 }
             }
-            BlockQuote => {
+            Tag::BlockQuote => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     // Recover empty block quote lines
@@ -873,7 +871,7 @@ where
                     }
                 }
             }
-            CodeBlock(ref kind) => {
+            Tag::CodeBlock(ref kind) => {
                 match kind {
                     CodeBlockKind::Fenced(info_string) => {
                         self.write_code_block_buffer(Some(info_string))?;
@@ -895,7 +893,7 @@ where
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
             }
-            List(_) => {
+            Tag::List(_) => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
                 self.list_markers.pop();
@@ -912,7 +910,7 @@ where
                     write!(self, "<!-- Consider a feenced code block instead -->")?;
                 };
             }
-            Item => {
+            Tag::Item => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines_no_trailing_whitespace(newlines)?;
@@ -931,19 +929,20 @@ where
                 }
 
                 // if the next event is a Start(Item), then we need to set needs_indent
-                self.needs_indent = matches!(self.peek(), Some(Event::Start(Item)));
+                self.needs_indent = matches!(self.peek(), Some(Event::Start(Tag::Item)));
             }
-            FootnoteDefinition(_label) => {}
-            Emphasis => {
+            Tag::FootnoteDefinition(_label) => {}
+            Tag::Emphasis => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(1))?;
             }
-            Strong => {
+            Tag::Strong => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(2))?;
             }
-            Strikethrough => {
+            Tag::Strikethrough => {
                 rewrite_marker(self.input, &range, self)?;
             }
-            Link(ref link_type, ref url, ref title) | Image(ref link_type, ref url, ref title) => {
+            Tag::Link(ref link_type, ref url, ref title)
+            | Tag::Image(ref link_type, ref url, ref title) => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref(), Some(&tag));
 
@@ -973,7 +972,7 @@ where
                     LinkType::Autolink | LinkType::Email => write!(self, ">")?,
                 }
             }
-            Table(_) => {
+            Tag::Table(_) => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
                 if let Some(state) = self.table_state.take() {
@@ -982,11 +981,11 @@ where
                 let popped_indentation = self.indentation.pop().expect("we added `|` in start_tag");
                 debug_assert_eq!(popped_indentation, "|");
             }
-            TableRow | TableHead => {
+            Tag::TableRow | Tag::TableHead => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
             }
-            TableCell => {
+            Tag::TableCell => {
                 if let Some(state) = self.table_state.as_mut() {
                     // We finished formatting this cell. Setup the state to format the next cell
                     state.increment_col_index()
