@@ -906,8 +906,8 @@ where
                 //     final list item, you can insert a blank HTML comment
                 if let Some(Event::Start(Tag::CodeBlock(CodeBlockKind::Indented))) = self.peek() {
                     self.write_newlines(1)?;
-                    write!(self, "<!-- Dont absorb code block into list -->\n")?;
-                    write!(self, "<!-- Consider a feenced code block instead -->")?;
+                    write!(self, "<!-- Don't absorb code block into list -->\n")?;
+                    write!(self, "<!-- Consider a fenced code block instead -->")?;
                 };
             }
             Tag::Item => {
