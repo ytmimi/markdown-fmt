@@ -1,6 +1,6 @@
 use super::formatter::FormatState;
 
-const ATX_HEADER_ESCAPES: [&'static str; 6] = ["# ", "## ", "### ", "#### ", "##### ", "###### "];
+const ATX_HEADER_ESCAPES: [&str; 6] = ["# ", "## ", "### ", "#### ", "##### ", "###### "];
 
 impl<'i, F> FormatState<'i, F> {
     pub(super) fn needs_escape(&mut self, input: &str) -> bool {

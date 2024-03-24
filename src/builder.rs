@@ -27,7 +27,7 @@ impl FormatterBuilder {
     /// let formatter = builder.build();
     /// ```
     /// [`info string`]: https://spec.commonmark.org/0.31.2/#fenced-code-blocks
-    pub fn with_code_block_formatter<'a, F>(formatter: F) -> Self
+    pub fn with_code_block_formatter<F>(formatter: F) -> Self
     where
         F: Fn(&str, String) -> String + 'static,
     {
@@ -54,7 +54,7 @@ impl FormatterBuilder {
     /// the [`info string`] and the complete code snippet
     ///
     /// [`info string`]: https://spec.commonmark.org/0.31.2/#fenced-code-blocks
-    pub fn code_block_formatter<'a, F>(&mut self, formatter: F) -> &mut Self
+    pub fn code_block_formatter<F>(&mut self, formatter: F) -> &mut Self
     where
         F: Fn(&str, String) -> String + 'static,
     {

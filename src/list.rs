@@ -8,8 +8,8 @@ use std::borrow::Cow;
 //     character or a ) character. (The reason for the length limit is that with 10 digits we
 //     start seeing integer overflows in some browsers.)
 //
-const LIST_INDENTATION: &'static str = "                    ";
-const ZERO_PADDING: &'static str = "00000000000000000000";
+const LIST_INDENTATION: &str = "                    ";
+const ZERO_PADDING: &str = "00000000000000000000";
 
 #[derive(Debug)]
 pub(super) enum ListMarker {
@@ -57,7 +57,7 @@ impl ListMarker {
 
     pub(super) fn zero_padding(&self) -> &'static str {
         match self {
-            Self::Ordered { zero_padding, .. } => &ZERO_PADDING[..zero_padding.clone()],
+            Self::Ordered { zero_padding, .. } => &ZERO_PADDING[..*zero_padding],
             Self::Unordered(_) => "",
         }
     }

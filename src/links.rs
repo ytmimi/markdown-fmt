@@ -10,9 +10,7 @@ impl<'i, F> FormatState<'i, F> {
     ) -> std::io::Result<()> {
         let url = format_link_url(url, false);
         match title {
-            Some((title, quote)) if quote == ')' => {
-                write!(self, r#"]({url} ({}))"#, title.as_ref())?
-            }
+            Some((title, ')')) => write!(self, r#"]({url} ({}))"#, title.as_ref())?,
             Some((title, quote)) => write!(self, r#"]({url} {quote}{}{quote})"#, title.as_ref())?,
             None => write!(self, "]({url})")?,
         }
@@ -24,7 +22,7 @@ pub(crate) fn format_link_url(url: &str, wrap_empty_urls: bool) -> Cow<'_, str> 
     if wrap_empty_urls && url.is_empty() {
         Cow::from("<>")
     } else if !url.starts_with('<') && !url.ends_with('>') && url.contains(' ')
-        || !balanced_parens(&url)
+        || !balanced_parens(url)
     {
         // https://spec.commonmark.org/0.30/#link-destination
         Cow::from(format!("<{url}>"))
@@ -152,7 +150,7 @@ pub(super) fn recover_escaped_link_destination_and_title(
     complete_link: &str,
     has_title: bool,
 ) -> Option<(String, Option<(String, char)>)> {
-    let rest = complete_link.split_once(":").map(|(_, rest)| rest.trim())?;
+    let rest = complete_link.split_once(':').map(|(_, rest)| rest.trim())?;
     split_inline_url_from_title(rest, has_title)
 }
 

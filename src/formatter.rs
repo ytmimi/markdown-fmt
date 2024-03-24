@@ -49,6 +49,8 @@ impl MarkdownFormatter {
     }
 }
 
+type ReferenceLink = (String, String, Option<(String, char)>, Range<usize>);
+
 pub(crate) struct FormatState<'i, F> {
     /// Raw markdown input
     input: &'i str,
@@ -74,8 +76,7 @@ pub(crate) struct FormatState<'i, F> {
     /// ```markdown
     /// [title]: link "optional title"
     /// ```
-    // reference_links: Vec<ReferenceLink>,
-    reference_links: Vec<(String, String, Option<(String, char)>, Range<usize>)>,
+    reference_links: Vec<ReferenceLink>,
     /// keep track of the current setext header.
     /// ```markdown
     /// Header
@@ -94,7 +95,7 @@ pub(crate) struct FormatState<'i, F> {
 impl<'i, F> StrWrite for FormatState<'i, F> {
     fn write_str(&mut self, text: &str) -> std::io::Result<()> {
         if self.in_fenced_code_block() || self.in_indented_code_block() {
-            self.code_block_buffer.push_str(&text);
+            self.code_block_buffer.push_str(text);
         } else if self.in_table_header() || self.in_table_row() {
             if let Some(state) = self.table_state.as_mut() {
                 state.write(text.to_owned().into());
@@ -207,7 +208,7 @@ impl<'i, F> FormatState<'i, F> {
         snippet.bytes().filter(|b| *b == b'\n').count()
     }
 
-    fn write_indentation(&mut self, use_rewrite_buffer: bool, trim_trailing_whiltespace: bool) {
+    fn write_indentation(&mut self, trim_trailing_whiltespace: bool) {
         let last_non_complete_whitespace_indent = self
             .indentation
             .iter()
@@ -225,16 +226,11 @@ impl<'i, F> FormatState<'i, F> {
 
         for (i, indent) in self.indentation.iter().take(position + 1).enumerate() {
             let is_last = i == position;
-            let buffer = if use_rewrite_buffer {
-                &mut self.rewrite_buffer
-            } else {
-                &mut self.rewrite_buffer
-            };
 
             if is_last && trim_trailing_whiltespace {
-                buffer.push_str(indent.trim())
+                self.rewrite_buffer.push_str(indent.trim())
             } else {
-                buffer.push_str(&indent)
+                self.rewrite_buffer.push_str(indent)
             }
         }
     }
@@ -275,11 +271,11 @@ impl<'i, F> FormatState<'i, F> {
             self.rewrite_buffer.push('\n');
 
             if nested {
-                self.write_indentation(true, !is_last || always_trim_trailing_whitespace);
+                self.write_indentation(!is_last || always_trim_trailing_whitespace);
             }
         }
         if !nested {
-            self.write_indentation(true, next_is_end_event || always_trim_trailing_whitespace);
+            self.write_indentation(next_is_end_event || always_trim_trailing_whitespace);
         }
         Ok(())
     }
@@ -291,7 +287,7 @@ impl<'i, F> FormatState<'i, F> {
         title: Option<&(String, char)>,
     ) -> std::io::Result<()> {
         // empty links can be specified with <>
-        let dest = links::format_link_url(&dest, true);
+        let dest = links::format_link_url(dest, true);
         self.write_newlines(1)?;
         if let Some((title, quote)) = title {
             write!(self, r#"[{label}]: {dest} {quote}{title}{quote}"#)?;
@@ -350,7 +346,7 @@ impl<'i, F> FormatState<'i, F> {
 
     fn join_with_indentation(&mut self, buffer: &str, start_with_indentation: bool) {
         if buffer.trim().is_empty() && start_with_indentation {
-            self.write_indentation(true, true);
+            self.write_indentation(true);
             return;
         }
 
@@ -363,7 +359,7 @@ impl<'i, F> FormatState<'i, F> {
                 .unwrap_or_default();
 
             if start_with_indentation {
-                self.write_indentation(true, line.trim().is_empty());
+                self.write_indentation(line.trim().is_empty());
             }
 
             if !line.trim().is_empty() {
@@ -375,7 +371,7 @@ impl<'i, F> FormatState<'i, F> {
             }
 
             if !is_last && !start_with_indentation {
-                self.write_indentation(true, is_next_empty);
+                self.write_indentation(is_next_empty);
             }
         }
     }
@@ -431,7 +427,7 @@ where
             needs_indent: false,
             table_state: None,
             last_position: 0,
-            code_block_formatter: code_block_formatter,
+            code_block_formatter,
         }
     }
 
@@ -492,7 +488,7 @@ where
                         self.needs_indent = false;
                     }
 
-                    if starts_with_escape || self.needs_escape(&text) {
+                    if starts_with_escape || self.needs_escape(text) {
                         // recover escape characters
                         write!(self, "\\{text}")?;
                     } else {
@@ -506,7 +502,7 @@ where
                 Event::SoftBreak => {
                     last_position = range.end;
                     write!(self, "{}", &self.input[range])?;
-                    self.write_indentation(true, false);
+                    self.write_indentation(false);
                     self.last_was_softbreak = true;
                 }
                 Event::HardBreak => {
@@ -605,9 +601,9 @@ where
                         let is_last = i == block_quote_opener - 1;
                         write!(self, ">")?;
                         if !is_last {
-                            write!(self, "\n")?;
+                            writeln!(self)?;
                         }
-                        self.write_indentation(true, false);
+                        self.write_indentation(false);
                     }
                 } else {
                     self.write_str("> ")?;
@@ -627,7 +623,7 @@ where
                         rewrite_marker(self.input, &range, &mut self.rewrite_buffer)?;
 
                         if info_string.is_empty() {
-                            write!(self, "\n")?;
+                            writeln!(self)?;
                             self.nested_context.push(tag);
                             return Ok(());
                         }
@@ -644,9 +640,9 @@ where
                             .trim();
 
                         if starts_with_space {
-                            write!(self, " {info_string}\n")?;
+                            writeln!(self, " {info_string}")?;
                         } else {
-                            write!(self, "{info_string}\n")?;
+                            writeln!(self, "{info_string}")?;
                         }
                     }
                     CodeBlockKind::Indented => {
@@ -694,7 +690,7 @@ where
                     };
 
                     ListMarker::Ordered {
-                        zero_padding: zero_padding,
+                        zero_padding,
                         number: number as usize,
                         marker,
                     }
@@ -906,7 +902,7 @@ where
                 //     final list item, you can insert a blank HTML comment
                 if let Some(Event::Start(Tag::CodeBlock(CodeBlockKind::Indented))) = self.peek() {
                     self.write_newlines(1)?;
-                    write!(self, "<!-- Don't absorb code block into list -->\n")?;
+                    writeln!(self, "<!-- Don't absorb code block into list -->")?;
                     write!(self, "<!-- Consider a fenced code block instead -->")?;
                 };
             }
@@ -960,7 +956,7 @@ where
                             } else {
                                 Some((title, '"'))
                             };
-                            self.write_inline_link(&url, title)?;
+                            self.write_inline_link(url, title)?;
                         }
                     }
                     LinkType::Reference | LinkType::ReferenceUnknown => {
@@ -1011,14 +1007,14 @@ where
 }
 
 /// Find some marker, but limit the size
-fn rewrite_marker_with_limit<'i, W: StrWrite>(
-    input: &'i str,
+fn rewrite_marker_with_limit<W: StrWrite>(
+    input: &str,
     range: &Range<usize>,
     writer: &mut W,
     size_limit: Option<usize>,
 ) -> std::io::Result<()> {
     let marker_char = input[range.start..].chars().next().unwrap();
-    let marker = find_marker(input, &range, |c| c != marker_char);
+    let marker = find_marker(input, range, |c| c != marker_char);
     if let Some(mark_max_width) = size_limit {
         write!(writer, "{}", &marker[..mark_max_width])
     } else {
@@ -1027,8 +1023,8 @@ fn rewrite_marker_with_limit<'i, W: StrWrite>(
 }
 
 /// Finds a marker in the source text and writes it to the buffer
-fn rewrite_marker<'i, W: StrWrite>(
-    input: &'i str,
+fn rewrite_marker<W: StrWrite>(
+    input: &str,
     range: &Range<usize>,
     writer: &mut W,
 ) -> std::io::Result<()> {
