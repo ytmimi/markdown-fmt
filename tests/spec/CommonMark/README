@@ -1,0 +1,13 @@
+URL: https://github.com/commonmark/commonmark-spec.git
+Version: 0.30
+Commit: 6af106130d168e923d6008316a6a5681ca5e326d
+License: Creative Commons CC-BY-SA 4.0
+License File: LICENSE
+
+Description:
+Tests for the CommonMark spec.
+
+Local Modifications:
+This directory only contains the commonmark_v0_30_spec.json file, which is derived from spec.txt
+by running `python test/spec_tests.py -d -s ./spec.txt`. The generated JSON was further modifed to
+produce test cases for this project.
