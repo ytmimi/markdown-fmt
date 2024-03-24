@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// Input file. Markdown (.md) or Rust (.rs)
+    /// Input Markdown (.md) file.
     input: PathBuf,
     /// Whether to emit output to stdout. Otherwise the content of the
     /// original file will be overwritten
