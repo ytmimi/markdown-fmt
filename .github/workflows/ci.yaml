@@ -11,8 +11,7 @@ env:
   RUSTFLAGS: "-D warnings"
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,3 +31,16 @@ jobs:
 
     - name: Run tests
       run: cargo +nightly test --features gen-tests
+
+  minimal_supported_rust_version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install MSRV (1.74.0) Rust Toolchain
+      run: |
+        rustup install --no-self-update --profile minimal 1.74.0
+    - name: Check Build
+      run: cargo +1.74.0 build --all-features
