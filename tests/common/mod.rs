@@ -1,8 +1,8 @@
 /// Collection of common functions / macros used for generating tests
 
-pub fn check_formatted_markdown<'a, 'o>(
+pub fn check_formatted_markdown<'a>(
     input: &'a str,
-    expected_output: &'o str,
+    expected_output: &str,
 ) -> std::borrow::Cow<'a, str> {
     let formatted = markdown_fmt::rewrite_markdown(input).expect("formatting won't fail");
     assert_eq!(formatted, expected_output);
@@ -15,10 +15,10 @@ macro_rules! test {
         test!($input, $input)
     };
     ($input:expr, $output:expr) => {{
-        let formatted = crate::common::check_formatted_markdown($input, $output);
+        let formatted = $crate::common::check_formatted_markdown($input, $output);
         if $input != $output {
             // Perform an idempotency check on the formatted markdown
-            crate::common::check_formatted_markdown(&formatted, &formatted);
+            $crate::common::check_formatted_markdown(&formatted, &formatted);
         }
         formatted
     }};
@@ -30,7 +30,7 @@ macro_rules! test_identical_markdown_events {
         test_identical_markdown_events!($input, $input)
     };
     ($input:expr, $output:expr) => {
-        let formatted = crate::test!($input, $output);
+        let formatted = $crate::test!($input, $output);
 
         let mut options = pulldown_cmark::Options::all();
         options.remove(pulldown_cmark::Options::ENABLE_SMART_PUNCTUATION);
