@@ -8,6 +8,6 @@ Description:
 Tests for the GitHub Flavored Markdown extensions to the CommonMark spec.
 
 Local Modifications:
-This directory only contains the gfm_spec.json file, which is derived from test/spec.txt
+This directory only contains the gfm_spec_v0_29_0_gfm_13.json file, which is derived from test/spec.txt
 by running `python test/spec_tests.py -d -s test/spec.txt`. The generated JSON was further modifed to
 produce test cases for this project.

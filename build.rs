@@ -23,7 +23,7 @@ fn generate_tests_markdown_tests() -> std::io::Result<()> {
         ),
         (
             "gfm_",
-            "./tests/spec/GitHub/gfm_spec.json",
+            "./tests/spec/GitHub/gfm_spec_v0_29_0_gfm_13.json",
             "https://github.github.com/gfm/",
         ),
     ];
