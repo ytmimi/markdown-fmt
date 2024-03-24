@@ -13,24 +13,28 @@ fn generate_tests_markdown_tests() -> std::io::Result<()> {
     use std::io::BufWriter;
     use std::path::PathBuf;
 
-    let spec_folder = "./tests/spec/";
     let test_folder = "./tests/";
 
     let spec_files = [
         (
             "",
-            "commonmark_v0_30_spec.json",
+            "./tests/spec/CommonMark/commonmark_v0_30_spec.json",
             "https://spec.commonmark.org/0.30/",
         ),
-        ("gfm_", "gfm_spec.json", "https://github.github.com/gfm/"),
+        (
+            "gfm_",
+            "./tests/spec/GitHub/gfm_spec_v0_29_0_gfm_13.json",
+            "https://github.github.com/gfm/",
+        ),
     ];
 
     for (prefix, spec, url) in spec_files {
-        let input_file = format!("{spec_folder}{spec}");
-        let mut output_file = PathBuf::from(format!("{test_folder}{spec}"));
+        let spec_file = spec.split('/').last().unwrap();
+        let mut output_file = PathBuf::from(format!("{test_folder}{spec_file}"));
         output_file.set_extension("rs");
+        println!("output_file: {}", output_file.display());
 
-        let test_cases: Vec<TestCase<'_>> = serde_json::from_reader(File::open(&input_file)?)?;
+        let test_cases: Vec<TestCase<'_>> = serde_json::from_reader(File::open(&spec)?)?;
         let mut output = BufWriter::new(File::create(&output_file)?);
 
         write_test_cases(&mut output, prefix, test_cases, url)
