@@ -18,6 +18,10 @@ rust-version = "1.74.0"
 name = "markdown-fmt"
 required-features = ["build-binary"]
 
+[lints.rust]
+unsafe_code = "forbid"
+missing-docs = "deny"
+
 [dependencies]
 itertools = "0.10"
 pulldown-cmark = { version = "0.9.3", default-features = false }
