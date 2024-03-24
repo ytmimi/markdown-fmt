@@ -453,6 +453,7 @@ where
     /// The main entry point for markdown formatting.
     pub fn format(mut self) -> std::io::Result<String> {
         while let Some((event, range)) = self.events.next() {
+            tracing::debug!(?event, ?range);
             let mut last_position = self.input[..range.end]
                 .bytes()
                 .rposition(|b| !b.is_ascii_whitespace())

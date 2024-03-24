@@ -5,6 +5,7 @@ use markdown_fmt::rewrite_markdown;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -27,6 +28,11 @@ fn output_result(input: &Path, result: &str, stdout: bool) -> Result<(), anyhow:
 }
 
 fn main() -> Result<(), anyhow::Error> {
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_env("MARKDOWN_FMT_LOG"))
+        .init();
+
     let cli = Cli::parse();
 
     match cli.input.extension().and_then(OsStr::to_str) {

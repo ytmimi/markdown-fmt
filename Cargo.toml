@@ -29,10 +29,12 @@ unicode-width = "0.1"
 unicode-segmentation = "1.9"
 clap = { version = "4.5.2", features = ["derive"], optional = true }
 anyhow = { version = "1.0.80", optional = true }
+tracing = { version = "0.1.40", default-features = false }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"], optional = true }
 
 [features]
 gen-tests = ["dep:serde", "dep:serde_json"]
-build-binary = ["dep:clap", "dep:anyhow"]
+build-binary = ["dep:clap", "dep:anyhow", "dep:tracing-subscriber"]
 
 [build-dependencies]
 serde = { version = "1.0.160", features = ["derive"], optional = true }
