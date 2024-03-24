@@ -2227,8 +2227,8 @@ fn markdown_list_items_257() {
     test!(r##" -    one
 
      two"##,r##"- one
-<!-- Dont absorb code block into list -->
-<!-- Consider a feenced code block instead -->
+<!-- Don't absorb code block into list -->
+<!-- Consider a fenced code block instead -->
 
      two"##);
 }
@@ -2804,8 +2804,8 @@ fn markdown_lists_313() {
     3. c"##,r##"1. a
 
 2. b
-<!-- Dont absorb code block into list -->
-<!-- Consider a feenced code block instead -->
+<!-- Don't absorb code block into list -->
+<!-- Consider a fenced code block instead -->
 
     3. c"##);
 }
