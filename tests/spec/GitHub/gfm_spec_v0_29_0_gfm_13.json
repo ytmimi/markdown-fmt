@@ -2218,7 +2218,7 @@
   },
   {
     "markdown": " -    one\n\n     two\n",
-    "formattedMarkdown": "- one\n<!-- Dont absorb code block into list -->\n<!-- Consider a feenced code block instead -->\n\n     two",
+    "formattedMarkdown": "- one\n<!-- Don't absorb code block into list -->\n<!-- Consider a fenced code block instead -->\n\n     two",
     "html": "<ul>\n<li>one</li>\n</ul>\n<pre><code> two\n</code></pre>\n",
     "example": 235,
     "start_line": 4081,
@@ -2750,7 +2750,7 @@
   },
   {
     "markdown": "1. a\n\n  2. b\n\n    3. c\n",
-    "formattedMarkdown": "1. a\n\n2. b\n<!-- Dont absorb code block into list -->\n<!-- Consider a feenced code block instead -->\n\n    3. c",
+    "formattedMarkdown": "1. a\n\n2. b\n<!-- Don't absorb code block into list -->\n<!-- Consider a fenced code block instead -->\n\n    3. c",
     "html": "<ol>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n</ol>\n<pre><code>3. c\n</code></pre>\n",
     "example": 293,
     "start_line": 5475,
