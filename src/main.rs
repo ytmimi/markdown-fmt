@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use clap::Parser;
 use markdown_fmt::rewrite_markdown;
 use std::ffi::OsStr;

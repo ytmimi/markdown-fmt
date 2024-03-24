@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 fn main() {
     generate_tests_markdown_tests().unwrap()
 }
