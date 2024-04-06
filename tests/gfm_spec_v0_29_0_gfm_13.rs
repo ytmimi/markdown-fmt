@@ -1943,7 +1943,8 @@ fn gfm_markdown_block_quotes_218() {
 #[test]
 fn gfm_markdown_block_quotes_219() {
     // https://github.github.com/gfm/#example-219
-    test_identical_markdown_events!(">\n> foo\n>  ",r##"> foo
+    test_identical_markdown_events!(">\n> foo\n>  ",r##">
+> foo
 >"##);
 }
 
@@ -2013,8 +2014,8 @@ baz"##);
 fn gfm_markdown_block_quotes_228() {
     // https://github.github.com/gfm/#example-228
     test_identical_markdown_events!(r##"> > > foo
-bar"##,r##"> > > foo
-> > > bar"##);
+bar"##,r##">>> foo
+>>> bar"##);
 }
 
 #[test]
@@ -2022,9 +2023,9 @@ fn gfm_markdown_block_quotes_229() {
     // https://github.github.com/gfm/#example-229
     test_identical_markdown_events!(r##">>> foo
 > bar
->>baz"##,r##"> > > foo
-> > > bar
-> > > baz"##);
+>>baz"##,r##">>> foo
+>>> bar
+>>> baz"##);
 }
 
 #[test]
@@ -2109,9 +2110,9 @@ fn gfm_markdown_list_items_237() {
     // https://github.github.com/gfm/#example-237
     test_identical_markdown_events!(r##"   > > 1.  one
 >>
->>     two"##,r##"> > 1. one
-> >
-> >    two"##);
+>>     two"##,r##">> 1. one
+>>
+>>    two"##);
 }
 
 #[test]
@@ -2119,9 +2120,9 @@ fn gfm_markdown_list_items_238() {
     // https://github.github.com/gfm/#example-238
     test_identical_markdown_events!(r##">>- one
 >>
-  >  > two"##,r##"> > - one
-> >
-> > two"##);
+  >  > two"##,r##">> - one
+>>
+>> two"##);
 }
 
 #[test]

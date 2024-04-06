@@ -130,6 +130,11 @@ impl<'i, F> FormatState<'i, F> {
         self.events.peek().map(|(e, _)| e)
     }
 
+    /// Peek at the next Markdown Event and it's original position in the input
+    fn peek_with_range(&mut self) -> Option<(&Event, &Range<usize>)> {
+        self.events.peek().map(|(e, r)| (e, r))
+    }
+
     /// Check if the next Event is an `Event::End`
     fn is_next_end_event(&mut self) -> bool {
         matches!(self.peek(), Some(Event::End(_)))
@@ -588,30 +593,64 @@ where
                 }
             }
             Tag::BlockQuote => {
+                // Just in case we're starting a new block quote in a nested context where
+                // We alternate indentation levels we want to remove trailing whitespace
+                // from the blockquote that we're about to push on top of
+                if let Some(indent) = self.indentation.last_mut() {
+                    if indent == "> " {
+                        *indent = ">".into()
+                    }
+                }
+
+                let newlines = self.count_newlines(&range);
                 if self.needs_indent {
-                    let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
 
-                if matches!(self.peek(), Some(Event::End(Tag::BlockQuote))) {
-                    // Special case handling for empty block quotes
-                    let block_quote_opener =
-                        self.input[range].bytes().filter(|b| *b == b'>').count();
-                    for i in 0..block_quote_opener {
-                        let is_last = i == block_quote_opener - 1;
-                        write!(self, ">")?;
-                        if !is_last {
-                            writeln!(self)?;
-                        }
-                        self.write_indentation(false);
-                    }
-                } else {
-                    self.write_str("> ")?;
-                }
-
                 self.nested_context.push(tag);
-                self.indentation.push("> ".into());
+
+                match self.peek_with_range().map(|(e, r)| (e.clone(), r.clone())) {
+                    Some((Event::End(Tag::BlockQuote), _)) => {
+                        // The next event is `End(BlockQuote)` so the current blockquote is empty!
+                        self.write_str(">")?;
+                        self.indentation.push(">".into());
+
+                        let snippet = &self.input[range].trim_end();
+                        let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
+                        self.write_newlines(newlines)?;
+                    }
+                    Some((Event::Start(Tag::BlockQuote), next_range)) => {
+                        // The next event is `Start(BlockQuote) so we're adding another level
+                        // of indentation.
+                        self.write_str(">")?;
+                        self.indentation.push(">".into());
+
+                        // Now add any missing newlines for empty block quotes between
+                        // the current start and the next start
+                        let snippet = &self.input[range.start..next_range.start];
+                        let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
+                        self.write_newlines(newlines)?;
+                    }
+                    Some((_, next_range)) => {
+                        // Now add any missing newlines for empty block quotes between
+                        // the current start and the next start
+                        let snippet = &self.input[range.start..next_range.start];
+                        let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
+
+                        self.indentation.push("> ".into());
+                        if newlines > 0 {
+                            self.write_str(">")?;
+                            self.write_newlines(newlines)?;
+                        } else {
+                            self.write_str("> ")?;
+                        }
+                    }
+                    None => {
+                        // Peeking at the next event should always return `Some()` for start events
+                        unreachable!("At the very least we'd expect an `End(BlockQuote)` event.");
+                    }
+                }
             }
             Tag::CodeBlock(ref kind) => {
                 let newlines = self.count_newlines(&range);
