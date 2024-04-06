@@ -2082,7 +2082,8 @@ fn markdown_block_quotes_240() {
 #[test]
 fn markdown_block_quotes_241() {
     // https://spec.commonmark.org/0.30/#example-241
-    test_identical_markdown_events!(">\n> foo\n>  ",r##"> foo
+    test_identical_markdown_events!(">\n> foo\n>  ",r##">
+> foo
 >"##);
 }
 
@@ -2152,8 +2153,8 @@ baz"##);
 fn markdown_block_quotes_250() {
     // https://spec.commonmark.org/0.30/#example-250
     test_identical_markdown_events!(r##"> > > foo
-bar"##,r##"> > > foo
-> > > bar"##);
+bar"##,r##">>> foo
+>>> bar"##);
 }
 
 #[test]
@@ -2161,9 +2162,9 @@ fn markdown_block_quotes_251() {
     // https://spec.commonmark.org/0.30/#example-251
     test_identical_markdown_events!(r##">>> foo
 > bar
->>baz"##,r##"> > > foo
-> > > bar
-> > > baz"##);
+>>baz"##,r##">>> foo
+>>> bar
+>>> baz"##);
 }
 
 #[test]
@@ -2248,9 +2249,9 @@ fn markdown_list_items_259() {
     // https://spec.commonmark.org/0.30/#example-259
     test_identical_markdown_events!(r##"   > > 1.  one
 >>
->>     two"##,r##"> > 1. one
-> >
-> >    two"##);
+>>     two"##,r##">> 1. one
+>>
+>>    two"##);
 }
 
 #[test]
@@ -2258,9 +2259,9 @@ fn markdown_list_items_260() {
     // https://spec.commonmark.org/0.30/#example-260
     test_identical_markdown_events!(r##">>- one
 >>
-  >  > two"##,r##"> > - one
-> >
-> > two"##);
+  >  > two"##,r##">> - one
+>>
+>> two"##);
 }
 
 #[test]

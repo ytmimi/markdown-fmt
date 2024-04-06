@@ -2067,7 +2067,7 @@
   },
   {
     "markdown": ">\n> foo\n>  \n",
-    "formattedMarkdown": "> foo\n>",
+    "formattedMarkdown": ">\n> foo\n>",
     "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n",
     "example": 219,
     "start_line": 3776,
@@ -2150,7 +2150,7 @@
   },
   {
     "markdown": "> > > foo\nbar\n",
-    "formattedMarkdown": "> > > foo\n> > > bar",
+    "formattedMarkdown": ">>> foo\n>>> bar",
     "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar</p>\n</blockquote>\n</blockquote>\n</blockquote>\n",
     "example": 228,
     "start_line": 3909,
@@ -2160,7 +2160,7 @@
   },
   {
     "markdown": ">>> foo\n> bar\n>>baz\n",
-    "formattedMarkdown": "> > > foo\n> > > bar\n> > > baz",
+    "formattedMarkdown": ">>> foo\n>>> bar\n>>> baz",
     "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar\nbaz</p>\n</blockquote>\n</blockquote>\n</blockquote>\n",
     "example": 229,
     "start_line": 3924,
@@ -2239,7 +2239,7 @@
   },
   {
     "markdown": "   > > 1.  one\n>>\n>>     two\n",
-    "formattedMarkdown": "> > 1. one\n> >\n> >    two",
+    "formattedMarkdown": ">> 1. one\n>>\n>>    two",
     "html": "<blockquote>\n<blockquote>\n<ol>\n<li>\n<p>one</p>\n<p>two</p>\n</li>\n</ol>\n</blockquote>\n</blockquote>\n",
     "example": 237,
     "start_line": 4116,
@@ -2249,7 +2249,7 @@
   },
   {
     "markdown": ">>- one\n>>\n  >  > two\n",
-    "formattedMarkdown": "> > - one\n> >\n> > two",
+    "formattedMarkdown": ">> - one\n>>\n>> two",
     "html": "<blockquote>\n<blockquote>\n<ul>\n<li>one</li>\n</ul>\n<p>two</p>\n</blockquote>\n</blockquote>\n",
     "example": 238,
     "start_line": 4143,
