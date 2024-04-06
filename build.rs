@@ -31,6 +31,9 @@ fn generate_tests_markdown_tests() -> std::io::Result<()> {
     ];
 
     for (prefix, spec, url) in spec_files {
+        // FIXME(ytmimi) switch to `cargo::` build script syntax when the Minimum Supported Rust
+        // Version (MSRV) is 1.77.0 or higher.
+        println!("cargo:rerun-if-changed={}", spec);
         let spec_file = spec.split('/').last().unwrap();
         let mut output_file = PathBuf::from(format!("{test_folder}{spec_file}"));
         output_file.set_extension("rs");
