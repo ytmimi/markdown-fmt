@@ -16,7 +16,8 @@
 //!
 //! let formatted = r##"# Getting Started
 //! 1. numbered lists
-//! 2. are easy!"##;
+//! 2. are easy!
+//! "##;
 //!
 //! let output = rewrite_markdown(markdown)?;
 //! # assert_eq!(output, formatted);
@@ -56,7 +57,8 @@
 //!   * unordered lists
 //!     are also pretty easy!
 //!   - `-` or `+` can also be used as unordered list markers.
-//!   ```"##;
+//!   ```
+//! "##;
 //!
 //! let output = rewrite_markdown_with_builder(markdown, builder)?;
 //! # assert_eq!(output, formatted);
@@ -91,7 +93,8 @@ pub use formatter::MarkdownFormatter;
 /// 2. Watch tutorials
 /// 3. Write some code!
 ///
-/// [The Book]: https://doc.rust-lang.org/book/"##;
+/// [The Book]: https://doc.rust-lang.org/book/
+/// "##;
 ///
 /// let output = rewrite_markdown(markdown).unwrap();
 /// assert_eq!(output, formatted_markdown);
@@ -117,7 +120,8 @@ pub fn rewrite_markdown(input: &str) -> Result<String, std::io::Error> {
 /// 2. Watch tutorials
 /// 3. Write some code!
 ///
-/// [The Book]: https://doc.rust-lang.org/book/"##;
+/// [The Book]: https://doc.rust-lang.org/book/
+/// "##;
 ///
 /// let builder = FormatterBuilder::default();
 /// let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
@@ -159,7 +163,8 @@ fn main() {}
 ```rust
 fn main() {}
 ```
-[ there! ]: htts://example.com "Yoooo""##;
+[ there! ]: htts://example.com "Yoooo"
+"##;
         let rewrite = rewrite_markdown(input).unwrap();
         assert_eq!(rewrite, expected)
     }

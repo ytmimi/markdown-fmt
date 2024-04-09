@@ -542,7 +542,13 @@ where
             self.last_position = last_position
         }
         debug_assert!(self.nested_context.is_empty());
-        self.rewrite_final_reference_links()
+        let trailing_newline = self.input.ends_with('\n');
+        self.rewrite_final_reference_links().map(|mut output| {
+            if trailing_newline {
+                output.push('\n');
+            }
+            output
+        })
     }
 
     fn start_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::io::Result<()> {
