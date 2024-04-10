@@ -2050,7 +2050,6 @@ fn markdown_block_quotes_237() {
     test_identical_markdown_events!(r##"> ```
 foo
 ```"##,r##"> ```
->
 > ```
 foo
 ```
