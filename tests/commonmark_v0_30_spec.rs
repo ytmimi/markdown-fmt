@@ -2435,17 +2435,14 @@ fn markdown_list_items_278() {
   bar
   ```
 -
-      baz"##,r##"- foo
-- ```
-  bar
-  ```
--     baz"##);
+      baz"##);
 }
 
 #[test]
 fn markdown_list_items_279() {
     // https://spec.commonmark.org/0.30/#example-279
-    test_identical_markdown_events!("-   \n  foo",r##"- foo"##);
+    test_identical_markdown_events!("-   \n  foo",r##"-
+  foo"##);
 }
 
 #[test]
