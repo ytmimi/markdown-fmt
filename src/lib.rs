@@ -16,7 +16,7 @@
 //!
 //! let formatted = r##"# Getting Started
 //! 1. numbered lists
-//! 2. are easy!
+//! 1. are easy!
 //! "##;
 //!
 //! let output = rewrite_markdown(markdown)?;

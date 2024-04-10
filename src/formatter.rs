@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::iter::Peekable;
 use std::ops::Range;
+use std::str::FromStr;
 
 use itertools::Itertools;
 use pulldown_cmark::escape::StrWrite;
@@ -9,7 +10,7 @@ use pulldown_cmark::{LinkDef, Options, Parser};
 
 use crate::builder::CodeBlockFormatter;
 use crate::links;
-use crate::list::{ListMarker, OrderedListMarker, UnorderedListMarker};
+use crate::list::ListMarker;
 use crate::table::TableState;
 
 /// Used to format Markdown inputs.
@@ -63,7 +64,8 @@ pub(crate) struct FormatState<'i, F> {
     /// Stack that keeps track of nested list markers.
     /// Unordered list markers are one of `*`, `+`, or `-`,
     /// while ordered lists markers start with 0-9 digits followed by a `.` or `)`.
-    list_markers: Vec<ListMarker>,
+    // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
+    // list_markers: Vec<ListMarker>,
     /// Stack that keeps track of indentation.
     indentation: Vec<Cow<'static, str>>,
     /// Stack that keeps track of whether we're formatting inside of another element.
@@ -414,7 +416,8 @@ where
             events: parser.into_offset_iter().peekable(),
             rewrite_buffer: String::with_capacity(input.len() * 2),
             code_block_buffer: String::with_capacity(256),
-            list_markers: vec![],
+            // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
+            // list_markers: vec![],
             indentation: vec![],
             nested_context: vec![],
             reference_links,
@@ -696,53 +699,17 @@ where
                 }
                 self.nested_context.push(tag);
             }
-            Tag::List(value) => {
+            Tag::List(_) => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
 
-                let list_marker = if let Some(number) = value {
-                    let marker = match self.input[range.clone()]
-                        .chars()
-                        .find(|c| ['.', ')'].contains(c))
-                        .expect("we should find ordered list markers")
-                    {
-                        '.' => OrderedListMarker::Period,
-                        ')' => OrderedListMarker::Parenthesis,
-                        _ => unreachable!(),
-                    };
-                    let zero_padding = if number != 0 {
-                        self.input[range]
-                            .trim_start()
-                            .bytes()
-                            .take_while(|b| *b == b'0')
-                            .count()
-                    } else {
-                        0
-                    };
-
-                    ListMarker::Ordered {
-                        zero_padding,
-                        number: number as usize,
-                        marker,
-                    }
-                } else {
-                    let marker = match self.input[range]
-                        .chars()
-                        .find(|c| ['*', '+', '-'].contains(c))
-                        .expect("we should find unorder list marker")
-                    {
-                        '*' => UnorderedListMarker::Asterisk,
-                        '+' => UnorderedListMarker::Plus,
-                        '-' => UnorderedListMarker::Hyphen,
-                        _ => unreachable!(),
-                    };
-                    ListMarker::Unordered(marker)
-                };
-
-                self.list_markers.push(list_marker);
+                // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
+                // let list_marker = ListMarker::from_str(&self.input[range])
+                //    .expect("Should be able to parse a list marker");
+                // self.list_markers.push(list_marker);
                 self.nested_context.push(tag);
             }
             Tag::Item => {
@@ -771,11 +738,14 @@ where
                 // this is an empty list item
                 self.needs_indent = empty_list_item;
 
+                let list_marker = ListMarker::from_str(&self.input[range])
+                    .expect("Should be able to parse a list marker");
+                // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
                 // Take list_marker so we can use `write!(self, ...)`
-                let mut list_marker = self
-                    .list_markers
-                    .pop()
-                    .expect("can't have list item without marker");
+                // let mut list_marker = self
+                //     .list_markers
+                //     .pop()
+                //     .expect("can't have list item without marker");
                 let marker_char = list_marker.marker_char();
                 match &list_marker {
                     ListMarker::Ordered { number, .. } if empty_list_item => {
@@ -797,9 +767,10 @@ where
                 self.nested_context.push(tag);
                 // Increment the list marker in case this is a ordered list and
                 // swap the list marker we took earlier
-                list_marker.increment_count();
                 self.indentation.push(list_marker.indentation());
-                self.list_markers.push(list_marker)
+                // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
+                // list_marker.increment_count();
+                // self.list_markers.push(list_marker)
             }
             Tag::FootnoteDefinition(label) => {
                 write!(self, "[^{label}]: ")?;
@@ -943,7 +914,8 @@ where
             Tag::List(_) => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
-                self.list_markers.pop();
+                // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
+                // self.list_markers.pop();
 
                 // To prevent the next code block from being interpreted as a list we'll add an
                 // HTML comment See https://spec.commonmark.org/0.30/#example-308, which states:
@@ -964,16 +936,8 @@ where
                 }
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
-                let popped_indentation = self
-                    .indentation
-                    .pop()
-                    .expect("we list item indentation in start_tag");
-
-                // There should always be a list marker since we don't pop
-                // list markers off the stack until we've reached the end of the list
-                if let Some(marker) = self.list_markers.last() {
-                    debug_assert_eq!(marker.indentation(), popped_indentation);
-                }
+                let popped_indentation = self.indentation.pop();
+                debug_assert!(popped_indentation.is_some());
 
                 // if the next event is a Start(Item), then we need to set needs_indent
                 self.needs_indent = matches!(self.peek(), Some(Event::Start(Tag::Item)));
