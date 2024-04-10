@@ -4,7 +4,7 @@ use std::ops::Range;
 
 use itertools::Itertools;
 use pulldown_cmark::escape::StrWrite;
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, LinkType, OffsetIter, Tag};
+use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, LinkType, OffsetIter, Tag};
 use pulldown_cmark::{LinkDef, Options, Parser};
 
 use crate::builder::CodeBlockFormatter;
@@ -164,16 +164,6 @@ impl<'i, F> FormatState<'i, F> {
             self.nested_context.last(),
             Some(Tag::CodeBlock(CodeBlockKind::Indented))
         )
-    }
-
-    /// Check if we're in a paragraph
-    fn in_paragraph(&self) -> bool {
-        matches!(self.nested_context.last(), Some(Tag::Paragraph))
-    }
-
-    /// Check if we're in a list
-    fn in_list_item(&self) -> bool {
-        matches!(self.nested_context.last(), Some(Tag::Item))
     }
 
     // check if we're formatting a table header
@@ -478,18 +468,16 @@ where
                     last_position = range.end;
                     let starts_with_escape = self.input[..range.start].ends_with('\\');
                     let newlines = self.count_newlines(&range);
-                    let text_from_source = CowStr::from(&self.input[range]);
+                    let text_from_source = &self.input[range];
                     let text = if text_from_source.is_empty() {
                         // This seems to happen when the parsed text is whitespace only.
                         // To preserve leading whitespace use the parsed text instead.
-                        parsed_text
+                        parsed_text.as_ref()
                     } else {
-                        &text_from_source
+                        text_from_source
                     };
-                    if self.needs_indent
-                        && newlines > 0
-                        && (self.in_paragraph() || self.in_list_item())
-                    {
+
+                    if self.needs_indent {
                         self.write_newlines(newlines)?;
                         self.needs_indent = false;
                     }
@@ -761,10 +749,27 @@ where
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
-                    self.needs_indent = false;
                 }
 
-                let empty_list_item = matches!(self.peek(), Some(Event::End(Tag::Item)));
+                let empty_list_item = match self.events.peek() {
+                    Some((Event::End(Tag::Item), _)) => true,
+                    Some((_, next_range)) => {
+                        let snippet = &self.input[range.start..next_range.start];
+                        // It's an empty list if there are newlines between the list marker
+                        // and the next event. For example,
+                        //
+                        // ```markdown
+                        // -
+                        //   foo
+                        // ```
+                        snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
+                    }
+                    None => false,
+                };
+
+                // We need to push a newline and indentation before the next event if
+                // this is an empty list item
+                self.needs_indent = empty_list_item;
 
                 // Take list_marker so we can use `write!(self, ...)`
                 let mut list_marker = self

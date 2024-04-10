@@ -2293,17 +2293,14 @@ fn gfm_markdown_list_items_256() {
   bar
   ```
 -
-      baz"##,r##"- foo
-- ```
-  bar
-  ```
--     baz"##);
+      baz"##);
 }
 
 #[test]
 fn gfm_markdown_list_items_257() {
     // https://github.github.com/gfm/#example-257
-    test_identical_markdown_events!("-   \n  foo",r##"- foo"##);
+    test_identical_markdown_events!("-   \n  foo",r##"-
+  foo"##);
 }
 
 #[test]
