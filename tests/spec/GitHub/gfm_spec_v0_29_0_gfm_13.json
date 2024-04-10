@@ -2028,7 +2028,7 @@
   },
   {
     "markdown": "> ```\nfoo\n```\n",
-    "formattedMarkdown": "> ```\n>\n> ```\nfoo\n```\n```",
+    "formattedMarkdown": "> ```\n> ```\nfoo\n```\n```",
     "html": "<blockquote>\n<pre><code></code></pre>\n</blockquote>\n<p>foo</p>\n<pre><code></code></pre>\n",
     "example": 215,
     "start_line": 3716,

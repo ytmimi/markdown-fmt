@@ -342,11 +342,6 @@ impl<'i, F> FormatState<'i, F> {
     }
 
     fn join_with_indentation(&mut self, buffer: &str, start_with_indentation: bool) {
-        if buffer.trim().is_empty() && start_with_indentation {
-            self.write_indentation(true);
-            return;
-        }
-
         let mut lines = buffer.trim_end().lines().peekable();
         while let Some(line) = lines.next() {
             let is_last = lines.peek().is_none();
@@ -444,7 +439,20 @@ where
 
     fn write_code_block_buffer(&mut self, info_string: Option<&str>) -> std::io::Result<()> {
         let code = self.format_code_buffer(info_string);
+
+        if code.trim().is_empty() && info_string.is_some() {
+            // The code fence is empty, and a newline should already ahve been added
+            // when pushing the opening code fence, so just return.
+            return Ok(());
+        }
+
         self.join_with_indentation(&code, info_string.is_some());
+
+        if info_string.is_some() {
+            // In preparation for the closing code fence write a newline.
+            self.rewrite_buffer.push('\n');
+        }
+
         Ok(())
     }
 
@@ -894,7 +902,7 @@ where
                     CodeBlockKind::Fenced(info_string) => {
                         self.write_code_block_buffer(Some(info_string))?;
                         // write closing code fence
-                        self.write_newlines(1)?;
+                        self.write_indentation(false);
                         rewrite_marker(self.input, &range, &mut self.rewrite_buffer)?;
                     }
                     CodeBlockKind::Indented => {

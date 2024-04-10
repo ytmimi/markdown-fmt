@@ -1911,7 +1911,6 @@ fn gfm_markdown_block_quotes_215() {
     test_identical_markdown_events!(r##"> ```
 foo
 ```"##,r##"> ```
->
 > ```
 foo
 ```
