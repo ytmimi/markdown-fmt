@@ -1,10 +1,10 @@
 use std::borrow::Cow;
+use std::fmt::Write;
 use std::iter::Peekable;
 use std::ops::Range;
 use std::str::FromStr;
 
 use itertools::Itertools;
-use pulldown_cmark::escape::StrWrite;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, LinkType, OffsetIter, Tag};
 use pulldown_cmark::{LinkDef, Options, Parser};
 
@@ -33,7 +33,7 @@ impl MarkdownFormatter {
     /// let rewrite = formatter.format(input).unwrap();
     /// assert_eq!(rewrite, String::from("# Header!"));
     /// ```
-    pub fn format(self, input: &str) -> std::io::Result<String> {
+    pub fn format(self, input: &str) -> Result<String, std::fmt::Error> {
         FormatState::new(input, self.code_block_formatter).format()
     }
 
@@ -93,9 +93,9 @@ pub(crate) struct FormatState<'i, F> {
 }
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
-/// write formatted markdown events. The StrWrite impl helps us centralize this logic.
-impl<'i, F> StrWrite for FormatState<'i, F> {
-    fn write_str(&mut self, text: &str) -> std::io::Result<()> {
+/// write formatted markdown events. The Write impl helps us centralize this logic.
+impl<'i, F> Write for FormatState<'i, F> {
+    fn write_str(&mut self, text: &str) -> std::fmt::Result {
         if self.in_fenced_code_block() || self.in_indented_code_block() {
             self.code_block_buffer.push_str(text);
         } else if self.in_table_header() || self.in_table_row() {
@@ -108,7 +108,7 @@ impl<'i, F> StrWrite for FormatState<'i, F> {
         Ok(())
     }
 
-    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::fmt::Result {
         if self.in_fenced_code_block() || self.in_indented_code_block() {
             self.code_block_buffer.write_fmt(args)?;
         } else if self.in_table_header() || self.in_table_row() {
@@ -118,8 +118,6 @@ impl<'i, F> StrWrite for FormatState<'i, F> {
                 state.write(text.into());
             }
         } else {
-            let mut text = String::new();
-            text.write_fmt(args)?;
             self.rewrite_buffer.write_fmt(args)?;
         }
         Ok(())
@@ -232,14 +230,11 @@ impl<'i, F> FormatState<'i, F> {
         }
     }
 
-    fn write_newlines(&mut self, max_newlines: usize) -> std::io::Result<()> {
+    fn write_newlines(&mut self, max_newlines: usize) -> std::fmt::Result {
         self.write_newlines_inner(max_newlines, false)
     }
 
-    fn write_newlines_no_trailing_whitespace(
-        &mut self,
-        max_newlines: usize,
-    ) -> std::io::Result<()> {
+    fn write_newlines_no_trailing_whitespace(&mut self, max_newlines: usize) -> std::fmt::Result {
         self.write_newlines_inner(max_newlines, true)
     }
 
@@ -247,7 +242,7 @@ impl<'i, F> FormatState<'i, F> {
         &mut self,
         max_newlines: usize,
         always_trim_trailing_whitespace: bool,
-    ) -> std::io::Result<()> {
+    ) -> std::fmt::Result {
         if self.rewrite_buffer.is_empty() {
             return Ok(());
         }
@@ -282,7 +277,7 @@ impl<'i, F> FormatState<'i, F> {
         label: &str,
         dest: &str,
         title: Option<&(String, char)>,
-    ) -> std::io::Result<()> {
+    ) -> std::fmt::Result {
         // empty links can be specified with <>
         let dest = links::format_link_url(dest, true);
         self.write_newlines(1)?;
@@ -294,7 +289,7 @@ impl<'i, F> FormatState<'i, F> {
         Ok(())
     }
 
-    fn rewrite_reference_links(&mut self, range: &Range<usize>) -> std::io::Result<()> {
+    fn rewrite_reference_links(&mut self, range: &Range<usize>) -> std::fmt::Result {
         if self.reference_links.is_empty() {
             return Ok(());
         }
@@ -325,7 +320,7 @@ impl<'i, F> FormatState<'i, F> {
     }
 
     /// Write out reference links at the end of the file
-    fn rewrite_final_reference_links(mut self) -> std::io::Result<String> {
+    fn rewrite_final_reference_links(mut self) -> Result<String, std::fmt::Error> {
         // use std::mem::take to work around the borrow checker
         let reference_links = std::mem::take(&mut self.reference_links);
 
@@ -437,7 +432,7 @@ where
         (self.code_block_formatter)(info_string, code_block_buffer)
     }
 
-    fn write_code_block_buffer(&mut self, info_string: Option<&str>) -> std::io::Result<()> {
+    fn write_code_block_buffer(&mut self, info_string: Option<&str>) -> std::fmt::Result {
         let code = self.format_code_buffer(info_string);
 
         if code.trim().is_empty() && info_string.is_some() {
@@ -457,7 +452,7 @@ where
     }
 
     /// The main entry point for markdown formatting.
-    pub fn format(mut self) -> std::io::Result<String> {
+    pub fn format(mut self) -> Result<String, std::fmt::Error> {
         while let Some((event, range)) = self.events.next() {
             tracing::debug!(?event, ?range);
             let mut last_position = self.input[..range.end]
@@ -550,7 +545,7 @@ where
         })
     }
 
-    fn start_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::io::Result<()> {
+    fn start_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::fmt::Result {
         match tag {
             Tag::Paragraph => {
                 if self.needs_indent {
@@ -618,7 +613,7 @@ where
                 match self.peek_with_range().map(|(e, r)| (e.clone(), r.clone())) {
                     Some((Event::End(Tag::BlockQuote), _)) => {
                         // The next event is `End(BlockQuote)` so the current blockquote is empty!
-                        self.write_str(">")?;
+                        write!(self, ">")?;
                         self.indentation.push(">".into());
 
                         let snippet = &self.input[range].trim_end();
@@ -628,7 +623,7 @@ where
                     Some((Event::Start(Tag::BlockQuote), next_range)) => {
                         // The next event is `Start(BlockQuote) so we're adding another level
                         // of indentation.
-                        self.write_str(">")?;
+                        write!(self, ">")?;
                         self.indentation.push(">".into());
 
                         // Now add any missing newlines for empty block quotes between
@@ -645,10 +640,10 @@ where
 
                         self.indentation.push("> ".into());
                         if newlines > 0 {
-                            self.write_str(">")?;
+                            write!(self, ">")?;
                             self.write_newlines(newlines)?;
                         } else {
-                            self.write_str("> ")?;
+                            write!(self, "> ")?;
                         }
                     }
                     None => {
@@ -840,14 +835,14 @@ where
                 }
 
                 if let Some(state) = self.table_state.as_mut() {
-                    state.write("".into());
+                    state.write(String::new().into());
                 }
             }
         }
         Ok(())
     }
 
-    fn end_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::io::Result<()> {
+    fn end_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::fmt::Result {
         match tag {
             Tag::Paragraph => {
                 let popped_tag = self.nested_context.pop();
@@ -1030,12 +1025,12 @@ where
 }
 
 /// Find some marker, but limit the size
-fn rewrite_marker_with_limit<W: StrWrite>(
+fn rewrite_marker_with_limit<W: std::fmt::Write>(
     input: &str,
     range: &Range<usize>,
     writer: &mut W,
     size_limit: Option<usize>,
-) -> std::io::Result<()> {
+) -> std::fmt::Result {
     let marker_char = input[range.start..].chars().next().unwrap();
     let marker = find_marker(input, range, |c| c != marker_char);
     if let Some(mark_max_width) = size_limit {
@@ -1046,16 +1041,16 @@ fn rewrite_marker_with_limit<W: StrWrite>(
 }
 
 /// Finds a marker in the source text and writes it to the buffer
-fn rewrite_marker<W: StrWrite>(
+fn rewrite_marker<W: std::fmt::Write>(
     input: &str,
     range: &Range<usize>,
     writer: &mut W,
-) -> std::io::Result<()> {
+) -> std::fmt::Result {
     rewrite_marker_with_limit(input, range, writer, None)
 }
 
 /// Rewrite a list of h1, h2, h3, h4, h5, h6 classes
-fn rewirte_header_classes(classes: Vec<&str>) -> std::io::Result<String> {
+fn rewirte_header_classes(classes: Vec<&str>) -> Result<String, std::fmt::Error> {
     let item_len = classes.iter().map(|i| i.len()).sum::<usize>();
     let capacity = item_len + classes.len() * 2;
     let mut result = String::with_capacity(capacity);

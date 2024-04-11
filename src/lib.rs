@@ -21,7 +21,7 @@
 //!
 //! let output = rewrite_markdown(markdown)?;
 //! # assert_eq!(output, formatted);
-//! # Ok::<(), std::io::Error>(())
+//! # Ok::<(), std::fmt::Error>(())
 //! ```
 //!
 //! # Using the [Builder](builder::FormatterBuilder)
@@ -62,7 +62,7 @@
 //!
 //! let output = rewrite_markdown_with_builder(markdown, builder)?;
 //! # assert_eq!(output, formatted);
-//! # Ok::<(), std::io::Error>(())
+//! # Ok::<(), std::fmt::Error>(())
 //! ````
 
 mod builder;
@@ -99,7 +99,7 @@ pub use formatter::MarkdownFormatter;
 /// let output = rewrite_markdown(markdown).unwrap();
 /// assert_eq!(output, formatted_markdown);
 /// ```
-pub fn rewrite_markdown(input: &str) -> Result<String, std::io::Error> {
+pub fn rewrite_markdown(input: &str) -> Result<String, std::fmt::Error> {
     rewrite_markdown_with_builder(input, FormatterBuilder::default())
 }
 
@@ -130,7 +130,7 @@ pub fn rewrite_markdown(input: &str) -> Result<String, std::io::Error> {
 pub fn rewrite_markdown_with_builder(
     input: &str,
     builder: FormatterBuilder,
-) -> Result<String, std::io::Error> {
+) -> Result<String, std::fmt::Error> {
     let formatter = builder.build();
     formatter.format(input)
 }

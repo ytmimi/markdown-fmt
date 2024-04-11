@@ -1,8 +1,8 @@
 use crate::utils::unicode_str_width;
 use itertools::{EitherOrBoth, Itertools};
-use pulldown_cmark::escape::StrWrite;
 use pulldown_cmark::Alignment;
 use std::borrow::Cow;
+use std::fmt::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
 pub(super) struct TableState<'a> {
@@ -103,7 +103,7 @@ impl<'a> TableState<'a> {
         }
     }
 
-    pub(super) fn format(self) -> std::io::Result<String> {
+    pub(super) fn format(self) -> Result<String, std::fmt::Error> {
         let mut result = String::new();
         self.rewrite_header(&mut result)?;
         self.rewrite_alignment(&mut result)?;
@@ -111,7 +111,7 @@ impl<'a> TableState<'a> {
         Ok(result)
     }
 
-    fn write_wth_padding(buffer: &mut String, value: &str, mut size: usize) -> std::io::Result<()> {
+    fn write_wth_padding(buffer: &mut String, value: &str, mut size: usize) -> std::fmt::Result {
         let offset = UnicodeSegmentation::graphemes(value, true)
             .map(|grapheme| unicode_str_width(grapheme).saturating_sub(1))
             .sum();
@@ -119,14 +119,14 @@ impl<'a> TableState<'a> {
         write!(buffer, " {value:<0$} |", size)
     }
 
-    fn rewrite_header(&self, buffer: &mut String) -> std::io::Result<()> {
+    fn rewrite_header(&self, buffer: &mut String) -> std::fmt::Result {
         for (header, width) in self.headers.iter().zip(self.max_column_width.iter()) {
             Self::write_wth_padding(buffer, header, *width)?;
         }
         Ok(())
     }
 
-    fn rewrite_alignment(&self, buffer: &mut String) -> std::io::Result<()> {
+    fn rewrite_alignment(&self, buffer: &mut String) -> std::fmt::Result {
         buffer.push('\n');
         for (alignment, width) in self.alignment.iter().zip(self.max_column_width.iter()) {
             let alignment = match alignment {
@@ -153,7 +153,7 @@ impl<'a> TableState<'a> {
         Ok(())
     }
 
-    fn rewrite_body(&self, buffer: &mut String) -> std::io::Result<()> {
+    fn rewrite_body(&self, buffer: &mut String) -> std::fmt::Result {
         for row in self.body.iter() {
             buffer.push('\n');
             for either_or_both in row.iter().zip_longest(self.max_column_width.iter()) {
