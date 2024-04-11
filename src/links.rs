@@ -1,13 +1,13 @@
 use super::formatter::FormatState;
-use pulldown_cmark::escape::StrWrite;
 use std::borrow::Cow;
+use std::fmt::Write;
 
 impl<'i, F> FormatState<'i, F> {
     pub(super) fn write_inline_link<S: AsRef<str>>(
         &mut self,
         url: &str,
         title: Option<(S, char)>,
-    ) -> std::io::Result<()> {
+    ) -> std::fmt::Result {
         let url = format_link_url(url, false);
         match title {
             Some((title, ')')) => write!(self, r#"]({url} ({}))"#, title.as_ref())?,
