@@ -5,8 +5,8 @@ use std::ops::Range;
 use std::str::FromStr;
 
 use itertools::Itertools;
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, LinkType, OffsetIter, Tag};
-use pulldown_cmark::{LinkDef, Options, Parser};
+use pulldown_cmark::{BrokenLinkCallback, CodeBlockKind, Event, HeadingLevel};
+use pulldown_cmark::{LinkDef, LinkType, OffsetIter, Options, Parser, Tag};
 
 use crate::builder::CodeBlockFormatter;
 use crate::links;
@@ -34,7 +34,14 @@ impl MarkdownFormatter {
     /// assert_eq!(rewrite, String::from("# Header!"));
     /// ```
     pub fn format(self, input: &str) -> Result<String, std::fmt::Error> {
-        FormatState::new(input, self.code_block_formatter).format()
+        // callback that will always revcover broken links
+        let mut callback = |broken_link| {
+            tracing::trace!("found boken link: {broken_link:?}");
+            Some(("".into(), "".into()))
+        };
+
+        let fmt_state = FormatState::new(input, self.code_block_formatter, Some(&mut callback));
+        fmt_state.format()
     }
 
     /// Helper method to easily initiazlie the [MarkdownFormatter].
@@ -368,11 +375,18 @@ impl<'i, F> FormatState<'i, F>
 where
     F: Fn(&str, String) -> String,
 {
-    fn new(input: &'i str, code_block_formatter: F) -> Self {
+    fn new<'callback>(
+        input: &'i str,
+        code_block_formatter: F,
+        broken_link_callback: BrokenLinkCallback<'i, 'callback>,
+    ) -> Self
+    where
+        'callback: 'i,
+    {
         let mut options = Options::all();
         options.remove(Options::ENABLE_SMART_PUNCTUATION);
 
-        let parser = Parser::new_ext(input, options);
+        let parser = Parser::new_with_broken_link_callback(input, options, broken_link_callback);
 
         let reference_links = parser
             .reference_definitions()
