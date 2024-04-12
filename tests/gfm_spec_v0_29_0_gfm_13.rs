@@ -1561,7 +1561,7 @@ fn gfm_markdown_link_reference_definitions_177() {
     test_identical_markdown_events!(r##"[
 foo
 ]: /url
-bar"##,r##"[ foo ]: /url
+bar"##,r##"[foo]: /url
 bar"##);
 }
 
