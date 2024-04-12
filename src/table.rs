@@ -25,6 +25,22 @@ pub(super) struct TableState<'a> {
     col_index: usize,
 }
 
+impl<'a> Write for TableState<'a> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        self.write(s.to_owned().into());
+        Ok(())
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::fmt::Result {
+        if let Some(text) = args.as_str() {
+            self.write(text.into());
+        } else {
+            self.write(args.to_string().into());
+        }
+        Ok(())
+    }
+}
+
 impl<'a> TableState<'a> {
     pub(super) fn new(alignment: Vec<Alignment>) -> Self {
         let capacity = alignment.len();
@@ -36,6 +52,11 @@ impl<'a> TableState<'a> {
             write_to_body: false,
             col_index: 0,
         }
+    }
+
+    /// Check if we've written anything to the table state yet
+    pub(super) fn is_empty(&self) -> bool {
+        self.headers.is_empty() && self.body.is_empty()
     }
 
     /// Write some values to the table state.
@@ -127,7 +148,7 @@ impl<'a> TableState<'a> {
     }
 
     fn rewrite_alignment(&self, buffer: &mut String) -> std::fmt::Result {
-        buffer.push('\n');
+        writeln!(buffer)?;
         for (alignment, width) in self.alignment.iter().zip(self.max_column_width.iter()) {
             let alignment = match alignment {
                 Alignment::Center => {
@@ -155,7 +176,7 @@ impl<'a> TableState<'a> {
 
     fn rewrite_body(&self, buffer: &mut String) -> std::fmt::Result {
         for row in self.body.iter() {
-            buffer.push('\n');
+            writeln!(buffer)?;
             for either_or_both in row.iter().zip_longest(self.max_column_width.iter()) {
                 match either_or_both {
                     EitherOrBoth::Both(cell, width) => {
