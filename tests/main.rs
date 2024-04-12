@@ -23,3 +23,22 @@ fn check_markdown_formatting() {
 
     assert_eq!(errors, 0, "there should be no formatting error");
 }
+
+#[test]
+fn idempotence_test() {
+    let mut errors = 0;
+
+    for file in std::fs::read_dir("tests/target")
+        .unwrap()
+        .map(Result::unwrap)
+    {
+        let input = std::fs::read_to_string(file.path()).unwrap();
+        let formatted_input = rewrite_markdown(&input).unwrap();
+
+        if formatted_input != input {
+            errors += 1;
+        }
+    }
+
+    assert_eq!(errors, 0, "formatting should not change in target files");
+}
