@@ -57,7 +57,7 @@ impl MarkdownFormatter {
     }
 }
 
-type ReferenceLink = (String, String, Option<(String, char)>, Range<usize>);
+type ReferenceLinkDefinition = (String, String, Option<(String, char)>, Range<usize>);
 
 pub(crate) struct FormatState<'i, F> {
     /// Raw markdown input
@@ -85,7 +85,7 @@ pub(crate) struct FormatState<'i, F> {
     /// ```markdown
     /// [title]: link "optional title"
     /// ```
-    reference_links: Vec<ReferenceLink>,
+    reference_links: Vec<ReferenceLinkDefinition>,
     /// keep track of the current setext header.
     /// ```markdown
     /// Header
@@ -279,7 +279,7 @@ impl<'i, F> FormatState<'i, F> {
         Ok(())
     }
 
-    fn write_reference_link_inner(
+    fn write_reference_link_definition_inner(
         &mut self,
         label: &str,
         dest: &str,
@@ -296,7 +296,7 @@ impl<'i, F> FormatState<'i, F> {
         Ok(())
     }
 
-    fn rewrite_reference_links(&mut self, range: &Range<usize>) -> std::fmt::Result {
+    fn rewrite_reference_link_definitions(&mut self, range: &Range<usize>) -> std::fmt::Result {
         if self.reference_links.is_empty() {
             return Ok(());
         }
@@ -316,7 +316,7 @@ impl<'i, F> FormatState<'i, F> {
             let (label, dest, title, link_range) = reference_links.pop().expect("we have a value");
             let newlines = self.count_newlines(&link_range);
             self.write_newlines(newlines)?;
-            self.write_reference_link_inner(&label, &dest, title.as_ref())?;
+            self.write_reference_link_definition_inner(&label, &dest, title.as_ref())?;
             self.last_position = link_range.end;
             self.needs_indent = true;
         }
@@ -337,7 +337,7 @@ impl<'i, F> FormatState<'i, F> {
             self.write_newlines(newlines)?;
 
             // empty links can be specified with <>
-            self.write_reference_link_inner(&label, &dest, title.as_ref())?;
+            self.write_reference_link_definition_inner(&label, &dest, title.as_ref())?;
             self.last_position = range.end
         }
         Ok(self.rewrite_buffer)
@@ -476,7 +476,7 @@ where
 
             match event {
                 Event::Start(tag) => {
-                    self.rewrite_reference_links(&range)?;
+                    self.rewrite_reference_link_definitions(&range)?;
                     last_position = range.start;
                     self.start_tag(tag.clone(), range)?;
                 }
