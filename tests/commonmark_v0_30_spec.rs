@@ -1791,7 +1791,7 @@ fn markdown_link_reference_definitions_208() {
     test_identical_markdown_events!(r##"[
 foo
 ]: /url
-bar"##,r##"[ foo ]: /url
+bar"##,r##"[foo]: /url
 bar"##);
 }
 

@@ -155,7 +155,7 @@ fn main() {}
     ]: htts://example.com "Yoooo"
 "##;
         let expected = r##"# Hello World!
-1. Hey [ there! ]
+1. Hey [there!]
 2. what's going on?
 
 <p> and a little bit of HTML </p>
@@ -163,7 +163,7 @@ fn main() {}
 ```rust
 fn main() {}
 ```
-[ there! ]: htts://example.com "Yoooo"
+[there!]: htts://example.com "Yoooo"
 "##;
         let rewrite = rewrite_markdown(input).unwrap();
         assert_eq!(rewrite, expected)

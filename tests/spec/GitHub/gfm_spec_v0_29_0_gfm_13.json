@@ -1650,7 +1650,7 @@
   },
   {
     "markdown": "[\nfoo\n]: /url\nbar\n",
-    "formattedMarkdown": "[ foo ]: /url\nbar",
+    "formattedMarkdown": "[foo]: /url\nbar",
     "html": "<p>bar</p>\n",
     "example": 177,
     "start_line": 3018,

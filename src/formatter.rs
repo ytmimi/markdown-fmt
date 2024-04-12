@@ -97,6 +97,7 @@ pub(crate) struct FormatState<'i, F> {
     table_state: Option<TableState<'i>>,
     last_position: usize,
     code_block_formatter: F,
+    trim_link_or_image_start: bool,
 }
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
@@ -187,6 +188,14 @@ impl<'i, F> FormatState<'i, F> {
             .iter()
             .rfind(|tag| **tag == Tag::TableRow)
             .is_some()
+    }
+
+    /// Check if we're formatting a link
+    fn in_link_or_image(&self) -> bool {
+        matches!(
+            self.nested_context.last(),
+            Some(Tag::Link(..) | Tag::Image(..))
+        )
     }
 
     /// Check if we're formatting in a nested context
@@ -289,9 +298,9 @@ impl<'i, F> FormatState<'i, F> {
         let dest = links::format_link_url(dest, true);
         self.write_newlines(1)?;
         if let Some((title, quote)) = title {
-            write!(self, r#"[{label}]: {dest} {quote}{title}{quote}"#)?;
+            write!(self, r#"[{}]: {dest} {quote}{title}{quote}"#, label.trim())?;
         } else {
-            write!(self, "[{label}]: {dest}")?;
+            write!(self, "[{}]: {dest}", label.trim())?;
         }
         Ok(())
     }
@@ -430,6 +439,7 @@ where
             table_state: None,
             last_position: 0,
             code_block_formatter,
+            trim_link_or_image_start: false,
         }
     }
 
@@ -489,13 +499,27 @@ where
                     let starts_with_escape = self.input[..range.start].ends_with('\\');
                     let newlines = self.count_newlines(&range);
                     let text_from_source = &self.input[range];
-                    let text = if text_from_source.is_empty() {
+                    let mut text = if text_from_source.is_empty() {
                         // This seems to happen when the parsed text is whitespace only.
                         // To preserve leading whitespace use the parsed text instead.
                         parsed_text.as_ref()
                     } else {
                         text_from_source
                     };
+
+                    if self.in_link_or_image() && self.trim_link_or_image_start {
+                        // Trim leading whitespace from reference links or images
+                        text = text.trim_start();
+                        // Make sure we only trim leading whitespace once
+                        self.trim_link_or_image_start = false
+                    }
+
+                    if matches!(
+                        self.peek(),
+                        Some(Event::End(Tag::Link(..) | Tag::Image(..)))
+                    ) {
+                        text = text.trim_end();
+                    }
 
                     if self.needs_indent {
                         self.write_newlines(newlines)?;
@@ -515,9 +539,21 @@ where
                 }
                 Event::SoftBreak => {
                     last_position = range.end;
-                    write!(self, "{}", &self.input[range])?;
-                    self.write_indentation(false);
-                    self.last_was_softbreak = true;
+                    if self.in_link_or_image() {
+                        let next_is_end = matches!(
+                            self.peek(),
+                            Some(Event::End(Tag::Link(..) | Tag::Image(..)))
+                        );
+                        if self.trim_link_or_image_start || next_is_end {
+                            self.trim_link_or_image_start = false
+                        } else {
+                            write!(self, " ")?;
+                        }
+                    } else {
+                        write!(self, "{}", &self.input[range])?;
+                        self.write_indentation(false);
+                        self.last_was_softbreak = true;
+                    }
                 }
                 Event::HardBreak => {
                     write!(self, "{}", &self.input[range])?;
@@ -812,6 +848,10 @@ where
                 let opener = if email_or_auto { "<" } else { "[" };
                 self.write_str(opener)?;
                 self.nested_context.push(tag);
+
+                if matches!(self.peek(), Some(Event::Text(_) | Event::SoftBreak)) {
+                    self.trim_link_or_image_start = true
+                }
             }
             Tag::Image(..) => {
                 let newlines = self.count_newlines(&range);
@@ -822,6 +862,10 @@ where
 
                 write!(self, "![")?;
                 self.nested_context.push(tag);
+
+                if matches!(self.peek(), Some(Event::Text(_) | Event::SoftBreak)) {
+                    self.trim_link_or_image_start = true
+                }
             }
             Tag::Table(ref alignment) => {
                 if self.needs_indent {
