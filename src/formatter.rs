@@ -104,29 +104,15 @@ pub(crate) struct FormatState<'i, F> {
 /// write formatted markdown events. The Write impl helps us centralize this logic.
 impl<'i, F> Write for FormatState<'i, F> {
     fn write_str(&mut self, text: &str) -> std::fmt::Result {
-        if self.in_fenced_code_block() || self.in_indented_code_block() {
-            self.code_block_buffer.push_str(text);
-        } else if self.in_table_header() || self.in_table_row() {
-            if let Some(state) = self.table_state.as_mut() {
-                state.write(text.to_owned().into());
-            }
-        } else {
-            self.rewrite_buffer.push_str(text)
+        if let Some(writer) = self.current_buffer() {
+            writer.write_str(text)?
         }
         Ok(())
     }
 
     fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::fmt::Result {
-        if self.in_fenced_code_block() || self.in_indented_code_block() {
-            self.code_block_buffer.write_fmt(args)?;
-        } else if self.in_table_header() || self.in_table_row() {
-            if let Some(state) = self.table_state.as_mut() {
-                let mut text = String::new();
-                text.write_fmt(args)?;
-                state.write(text.into());
-            }
-        } else {
-            self.rewrite_buffer.write_fmt(args)?;
+        if let Some(writer) = self.current_buffer() {
+            writer.write_fmt(args)?
         }
         Ok(())
     }
@@ -203,6 +189,32 @@ impl<'i, F> FormatState<'i, F> {
         !self.nested_context.is_empty()
     }
 
+    /// Get an exclusive reference to the current buffer we're writing to. That could be the main
+    /// rewrite buffer, the code block buffer, the internal table state, or anything else we're
+    /// writing to while reformatting
+    fn current_buffer(&mut self) -> Option<&mut dyn std::fmt::Write> {
+        if self.in_fenced_code_block() || self.in_indented_code_block() {
+            Some(&mut self.code_block_buffer)
+        } else if self.in_table_header() || self.in_table_row() {
+            self.table_state
+                .as_mut()
+                .map(|s| s as &mut dyn std::fmt::Write)
+        } else {
+            Some(&mut self.rewrite_buffer)
+        }
+    }
+
+    /// Check if the current buffer we're writting to is empty
+    fn is_current_buffer_empty(&self) -> bool {
+        if self.in_fenced_code_block() || self.in_indented_code_block() {
+            self.code_block_buffer.is_empty()
+        } else if self.in_table_header() || self.in_table_row() {
+            self.table_state.as_ref().is_some_and(|s| s.is_empty())
+        } else {
+            self.rewrite_buffer.is_empty()
+        }
+    }
+
     fn count_newlines(&self, range: &Range<usize>) -> usize {
         if self.last_position == range.start {
             return 0;
@@ -219,7 +231,7 @@ impl<'i, F> FormatState<'i, F> {
         snippet.bytes().filter(|b| *b == b'\n').count()
     }
 
-    fn write_indentation(&mut self, trim_trailing_whiltespace: bool) {
+    fn write_indentation(&mut self, trim_trailing_whiltespace: bool) -> std::fmt::Result {
         let last_non_complete_whitespace_indent = self
             .indentation
             .iter()
@@ -228,22 +240,28 @@ impl<'i, F> FormatState<'i, F> {
         let position = if trim_trailing_whiltespace {
             let Some(position) = last_non_complete_whitespace_indent else {
                 // All indents are just whitespace. We don't want to push blank lines
-                return;
+                return Ok(());
             };
             position
         } else {
             self.indentation.len()
         };
 
-        for (i, indent) in self.indentation.iter().take(position + 1).enumerate() {
+        // Temporarily take indentation to work around the borrow checker
+        let indentation = std::mem::take(&mut self.indentation);
+
+        for (i, indent) in indentation.iter().take(position + 1).enumerate() {
             let is_last = i == position;
 
             if is_last && trim_trailing_whiltespace {
-                self.rewrite_buffer.push_str(indent.trim())
+                self.write_str(indent.trim())?;
             } else {
-                self.rewrite_buffer.push_str(indent)
+                self.write_str(indent)?;
             }
         }
+        // Put the indentation back!
+        self.indentation = indentation;
+        Ok(())
     }
 
     fn write_newlines(&mut self, max_newlines: usize) -> std::fmt::Result {
@@ -259,7 +277,7 @@ impl<'i, F> FormatState<'i, F> {
         max_newlines: usize,
         always_trim_trailing_whitespace: bool,
     ) -> std::fmt::Result {
-        if self.rewrite_buffer.is_empty() {
+        if self.is_current_buffer_empty() {
             return Ok(());
         }
         let newlines = self
@@ -276,14 +294,14 @@ impl<'i, F> FormatState<'i, F> {
         for i in 0..newlines_to_write {
             let is_last = i == newlines_to_write - 1;
 
-            self.rewrite_buffer.push('\n');
+            writeln!(self)?;
 
             if nested {
-                self.write_indentation(!is_last || always_trim_trailing_whitespace);
+                self.write_indentation(!is_last || always_trim_trailing_whitespace)?;
             }
         }
         if !nested {
-            self.write_indentation(next_is_end_event || always_trim_trailing_whitespace);
+            self.write_indentation(next_is_end_event || always_trim_trailing_whitespace)?;
         }
         Ok(())
     }
@@ -352,7 +370,11 @@ impl<'i, F> FormatState<'i, F> {
         Ok(self.rewrite_buffer)
     }
 
-    fn join_with_indentation(&mut self, buffer: &str, start_with_indentation: bool) {
+    fn join_with_indentation(
+        &mut self,
+        buffer: &str,
+        start_with_indentation: bool,
+    ) -> std::fmt::Result {
         let mut lines = buffer.trim_end().lines().peekable();
         while let Some(line) = lines.next() {
             let is_last = lines.peek().is_none();
@@ -362,21 +384,22 @@ impl<'i, F> FormatState<'i, F> {
                 .unwrap_or_default();
 
             if start_with_indentation {
-                self.write_indentation(line.trim().is_empty());
+                self.write_indentation(line.trim().is_empty())?;
             }
 
             if !line.trim().is_empty() {
-                self.rewrite_buffer.push_str(line)
+                self.write_str(line)?;
             }
 
             if !is_last {
-                self.rewrite_buffer.push('\n');
+                writeln!(self)?;
             }
 
             if !is_last && !start_with_indentation {
-                self.write_indentation(is_next_empty);
+                self.write_indentation(is_next_empty)?;
             }
         }
+        Ok(())
     }
 }
 
@@ -465,11 +488,11 @@ where
             return Ok(());
         }
 
-        self.join_with_indentation(&code, info_string.is_some());
+        self.join_with_indentation(&code, info_string.is_some())?;
 
         if info_string.is_some() {
             // In preparation for the closing code fence write a newline.
-            self.rewrite_buffer.push('\n');
+            writeln!(self)?
         }
 
         Ok(())
@@ -551,7 +574,7 @@ where
                         }
                     } else {
                         write!(self, "{}", &self.input[range])?;
-                        self.write_indentation(false);
+                        self.write_indentation(false)?;
                         self.last_was_softbreak = true;
                     }
                 }
@@ -710,7 +733,7 @@ where
                 }
                 match kind {
                     CodeBlockKind::Fenced(info_string) => {
-                        rewrite_marker(self.input, &range, &mut self.rewrite_buffer)?;
+                        rewrite_marker(self.input, &range, self)?;
 
                         if info_string.is_empty() {
                             writeln!(self)?;
@@ -951,12 +974,15 @@ where
                 }
             }
             Tag::CodeBlock(ref kind) => {
+                let popped_tag = self.nested_context.pop();
+                debug_assert_eq!(popped_tag.as_ref(), Some(&tag));
+
                 match kind {
                     CodeBlockKind::Fenced(info_string) => {
                         self.write_code_block_buffer(Some(info_string))?;
                         // write closing code fence
-                        self.write_indentation(false);
-                        rewrite_marker(self.input, &range, &mut self.rewrite_buffer)?;
+                        self.write_indentation(false)?;
+                        rewrite_marker(self.input, &range, self)?;
                     }
                     CodeBlockKind::Indented => {
                         // Maybe we'll consider formatting indented code blocks??
@@ -969,8 +995,6 @@ where
                         debug_assert_eq!(popped_indentation, "    ");
                     }
                 }
-                let popped_tag = self.nested_context.pop();
-                debug_assert_eq!(popped_tag, Some(tag));
             }
             Tag::List(_) => {
                 let popped_tag = self.nested_context.pop();
@@ -1048,7 +1072,7 @@ where
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
                 if let Some(state) = self.table_state.take() {
-                    self.join_with_indentation(&state.format()?, false)
+                    self.join_with_indentation(&state.format()?, false)?;
                 }
                 let popped_indentation = self.indentation.pop().expect("we added `|` in start_tag");
                 debug_assert_eq!(popped_indentation, "|");
