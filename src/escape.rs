@@ -2,7 +2,10 @@ use super::formatter::FormatState;
 
 const ATX_HEADER_ESCAPES: [&str; 6] = ["# ", "## ", "### ", "#### ", "##### ", "###### "];
 
-impl<'i, F> FormatState<'i, F> {
+impl<'i, F, I> FormatState<'i, F, I>
+where
+    I: Iterator,
+{
     pub(super) fn needs_escape(&mut self, input: &str) -> bool {
         if !self.last_was_softbreak {
             // We _should_ only need to escape after a softbreak since the markdown formatter will

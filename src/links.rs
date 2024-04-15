@@ -1,8 +1,12 @@
 use super::formatter::FormatState;
+use pulldown_cmark::Event;
 use std::borrow::Cow;
 use std::fmt::Write;
 
-impl<'i, F> FormatState<'i, F> {
+impl<'i, F, I> FormatState<'i, F, I>
+where
+    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+{
     pub(super) fn write_inline_link<S: AsRef<str>>(
         &mut self,
         url: &str,
