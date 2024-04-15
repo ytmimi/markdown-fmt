@@ -64,6 +64,14 @@ impl FormatterBuilder {
         self.code_block_formatter = Box::new(formatter);
         self
     }
+
+    /// Configure the max with when rewriting paragraphs.
+    ///
+    /// When set to [None], the deafault, paragraph width is left unchanged.
+    pub fn max_width(&mut self, max_width: Option<usize>) -> &mut Self {
+        self.config.set_max_width(max_width);
+        self
+    }
 }
 
 impl std::fmt::Debug for FormatterBuilder {

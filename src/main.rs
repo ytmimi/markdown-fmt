@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use clap::Parser;
-use markdown_fmt::rewrite_markdown;
+use markdown_fmt::{rewrite_markdown_with_builder, FormatterBuilder};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,6 +16,9 @@ struct Cli {
     /// original file will be overwritten
     #[arg(long, default_value_t = false)]
     stdout: bool,
+    /// The max width to use when reformatting paragraphs.
+    #[arg(short, long)]
+    max_width: Option<usize>,
 }
 
 fn output_result(input: &Path, result: &str, stdout: bool) -> Result<(), anyhow::Error> {
@@ -38,7 +41,9 @@ fn main() -> Result<(), anyhow::Error> {
     match cli.input.extension().and_then(OsStr::to_str) {
         Some("md") => {
             let input = fs::read_to_string(&cli.input)?;
-            let result = rewrite_markdown(&input)?;
+            let mut builder = FormatterBuilder::default();
+            builder.max_width(cli.max_width);
+            let result = rewrite_markdown_with_builder(&input, builder)?;
             output_result(&cli.input, &result, cli.stdout)
         }
         _ => Err(anyhow::anyhow!(
