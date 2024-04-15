@@ -1734,7 +1734,7 @@ bbb"##);
 #[test]
 fn gfm_markdown_paragraphs_196() {
     // https://github.github.com/gfm/#example-196
-    test_identical_markdown_events!("aaa     \nbbb     ");
+    test_identical_markdown_events!("aaa     \nbbb     ","aaa     \nbbb");
 }
 
 #[test]
@@ -5168,7 +5168,7 @@ fn gfm_markdown_hard_line_breaks_664() {
 #[test]
 fn gfm_markdown_hard_line_breaks_665() {
     // https://github.github.com/gfm/#example-665
-    test_identical_markdown_events!("foo  ");
+    test_identical_markdown_events!("foo  ",r##"foo"##);
 }
 
 #[test]
