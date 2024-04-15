@@ -31,6 +31,7 @@ clap = { version = "4.5.2", features = ["derive"], optional = true }
 anyhow = { version = "1.0.80", optional = true }
 tracing = { version = "0.1.40", default-features = false }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"], optional = true }
+textwrap = "0.16.1"
 
 [features]
 gen-tests = ["dep:serde", "dep:serde_json"]
