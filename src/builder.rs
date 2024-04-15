@@ -1,8 +1,11 @@
+use crate::config::Config;
+
 pub(crate) type CodeBlockFormatter = Box<dyn Fn(&str, String) -> String>;
 
 /// Builder for the [MarkdownFormatter](crate::MarkdownFormatter)
 pub struct FormatterBuilder {
     code_block_formatter: CodeBlockFormatter,
+    config: Config,
 }
 
 impl FormatterBuilder {
@@ -45,7 +48,7 @@ impl FormatterBuilder {
     /// let formatter: MarkdownFormatter = builder.build();
     /// ```
     pub fn build(self) -> crate::MarkdownFormatter {
-        crate::MarkdownFormatter::new(self.code_block_formatter)
+        crate::MarkdownFormatter::new(self.code_block_formatter, self.config)
     }
 
     /// Configure how code blocks should be reformatted after creating the [FormatterBuilder].
@@ -78,6 +81,7 @@ impl Default for FormatterBuilder {
     fn default() -> Self {
         FormatterBuilder {
             code_block_formatter: Box::new(default_code_block_formatter),
+            config: Config::default(),
         }
     }
 }
