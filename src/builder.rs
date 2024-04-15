@@ -72,6 +72,13 @@ impl FormatterBuilder {
         self.config.set_max_width(max_width);
         self
     }
+
+    /// Internal setter for Config. Used for testing
+    #[cfg(test)]
+    pub(crate) fn config(&mut self, config: Config) -> &mut Self {
+        self.config = config;
+        self
+    }
 }
 
 impl std::fmt::Debug for FormatterBuilder {
