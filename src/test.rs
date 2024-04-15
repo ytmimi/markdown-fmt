@@ -1,4 +1,6 @@
 use crate::{rewrite_markdown, rewrite_markdown_with_builder, FormatterBuilder};
+use rust_search::SearchBuilder;
+use std::path::{Path, PathBuf};
 
 #[test]
 fn reformat() {
@@ -30,19 +32,26 @@ fn main() {}
     assert_eq!(rewrite, expected)
 }
 
+fn get_test_files<P: AsRef<Path>>(path: P) -> impl Iterator<Item = PathBuf> {
+    SearchBuilder::default()
+        .ext(".md")
+        .location(path)
+        .build()
+        .map(|f| PathBuf::from(f))
+}
+
 #[test]
 fn check_markdown_formatting() {
     let mut errors = 0;
 
-    for file in std::fs::read_dir("tests/source")
-        .unwrap()
-        .map(Result::unwrap)
-    {
-        let filename = file.file_name();
-        let input = std::fs::read_to_string(file.path()).unwrap();
+    for file in get_test_files("tests/source") {
+        let input = std::fs::read_to_string(&file).unwrap();
         let builder = FormatterBuilder::default();
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
-        let target_file = format!("tests/target/{}", filename.to_str().unwrap());
+        let target_file = file
+            .strip_prefix("tests/source")
+            .map(|p| PathBuf::from("tests/target").join(p))
+            .unwrap();
         let expected_output = std::fs::read_to_string(target_file).unwrap();
 
         if formatted_input != expected_output {
@@ -57,11 +66,8 @@ fn check_markdown_formatting() {
 fn idempotence_test() {
     let mut errors = 0;
 
-    for file in std::fs::read_dir("tests/target")
-        .unwrap()
-        .map(Result::unwrap)
-    {
-        let input = std::fs::read_to_string(file.path()).unwrap();
+    for file in get_test_files("tests/target") {
+        let input = std::fs::read_to_string(&file).unwrap();
         let builder = FormatterBuilder::default();
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
 
