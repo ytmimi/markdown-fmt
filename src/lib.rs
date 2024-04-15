@@ -66,6 +66,7 @@
 //! ````
 
 mod builder;
+mod config;
 mod escape;
 mod formatter;
 mod links;

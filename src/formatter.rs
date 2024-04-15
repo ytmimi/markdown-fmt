@@ -9,6 +9,7 @@ use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel};
 use pulldown_cmark::{LinkDef, LinkType, Options, Parser, Tag};
 
 use crate::builder::CodeBlockFormatter;
+use crate::config::Config;
 use crate::links;
 use crate::list::ListMarker;
 use crate::table::TableState;
@@ -20,6 +21,7 @@ use crate::table::TableState;
 /// [FormatterBuilder::build]: crate::FormatterBuilder::build
 pub struct MarkdownFormatter {
     code_block_formatter: CodeBlockFormatter,
+    config: Config,
 }
 
 impl MarkdownFormatter {
@@ -73,7 +75,13 @@ impl MarkdownFormatter {
 
         let iter = parser.into_offset_iter();
 
-        let fmt_state = FormatState::new(input, self.code_block_formatter, iter, reference_links);
+        let fmt_state = FormatState::new(
+            input,
+            self.config,
+            self.code_block_formatter,
+            iter,
+            reference_links,
+        );
         fmt_state.format()
     }
 
@@ -83,9 +91,10 @@ impl MarkdownFormatter {
     /// When creating a [MarkdownFormatter].
     ///
     /// [FormatterBuilder]: crate::FormatterBuilder
-    pub(crate) fn new(code_block_formatter: CodeBlockFormatter) -> Self {
+    pub(crate) fn new(code_block_formatter: CodeBlockFormatter, config: Config) -> Self {
         Self {
             code_block_formatter,
+            config,
         }
     }
 }
@@ -134,6 +143,9 @@ where
     last_position: usize,
     code_block_formatter: F,
     trim_link_or_image_start: bool,
+    /// Format configurations
+    #[allow(dead_code)]
+    config: Config,
 }
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
@@ -452,6 +464,7 @@ where
 {
     fn new(
         input: &'i str,
+        config: Config,
         code_block_formatter: F,
         iter: I,
         reference_links: Vec<ReferenceLinkDefinition>,
@@ -473,6 +486,7 @@ where
             last_position: 0,
             code_block_formatter,
             trim_link_or_image_start: false,
+            config,
         }
     }
 
