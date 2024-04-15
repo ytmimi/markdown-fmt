@@ -5,8 +5,8 @@ use std::ops::Range;
 use std::str::FromStr;
 
 use itertools::Itertools;
-use pulldown_cmark::{BrokenLinkCallback, CodeBlockKind, Event, HeadingLevel};
-use pulldown_cmark::{LinkDef, LinkType, OffsetIter, Options, Parser, Tag};
+use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel};
+use pulldown_cmark::{LinkDef, LinkType, Options, Parser, Tag};
 
 use crate::builder::CodeBlockFormatter;
 use crate::links;
@@ -40,7 +40,40 @@ impl MarkdownFormatter {
             Some(("".into(), "".into()))
         };
 
-        let fmt_state = FormatState::new(input, self.code_block_formatter, Some(&mut callback));
+        let mut options = Options::all();
+        options.remove(Options::ENABLE_SMART_PUNCTUATION);
+
+        let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
+
+        let reference_links = parser
+            .reference_definitions()
+            .iter()
+            .sorted_by(|(_, link_a), (_, link_b)| {
+                // We want to sort these in descending order based on the ranges
+                // This creates a stack of reference links that we can pop off of.
+                link_b.span.start.cmp(&link_a.span.start)
+            })
+            .map(|(link_lable, LinkDef { dest, title, span })| {
+                let full_link = &input[span.clone()];
+                if let Some((url, title)) =
+                    links::recover_escaped_link_destination_and_title(full_link, title.is_some())
+                {
+                    (link_lable.to_string(), url, title, span.clone())
+                } else {
+                    // Couldn't recover URL from source, just use what we've been given
+                    (
+                        link_lable.to_string(),
+                        dest.to_string(),
+                        title.clone().map(|s| (s.to_string(), '"')),
+                        span.clone(),
+                    )
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let iter = parser.into_offset_iter();
+
+        let fmt_state = FormatState::new(input, self.code_block_formatter, iter, reference_links);
         fmt_state.format()
     }
 
@@ -59,12 +92,15 @@ impl MarkdownFormatter {
 
 type ReferenceLinkDefinition = (String, String, Option<(String, char)>, Range<usize>);
 
-pub(crate) struct FormatState<'i, F> {
+pub(crate) struct FormatState<'i, F, I>
+where
+    I: Iterator,
+{
     /// Raw markdown input
     input: &'i str,
     pub(crate) last_was_softbreak: bool,
     /// Iterator Supplying Markdown Events
-    events: Peekable<OffsetIter<'i, 'i>>,
+    events: Peekable<I>,
     rewrite_buffer: String,
     /// Stores code that we might try to format
     code_block_buffer: String,
@@ -102,7 +138,10 @@ pub(crate) struct FormatState<'i, F> {
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
 /// write formatted markdown events. The Write impl helps us centralize this logic.
-impl<'i, F> Write for FormatState<'i, F> {
+impl<'i, F, I> Write for FormatState<'i, F, I>
+where
+    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+{
     fn write_str(&mut self, text: &str) -> std::fmt::Result {
         if let Some(writer) = self.current_buffer() {
             writer.write_str(text)?
@@ -118,7 +157,10 @@ impl<'i, F> Write for FormatState<'i, F> {
     }
 }
 
-impl<'i, F> FormatState<'i, F> {
+impl<'i, F, I> FormatState<'i, F, I>
+where
+    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+{
     /// Peek at the next Markdown Event
     fn peek(&mut self) -> Option<&Event<'i>> {
         self.events.peek().map(|(e, _)| e)
@@ -403,53 +445,21 @@ impl<'i, F> FormatState<'i, F> {
     }
 }
 
-impl<'i, F> FormatState<'i, F>
+impl<'i, F, I> FormatState<'i, F, I>
 where
     F: Fn(&str, String) -> String,
+    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
-    fn new<'callback>(
+    fn new(
         input: &'i str,
         code_block_formatter: F,
-        broken_link_callback: BrokenLinkCallback<'i, 'callback>,
-    ) -> Self
-    where
-        'callback: 'i,
-    {
-        let mut options = Options::all();
-        options.remove(Options::ENABLE_SMART_PUNCTUATION);
-
-        let parser = Parser::new_with_broken_link_callback(input, options, broken_link_callback);
-
-        let reference_links = parser
-            .reference_definitions()
-            .iter()
-            .sorted_by(|(_, link_a), (_, link_b)| {
-                // We want to sort these in descending order based on the ranges
-                // This creates a stack of reference links that we can pop off of.
-                link_b.span.start.cmp(&link_a.span.start)
-            })
-            .map(|(link_lable, LinkDef { dest, title, span })| {
-                let full_link = &input[span.clone()];
-                if let Some((url, title)) =
-                    links::recover_escaped_link_destination_and_title(full_link, title.is_some())
-                {
-                    (link_lable.to_string(), url, title, span.clone())
-                } else {
-                    // Couldn't recover URL from source, just use what we've been given
-                    (
-                        link_lable.to_string(),
-                        dest.to_string(),
-                        title.clone().map(|s| (s.to_string(), '"')),
-                        span.clone(),
-                    )
-                }
-            })
-            .collect::<Vec<_>>();
-
+        iter: I,
+        reference_links: Vec<ReferenceLinkDefinition>,
+    ) -> Self {
         Self {
             input,
             last_was_softbreak: false,
-            events: parser.into_offset_iter().peekable(),
+            events: iter.peekable(),
             rewrite_buffer: String::with_capacity(input.len() * 2),
             code_block_buffer: String::with_capacity(256),
             // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
