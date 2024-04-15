@@ -72,6 +72,8 @@ mod formatter;
 mod links;
 mod list;
 mod table;
+#[cfg(test)]
+mod test;
 mod utils;
 
 pub use builder::FormatterBuilder;
@@ -134,39 +136,4 @@ pub fn rewrite_markdown_with_builder(
 ) -> Result<String, std::fmt::Error> {
     let formatter = builder.build();
     formatter.format(input)
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn reformat() {
-        let input = r##"#  Hello World!
-1.  Hey [ there! ]
-2.  what's going on?
-
-<p> and a little bit of HTML </p>
-
-```rust
-fn main() {}
-```
-[
-    there!
-    ]: htts://example.com "Yoooo"
-"##;
-        let expected = r##"# Hello World!
-1. Hey [there!]
-2. what's going on?
-
-<p> and a little bit of HTML </p>
-
-```rust
-fn main() {}
-```
-[there!]: htts://example.com "Yoooo"
-"##;
-        let rewrite = rewrite_markdown(input).unwrap();
-        assert_eq!(rewrite, expected)
-    }
 }

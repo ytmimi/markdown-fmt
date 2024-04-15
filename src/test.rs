@@ -1,6 +1,34 @@
-mod common;
+use crate::{rewrite_markdown, rewrite_markdown_with_builder, FormatterBuilder};
 
-use markdown_fmt::rewrite_markdown;
+#[test]
+fn reformat() {
+    let input = r##"#  Hello World!
+1.  Hey [ there! ]
+2.  what's going on?
+
+<p> and a little bit of HTML </p>
+
+```rust
+fn main() {}
+```
+[
+    there!
+    ]: htts://example.com "Yoooo"
+"##;
+    let expected = r##"# Hello World!
+1. Hey [there!]
+2. what's going on?
+
+<p> and a little bit of HTML </p>
+
+```rust
+fn main() {}
+```
+[there!]: htts://example.com "Yoooo"
+"##;
+    let rewrite = rewrite_markdown(input).unwrap();
+    assert_eq!(rewrite, expected)
+}
 
 #[test]
 fn check_markdown_formatting() {
@@ -12,7 +40,8 @@ fn check_markdown_formatting() {
     {
         let filename = file.file_name();
         let input = std::fs::read_to_string(file.path()).unwrap();
-        let formatted_input = rewrite_markdown(&input).unwrap();
+        let builder = FormatterBuilder::default();
+        let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
         let target_file = format!("tests/target/{}", filename.to_str().unwrap());
         let expected_output = std::fs::read_to_string(target_file).unwrap();
 
@@ -33,7 +62,8 @@ fn idempotence_test() {
         .map(Result::unwrap)
     {
         let input = std::fs::read_to_string(file.path()).unwrap();
-        let formatted_input = rewrite_markdown(&input).unwrap();
+        let builder = FormatterBuilder::default();
+        let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
 
         if formatted_input != input {
             errors += 1;
