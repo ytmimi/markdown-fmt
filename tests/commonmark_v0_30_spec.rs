@@ -1955,7 +1955,7 @@ bbb"##);
 #[test]
 fn markdown_paragraphs_226() {
     // https://spec.commonmark.org/0.30/#example-226
-    test_identical_markdown_events!("aaa     \nbbb     ");
+    test_identical_markdown_events!("aaa     \nbbb     ","aaa     \nbbb");
 }
 
 #[test]
@@ -5030,7 +5030,7 @@ fn markdown_hard_line_breaks_644() {
 #[test]
 fn markdown_hard_line_breaks_645() {
     // https://spec.commonmark.org/0.30/#example-645
-    test_identical_markdown_events!("foo  ");
+    test_identical_markdown_events!("foo  ",r##"foo"##);
 }
 
 #[test]

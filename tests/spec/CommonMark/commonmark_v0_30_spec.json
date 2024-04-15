@@ -1892,6 +1892,7 @@
   },
   {
     "markdown": "aaa     \nbbb     \n",
+    "formattedMarkdown": "aaa     \nbbb",
     "html": "<p>aaa<br />\nbbb</p>\n",
     "example": 226,
     "start_line": 3619,
@@ -5316,6 +5317,7 @@
   },
   {
     "markdown": "foo  \n",
+    "formattedMarkdown": "foo",
     "html": "<p>foo</p>\n",
     "example": 645,
     "start_line": 9334,

@@ -12,6 +12,7 @@ use crate::builder::CodeBlockFormatter;
 use crate::config::Config;
 use crate::links;
 use crate::list::ListMarker;
+use crate::paragraph::Paragraph;
 use crate::table::TableState;
 
 /// Used to format Markdown inputs.
@@ -143,6 +144,8 @@ where
     last_position: usize,
     code_block_formatter: F,
     trim_link_or_image_start: bool,
+    /// Handles paragraph formatting.
+    paragraph: Option<Paragraph>,
     /// Format configurations
     #[allow(dead_code)]
     config: Config,
@@ -238,9 +241,20 @@ where
         )
     }
 
+    /// Check if we're in a "paragraph". A `Paragraph` might not necessarily be on the
+    /// nested_context stack.
+    fn in_paragraph(&self) -> bool {
+        self.paragraph.is_some()
+    }
+
     /// Check if we're formatting in a nested context
     fn is_nested(&self) -> bool {
         !self.nested_context.is_empty()
+    }
+
+    /// Get the length of the indentation
+    fn indentation_len(&self) -> usize {
+        self.indentation.iter().map(|i| i.len()).sum()
     }
 
     /// Get an exclusive reference to the current buffer we're writing to. That could be the main
@@ -253,6 +267,10 @@ where
             self.table_state
                 .as_mut()
                 .map(|s| s as &mut dyn std::fmt::Write)
+        } else if self.in_paragraph() {
+            self.paragraph
+                .as_mut()
+                .map(|p| p as &mut dyn std::fmt::Write)
         } else {
             Some(&mut self.rewrite_buffer)
         }
@@ -264,6 +282,8 @@ where
             self.code_block_buffer.is_empty()
         } else if self.in_table_header() || self.in_table_row() {
             self.table_state.as_ref().is_some_and(|s| s.is_empty())
+        } else if self.in_paragraph() {
+            self.paragraph.as_ref().is_some_and(|p| p.is_empty())
         } else {
             self.rewrite_buffer.is_empty()
         }
@@ -486,6 +506,7 @@ where
             last_position: 0,
             code_block_formatter,
             trim_link_or_image_start: false,
+            paragraph: None,
             config,
         }
     }
@@ -598,7 +619,12 @@ where
                         }
                     } else {
                         write!(self, "{}", &self.input[range])?;
-                        self.write_indentation(false)?;
+
+                        // paraphraphs write their indentation after reformatting the text
+                        if !self.in_paragraph() {
+                            self.write_indentation(false)?;
+                        }
+
                         self.last_was_softbreak = true;
                     }
                 }
@@ -651,6 +677,12 @@ where
                     self.needs_indent = false;
                 }
                 self.nested_context.push(tag);
+                let capacity = (range.end - range.start) * 2;
+                let width = self
+                    .config
+                    .max_width()
+                    .map(|w| w.saturating_sub(self.indentation_len()));
+                self.paragraph = Some(Paragraph::new(width, capacity));
             }
             Tag::Heading(level, _, _) => {
                 if self.needs_indent {
@@ -952,6 +984,10 @@ where
             Tag::Paragraph => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag, Some(tag));
+
+                if let Some(p) = self.paragraph.take() {
+                    self.join_with_indentation(&p.into_buffer(), false)?;
+                }
             }
             Tag::Heading(_, fragment_identifier, classes) => {
                 match (fragment_identifier, classes.is_empty()) {

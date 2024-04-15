@@ -71,6 +71,7 @@ mod escape;
 mod formatter;
 mod links;
 mod list;
+mod paragraph;
 mod table;
 #[cfg(test)]
 mod test;
