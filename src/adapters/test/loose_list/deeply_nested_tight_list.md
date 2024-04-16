@@ -1,0 +1,67 @@
+- a
+  + b
+    - c
+      + d
+        - e
+          + f
+            - g
+              + h
+
+==========
+
+event=Start(List(None)) range=0..89
+event=Start(Item) range=0..89
+event=Start(Paragraph) range=2..3
+event=Text(Borrowed("a")) range=2..3
+event=End(Paragraph) range=2..3
+event=Start(List(None)) range=6..89
+event=Start(Item) range=6..89
+event=Start(Paragraph) range=8..9
+event=Text(Borrowed("b")) range=8..9
+event=End(Paragraph) range=8..9
+event=Start(List(None)) range=14..89
+event=Start(Item) range=14..89
+event=Start(Paragraph) range=16..17
+event=Text(Borrowed("c")) range=16..17
+event=End(Paragraph) range=16..17
+event=Start(List(None)) range=24..89
+event=Start(Item) range=24..89
+event=Start(Paragraph) range=26..27
+event=Text(Borrowed("d")) range=26..27
+event=End(Paragraph) range=26..27
+event=Start(List(None)) range=36..89
+event=Start(Item) range=36..89
+event=Start(Paragraph) range=38..39
+event=Text(Borrowed("e")) range=38..39
+event=End(Paragraph) range=38..39
+event=Start(List(None)) range=50..89
+event=Start(Item) range=50..89
+event=Start(Paragraph) range=52..53
+event=Text(Borrowed("f")) range=52..53
+event=End(Paragraph) range=52..53
+event=Start(List(None)) range=66..89
+event=Start(Item) range=66..89
+event=Start(Paragraph) range=68..69
+event=Text(Borrowed("g")) range=68..69
+event=End(Paragraph) range=68..69
+event=Start(List(None)) range=84..89
+event=Start(Item) range=84..89
+event=Start(Paragraph) range=86..87
+event=Text(Borrowed("h")) range=86..87
+event=End(Paragraph) range=86..87
+event=End(Item) range=84..89
+event=End(List(None)) range=84..89
+event=End(Item) range=66..89
+event=End(List(None)) range=66..89
+event=End(Item) range=50..89
+event=End(List(None)) range=50..89
+event=End(Item) range=36..89
+event=End(List(None)) range=36..89
+event=End(Item) range=24..89
+event=End(List(None)) range=24..89
+event=End(Item) range=14..89
+event=End(List(None)) range=14..89
+event=End(Item) range=6..89
+event=End(List(None)) range=6..89
+event=End(Item) range=0..89
+event=End(List(None)) range=0..89

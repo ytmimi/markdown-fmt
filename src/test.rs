@@ -58,19 +58,22 @@ fn main() {}
     assert_eq!(rewrite, expected)
 }
 
-fn get_test_files<P: AsRef<Path>>(path: P) -> impl Iterator<Item = PathBuf> {
+pub(crate) fn get_test_files<P: AsRef<Path>>(
+    path: P,
+    extension: &str,
+) -> impl Iterator<Item = PathBuf> {
     SearchBuilder::default()
-        .ext(".md")
+        .ext(extension)
         .location(path)
         .build()
-        .map(|f| PathBuf::from(f))
+        .map(PathBuf::from)
 }
 
 #[test]
 fn check_markdown_formatting() {
     let mut errors = 0;
 
-    for file in get_test_files("tests/source") {
+    for file in get_test_files("tests/source", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
         let builder = FormatterBuilder::from_leading_config_comments(&input);
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
@@ -93,7 +96,7 @@ fn check_markdown_formatting() {
 fn idempotence_test() {
     let mut errors = 0;
 
-    for file in get_test_files("tests/target") {
+    for file in get_test_files("tests/target", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
         let builder = FormatterBuilder::from_leading_config_comments(&input);
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
