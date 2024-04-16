@@ -65,6 +65,7 @@
 //! # Ok::<(), std::fmt::Error>(())
 //! ````
 
+mod adapters;
 mod builder;
 mod config;
 mod escape;

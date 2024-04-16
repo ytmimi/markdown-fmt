@@ -8,6 +8,7 @@ use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel};
 use pulldown_cmark::{LinkDef, LinkType, Options, Parser, Tag};
 
+use crate::adapters::LooseListExt;
 use crate::builder::CodeBlockFormatter;
 use crate::config::Config;
 use crate::links;
@@ -74,7 +75,7 @@ impl MarkdownFormatter {
             })
             .collect::<Vec<_>>();
 
-        let iter = parser.into_offset_iter();
+        let iter = parser.into_offset_iter().all_loose_lists();
 
         let fmt_state = FormatState::new(
             input,
@@ -482,7 +483,7 @@ where
     F: Fn(&str, String) -> String,
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
-    fn new(
+    pub(crate) fn new(
         input: &'i str,
         config: Config,
         code_block_formatter: F,
