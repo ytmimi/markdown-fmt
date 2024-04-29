@@ -678,9 +678,9 @@ where
                 }
                 Event::TaskListMarker(done) => {
                     if done {
-                        write!(self, "[x]")?;
+                        write!(self, "[x] ")?;
                     } else {
-                        write!(self, "[ ]")?;
+                        write!(self, "[ ] ")?;
                     }
                 }
             }
