@@ -2508,6 +2508,22 @@ fn gfm_markdown_list_items_278() {
 }
 
 #[test]
+fn gfm_markdown_task_list_items_extension_279() {
+    // https://github.github.com/gfm/#example-279
+    test_identical_markdown_events!(r##"- [ ] foo
+- [x] bar"##);
+}
+
+#[test]
+fn gfm_markdown_task_list_items_extension_280() {
+    // https://github.github.com/gfm/#example-280
+    test_identical_markdown_events!(r##"- [x] foo
+  - [ ] bar
+  - [x] baz
+- [ ] bim"##);
+}
+
+#[test]
 fn gfm_markdown_lists_281() {
     // https://github.github.com/gfm/#example-281
     test_identical_markdown_events!(r##"- foo
