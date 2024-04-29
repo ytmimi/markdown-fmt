@@ -1572,12 +1572,11 @@ fn gfm_markdown_link_reference_definitions_178() {
 }
 
 // FIXME(ytmim) the "title" is duplcated here
-#[ignore]
 #[test]
 fn gfm_markdown_link_reference_definitions_179() {
     // https://github.github.com/gfm/#example-179
     test_identical_markdown_events!(r##"[foo]: /url
-"title" ok"##,r##"[foo]: /url "title""title" ok"##);
+"title" ok"##);
 }
 
 #[test]

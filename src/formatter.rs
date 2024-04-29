@@ -49,6 +49,20 @@ impl MarkdownFormatter {
 
         let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
 
+        // There can't be any characters besides spaces, tabs, or newlines after the title
+        // See https://spec.commonmark.org/0.30/#link-reference-definition for the
+        // definition and https://spec.commonmark.org/0.30/#example-209 as an example.
+        //
+        // It seems that `pulldown_cmark` sometimes parses titles when it shouldn't.
+        // To work around edge cases where a paragraph starting with a quoted string might be
+        // interpreted as a link title we check that only whitespace follows the title
+        let is_false_title = |input: &str, span: Range<usize>| {
+            input[span.end..]
+                .chars()
+                .take_while(|c| *c != '\n')
+                .any(|c| !c.is_whitespace())
+        };
+
         let reference_links = parser
             .reference_definitions()
             .iter()
@@ -59,6 +73,19 @@ impl MarkdownFormatter {
             })
             .map(|(link_lable, LinkDef { dest, title, span })| {
                 let full_link = &input[span.clone()];
+                if title.is_some() && is_false_title(input, span.clone()) {
+                    let end = input[span.clone()]
+                        .find(dest.as_ref())
+                        .map(|idx| idx + dest.len())
+                        .unwrap_or(span.end);
+                    return (
+                        link_lable.to_string(),
+                        dest.to_string(),
+                        None,
+                        span.start..end,
+                    );
+                }
+
                 if let Some((url, title)) =
                     links::recover_escaped_link_destination_and_title(full_link, title.is_some())
                 {
