@@ -1802,12 +1802,11 @@ fn markdown_link_reference_definitions_209() {
 }
 
 // FIXME(ytmim) the "title" is duplcated here
-#[ignore]
 #[test]
 fn markdown_link_reference_definitions_210() {
     // https://spec.commonmark.org/0.30/#example-210
     test_identical_markdown_events!(r##"[foo]: /url
-"title" ok"##,r##"[foo]: /url "title""title" ok"##);
+"title" ok"##);
 }
 
 #[test]

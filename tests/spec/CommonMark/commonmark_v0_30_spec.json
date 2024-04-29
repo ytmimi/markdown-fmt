@@ -1755,14 +1755,11 @@
   },
   {
     "markdown": "[foo]: /url\n\"title\" ok\n",
-    "formattedMarkdown": "[foo]: /url \"title\"\"title\" ok",
     "html": "<p>&quot;title&quot; ok</p>\n",
     "example": 210,
     "start_line": 3397,
     "end_line": 3402,
-    "section": "Link reference definitions",
-    "skip": true,
-    "comment": "FIXME(ytmim) the \"title\" is duplcated here"
+    "section": "Link reference definitions"
   },
   {
     "markdown": "    [foo]: /url \"title\"\n\n[foo]\n",
