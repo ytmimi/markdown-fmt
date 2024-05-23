@@ -4,14 +4,13 @@ use std::iter::Peekable;
 use std::ops::Range;
 use std::str::FromStr;
 
-use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel};
-use pulldown_cmark::{LinkDef, LinkType, Options, Parser, Tag};
+use pulldown_cmark::{LinkType, Options, Parser, Tag};
 
 use crate::adapters::LooseListExt;
 use crate::builder::CodeBlockFormatter;
 use crate::config::Config;
-use crate::links;
+use crate::links::{parse_link_reference_definitions, LinkReferenceDefinition};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
@@ -48,69 +47,9 @@ impl MarkdownFormatter {
         options.remove(Options::ENABLE_SMART_PUNCTUATION);
 
         let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
-
-        // There can't be any characters besides spaces, tabs, or newlines after the title
-        // See https://spec.commonmark.org/0.30/#link-reference-definition for the
-        // definition and https://spec.commonmark.org/0.30/#example-209 as an example.
-        //
-        // It seems that `pulldown_cmark` sometimes parses titles when it shouldn't.
-        // To work around edge cases where a paragraph starting with a quoted string might be
-        // interpreted as a link title we check that only whitespace follows the title
-        let is_false_title = |input: &str, span: Range<usize>| {
-            input[span.end..]
-                .chars()
-                .take_while(|c| *c != '\n')
-                .any(|c| !c.is_whitespace())
-        };
-
-        let reference_links = parser
-            .reference_definitions()
-            .iter()
-            .sorted_by(|(_, link_a), (_, link_b)| {
-                // We want to sort these in descending order based on the ranges
-                // This creates a stack of reference links that we can pop off of.
-                link_b.span.start.cmp(&link_a.span.start)
-            })
-            .map(|(link_lable, LinkDef { dest, title, span })| {
-                let full_link = &input[span.clone()];
-                if title.is_some() && is_false_title(input, span.clone()) {
-                    let end = input[span.clone()]
-                        .find(dest.as_ref())
-                        .map(|idx| idx + dest.len())
-                        .unwrap_or(span.end);
-                    return (
-                        link_lable.to_string(),
-                        dest.to_string(),
-                        None,
-                        span.start..end,
-                    );
-                }
-
-                if let Some((url, title)) =
-                    links::recover_escaped_link_destination_and_title(full_link, title.is_some())
-                {
-                    (link_lable.to_string(), url, title, span.clone())
-                } else {
-                    // Couldn't recover URL from source, just use what we've been given
-                    (
-                        link_lable.to_string(),
-                        dest.to_string(),
-                        title.clone().map(|s| (s.to_string(), '"')),
-                        span.clone(),
-                    )
-                }
-            })
-            .collect::<Vec<_>>();
-
         let iter = parser.into_offset_iter().all_loose_lists();
 
-        let fmt_state = FormatState::new(
-            input,
-            self.config,
-            self.code_block_formatter,
-            iter,
-            reference_links,
-        );
+        let fmt_state = FormatState::new(input, self.config, self.code_block_formatter, iter);
         fmt_state.format()
     }
 
@@ -127,8 +66,6 @@ impl MarkdownFormatter {
         }
     }
 }
-
-type ReferenceLinkDefinition = (String, String, Option<(String, char)>, Range<usize>);
 
 pub(crate) struct FormatState<'i, F, I>
 where
@@ -159,7 +96,10 @@ where
     /// ```markdown
     /// [title]: link "optional title"
     /// ```
-    reference_links: Vec<ReferenceLinkDefinition>,
+    #[allow(dead_code)]
+    // TODO(ytmimi) will come in handy when adding an option to defer
+    // rewriting link reference definitions until the end of the document
+    reference_links: Vec<LinkReferenceDefinition<'i>>,
     /// keep track of the current setext header.
     /// ```markdown
     /// Header
@@ -317,6 +257,16 @@ where
         }
     }
 
+    // Does not count trailing newlines. For some reason that caused issues
+    fn count_newlines_in_range(&self, range: &Range<usize>) -> usize {
+        let snippet = &self.input[range.clone()];
+        snippet
+            .trim_end_matches('\n')
+            .bytes()
+            .filter(|b| *b == b'\n')
+            .count()
+    }
+
     fn count_newlines(&self, range: &Range<usize>) -> usize {
         if self.last_position == range.start {
             return 0;
@@ -367,6 +317,9 @@ where
     }
 
     fn write_newlines(&mut self, max_newlines: usize) -> std::fmt::Result {
+        if max_newlines == 0 {
+            return Ok(());
+        }
         self.write_newlines_inner(max_newlines, false)
     }
 
@@ -408,67 +361,36 @@ where
         Ok(())
     }
 
-    fn write_reference_link_definition_inner(
+    fn rewrite_reference_link_definitions_inner(
         &mut self,
-        label: &str,
-        dest: &str,
-        title: Option<&(String, char)>,
+        link_defs: Vec<LinkReferenceDefinition>,
     ) -> std::fmt::Result {
-        // empty links can be specified with <>
-        let dest = links::format_link_url(dest, true);
-        self.write_newlines(1)?;
-        if let Some((title, quote)) = title {
-            write!(self, r#"[{}]: {dest} {quote}{title}{quote}"#, label.trim())?;
-        } else {
-            write!(self, "[{}]: {dest}", label.trim())?;
+        // TODO(ytmimi) Add an option to defer writing links until the end
+        for link_def in link_defs {
+            let link_range = link_def.range();
+            let newlines = self.count_newlines(&link_range);
+            self.write_newlines(newlines)?;
+            link_def.write(self)?;
+            self.last_position = link_range.end;
+            self.needs_indent = true;
         }
         Ok(())
     }
 
     fn rewrite_reference_link_definitions(&mut self, range: &Range<usize>) -> std::fmt::Result {
-        if self.reference_links.is_empty() {
+        let snippet = &self.input[range.clone()];
+        let link_defs = parse_link_reference_definitions(snippet, range.start);
+
+        if link_defs.is_empty() {
             return Ok(());
         }
-        // use std::mem::take to work around the borrow checker
-        let mut reference_links = std::mem::take(&mut self.reference_links);
-
-        loop {
-            match reference_links.last() {
-                Some((_, _, _, link_range)) if link_range.start > range.start => {
-                    // The reference link on the top of the stack comes further along in the file
-                    break;
-                }
-                None => break,
-                _ => {}
-            }
-
-            let (label, dest, title, link_range) = reference_links.pop().expect("we have a value");
-            let newlines = self.count_newlines(&link_range);
-            self.write_newlines(newlines)?;
-            self.write_reference_link_definition_inner(&label, &dest, title.as_ref())?;
-            self.last_position = link_range.end;
-            self.needs_indent = true;
-        }
-
-        // put the reference_links back
-        self.reference_links = reference_links;
-        Ok(())
+        self.rewrite_reference_link_definitions_inner(link_defs)
     }
 
     /// Write out reference links at the end of the file
     fn rewrite_final_reference_links(mut self) -> Result<String, std::fmt::Error> {
-        // use std::mem::take to work around the borrow checker
-        let reference_links = std::mem::take(&mut self.reference_links);
-
-        // need to iterate in reverse because reference_links is a stack
-        for (label, dest, title, range) in reference_links.into_iter().rev() {
-            let newlines = self.count_newlines(&range);
-            self.write_newlines(newlines)?;
-
-            // empty links can be specified with <>
-            self.write_reference_link_definition_inner(&label, &dest, title.as_ref())?;
-            self.last_position = range.end
-        }
+        let range = self.last_position..self.input.len();
+        self.rewrite_reference_link_definitions(&range)?;
         Ok(self.rewrite_buffer)
     }
 
@@ -510,13 +432,7 @@ where
     F: Fn(&str, String) -> String,
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
-    pub(crate) fn new(
-        input: &'i str,
-        config: Config,
-        code_block_formatter: F,
-        iter: I,
-        reference_links: Vec<ReferenceLinkDefinition>,
-    ) -> Self {
+    pub(crate) fn new(input: &'i str, config: Config, code_block_formatter: F, iter: I) -> Self {
         Self {
             input,
             last_was_softbreak: false,
@@ -527,7 +443,7 @@ where
             // list_markers: vec![],
             indentation: vec![],
             nested_context: vec![],
-            reference_links,
+            reference_links: vec![],
             setext_header: None,
             needs_indent: false,
             table_state: None,
@@ -574,17 +490,25 @@ where
     /// The main entry point for markdown formatting.
     pub fn format(mut self) -> Result<String, std::fmt::Error> {
         while let Some((event, range)) = self.events.next() {
-            tracing::debug!(?event, ?range);
+            tracing::debug!(?event, ?range, last_position = self.last_position);
             let mut last_position = self.input[..range.end]
                 .bytes()
                 .rposition(|b| !b.is_ascii_whitespace())
+                .map(
+                    |offset| offset + 1, /* +1 to start on the whitespace or end of input */
+                )
                 .unwrap_or(0);
 
             match event {
                 Event::Start(tag) => {
-                    self.rewrite_reference_link_definitions(&range)?;
                     last_position = range.start;
                     self.start_tag(tag.clone(), range)?;
+                    // self.last_position might be modified in `start_tag` if we need to recover
+                    // link reference definitions. To prevent resetting it, make sure
+                    // it stays at self.last_position
+                    if last_position < self.last_position {
+                        last_position = self.last_position;
+                    }
                 }
                 Event::End(ref tag) => {
                     self.end_tag(tag.clone(), range)?;
@@ -697,6 +621,13 @@ where
     }
 
     fn start_tag(&mut self, tag: Tag<'i>, range: Range<usize>) -> std::fmt::Result {
+        // These all come after we're already in the context of a Table.
+        // I don't think it's possible for a reference link definition to come before these tags.
+        if !matches!(tag, Tag::TableHead | Tag::TableRow | Tag::TableCell) {
+            let reference_definition_range = self.last_position..range.start;
+            self.rewrite_reference_link_definitions(&reference_definition_range)?;
+        }
+
         match tag {
             Tag::Paragraph => {
                 if self.needs_indent {
@@ -765,42 +696,83 @@ where
                     self.needs_indent = false;
                 }
 
+                // Anchor the last_position at the start of the blockquote. This prevents picking
+                // up extra newlines in case we need to recover any refernce link definitions
+                self.last_position = range.start;
+
                 self.nested_context.push(tag);
 
+                // FIXME(ytmimi) recovering link-reference-definitions adds some complexity here.
+                // Hoping to find a way to simplify this in the future.
                 match self.peek_with_range().map(|(e, r)| (e.clone(), r.clone())) {
                     Some((Event::End(Tag::BlockQuote), _)) => {
-                        // The next event is `End(BlockQuote)` so the current blockquote is empty!
-                        write!(self, ">")?;
-                        self.indentation.push(">".into());
-
-                        let snippet = &self.input[range].trim_end();
-                        let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
-                        self.write_newlines(newlines)?;
+                        let snippet = &self.input[range.clone()];
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+                        if !link_defs.is_empty() {
+                            write!(self, "> ")?;
+                            self.indentation.push("> ".into());
+                            self.rewrite_reference_link_definitions_inner(link_defs)?;
+                            // remove trailing space in case we're about to push newlines
+                            *self.indentation.last_mut().unwrap() = ">".into();
+                        } else {
+                            write!(self, ">")?;
+                            self.indentation.push(">".into());
+                        }
+                        // If there are any other trailing lines those should be handled by
+                        // The End(BlockQuote) event.
                     }
                     Some((Event::Start(Tag::BlockQuote), next_range)) => {
-                        // The next event is `Start(BlockQuote) so we're adding another level
-                        // of indentation.
-                        write!(self, ">")?;
-                        self.indentation.push(">".into());
-
-                        // Now add any missing newlines for empty block quotes between
-                        // the current start and the next start
                         let snippet = &self.input[range.start..next_range.start];
-                        let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
-                        self.write_newlines(newlines)?;
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+
+                        if link_defs.is_empty() {
+                            write!(self, ">")?;
+                            self.indentation.push(">".into());
+                            let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
+                            self.write_newlines(newlines)?;
+                        } else {
+                            let end = link_defs.first().expect("we have link_defs").range().start;
+                            let leading_newline_snippet = &self.input[range.start..end];
+                            let newlines = leading_newline_snippet
+                                .bytes()
+                                .filter(|b| matches!(b, b'\n'))
+                                .count();
+
+                            self.indentation.push("> ".into());
+                            if newlines > 0 {
+                                write!(self, ">")?;
+                            } else {
+                                write!(self, "> ")?;
+                            }
+
+                            self.rewrite_reference_link_definitions_inner(link_defs)?;
+                        }
                     }
                     Some((_, next_range)) => {
-                        // Now add any missing newlines for empty block quotes between
-                        // the current start and the next start
                         let snippet = &self.input[range.start..next_range.start];
-                        let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+
+                        let end = link_defs
+                            .first()
+                            .map(|l| l.range().start)
+                            .unwrap_or(next_range.start);
+                        let newline_snippet = &self.input[self.last_position..end];
+                        let newlines = newline_snippet
+                            .bytes()
+                            .filter(|b| matches!(b, b'\n'))
+                            .count();
 
                         self.indentation.push("> ".into());
                         if newlines > 0 {
                             write!(self, ">")?;
-                            self.write_newlines(newlines)?;
                         } else {
                             write!(self, "> ")?;
+                        }
+
+                        if !link_defs.is_empty() {
+                            self.rewrite_reference_link_definitions_inner(link_defs)?;
+                        } else {
+                            self.write_newlines(newlines)?;
                         }
                     }
                     None => {
@@ -878,28 +850,59 @@ where
                     self.write_newlines(newlines)?;
                 }
 
-                let empty_list_item = match self.events.peek() {
-                    Some((Event::End(Tag::Item), _)) => true,
+                // Anchor the last_position at the start of the blockquote. This prevents picking
+                // up extra newlines in case we need to recover any refernce link definitions
+                self.last_position = range.start;
+
+                let is_empty_list = |snippet: &str| -> bool {
+                    // It's an empty list if there are newlines between the list marker
+                    // and the next event. For example,
+                    //
+                    // ```markdown
+                    // -
+                    //   foo
+                    // ```
+                    snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
+                };
+
+                let list_marker = ListMarker::from_str(&self.input[range.clone()])
+                    .expect("Should be able to parse a list marker");
+
+                // FIXME(ytmimi) luckily recovering link-reference-definitions isn't overly
+                // complicated for list items, but the implementations are very similar, so
+                // hopefully there's some simple refactoring that can be done later.
+                let (empty_list_item, link_defs) = match self.events.peek() {
+                    Some((Event::End(Tag::Item), _)) => {
+                        let snippet = &self.input[range.clone()];
+                        let just_list_marker = snippet.trim().len() == list_marker.len();
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+                        let end = link_defs
+                            .first()
+                            .map(|l| l.range().start)
+                            .unwrap_or(range.end);
+                        let snippet = &self.input[range.start..end];
+                        (just_list_marker || is_empty_list(snippet), link_defs)
+                    }
                     Some((_, next_range)) => {
                         let snippet = &self.input[range.start..next_range.start];
-                        // It's an empty list if there are newlines between the list marker
-                        // and the next event. For example,
-                        //
-                        // ```markdown
-                        // -
-                        //   foo
-                        // ```
-                        snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+                        let end = link_defs
+                            .first()
+                            .map(|l| l.range().start)
+                            .unwrap_or(next_range.start);
+                        let snippet = &self.input[range.start..end];
+                        (is_empty_list(snippet), link_defs)
                     }
-                    None => false,
+                    None => {
+                        // Peeking at the next event should always return `Some()` for start events
+                        unreachable!("At the very least we'd expect an `End(Item)` event.");
+                    }
                 };
 
                 // We need to push a newline and indentation before the next event if
                 // this is an empty list item
                 self.needs_indent = empty_list_item;
 
-                let list_marker = ListMarker::from_str(&self.input[range])
-                    .expect("Should be able to parse a list marker");
                 // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
                 // Take list_marker so we can use `write!(self, ...)`
                 // let mut list_marker = self
@@ -931,6 +934,8 @@ where
                 // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
                 // list_marker.increment_count();
                 // self.list_markers.push(list_marker)
+
+                self.rewrite_reference_link_definitions_inner(link_defs)?;
             }
             Tag::FootnoteDefinition(label) => {
                 write!(self, "[^{label}]: ")?;
@@ -1039,8 +1044,11 @@ where
                 }
             }
             Tag::BlockQuote => {
-                let newlines = self.count_newlines(&range);
-                if self.needs_indent && newlines > 0 {
+                let ref_def_range = self.last_position..range.end;
+                self.rewrite_reference_link_definitions(&ref_def_range)?;
+                let rest_range = self.last_position..range.end;
+                let newlines = self.count_newlines_in_range(&rest_range);
+                if newlines > 0 {
                     // Recover empty block quote lines
                     if let Some(last) = self.indentation.last_mut() {
                         // Avoid trailing whitespace by replacing the last indentation with '>'
@@ -1103,6 +1111,8 @@ where
                 };
             }
             Tag::Item => {
+                let ref_def_range = self.last_position..range.end;
+                self.rewrite_reference_link_definitions(&ref_def_range)?;
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines_no_trailing_whitespace(newlines)?;

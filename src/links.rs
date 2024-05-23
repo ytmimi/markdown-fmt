@@ -146,18 +146,6 @@ fn link_title_start(link: &[u8]) -> usize {
     0
 }
 
-/// Grab the link destination from the source text
-///
-/// `pulldown_cmark` unescape link destinations and titles so grabbing the escaped link
-/// from the source is the easiest way to maintain all the escaped characters.
-pub(super) fn recover_escaped_link_destination_and_title(
-    complete_link: &str,
-    has_title: bool,
-) -> Option<(String, Option<(String, char)>)> {
-    let rest = complete_link.split_once(':').map(|(_, rest)| rest.trim())?;
-    split_inline_url_from_title(rest, has_title)
-}
-
 fn trim_angle_brackes(url: &str) -> &str {
     if url.starts_with('<') && url.ends_with('>') {
         url[1..url.len() - 1].trim()

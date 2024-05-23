@@ -1636,7 +1636,9 @@
   },
   {
     "markdown": "[foo]: /url '\ntitle\nline1\nline2\n'\n\n[foo]\n",
-    "formattedMarkdown": "[foo]: /url '\ntitle\nline1\nline2\n'\n\n[foo]",
+    "formattedMarkdown": "[foo]: /url 'title line1 line2'\n\n[foo]",
+    "testMacro": "test",
+    "comment": "relaxed testing with the `test` macro because we normalize the title text",
     "html": "<p><a href=\"/url\" title=\"\ntitle\nline1\nline2\n\">foo</a></p>\n",
     "example": 196,
     "start_line": 3225,
@@ -1704,7 +1706,6 @@
   },
   {
     "markdown": "[foo]\n\n[foo]: first\n[foo]: second\n",
-    "formattedMarkdown": "[foo]\n\n[foo]: first",
     "html": "<p><a href=\"first\">foo</a></p>\n",
     "example": 204,
     "start_line": 3330,
@@ -1820,7 +1821,6 @@
   },
   {
     "markdown": "[foo]\n\n> [foo]: /url\n",
-    "formattedMarkdown": "[foo]\n\n>\n[foo]: /url",
     "html": "<p><a href=\"/url\">foo</a></p>\n<blockquote>\n</blockquote>\n",
     "example": 218,
     "start_line": 3507,
@@ -2663,7 +2663,6 @@
   },
   {
     "markdown": "- a\n- b\n\n  [ref]: /url\n- d\n",
-    "formattedMarkdown": "- a\n- b\n\n[ref]: /url\n- d",
     "html": "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>d</p>\n</li>\n</ul>\n",
     "example": 317,
     "start_line": 5645,
@@ -4487,7 +4486,6 @@
   },
   {
     "markdown": "[foo]: /url1\n\n[foo]: /url2\n\n[bar][foo]\n",
-    "formattedMarkdown": "[foo]: /url1\n\n\n\n[bar][foo]",
     "html": "<p><a href=\"/url1\">bar</a></p>\n",
     "example": 543,
     "start_line": 8193,

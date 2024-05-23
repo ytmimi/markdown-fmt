@@ -449,13 +449,7 @@ mod test {
             let adapted_events = pulldown_cmark::Parser::new_ext(markdown, options)
                 .into_offset_iter()
                 .all_loose_lists();
-            let fmt_state = FormatState::new(
-                markdown,
-                Config::default(),
-                |_, s| s,
-                adapted_events,
-                vec![],
-            );
+            let fmt_state = FormatState::new(markdown, Config::default(), |_, s| s, adapted_events);
 
             let output = fmt_state.format().unwrap();
 

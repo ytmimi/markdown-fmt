@@ -103,6 +103,7 @@ fn idempotence_test() {
 
         if formatted_input != input {
             errors += 1;
+            eprintln!("error formatting {}", file.display());
         }
     }
 

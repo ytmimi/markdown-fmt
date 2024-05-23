@@ -1,3 +1,5 @@
+[zero]: /zero-url "zero-title"
+
 # reference definition at the start of a block quote
 > [one]: /one-url "one-title"
 >
@@ -35,8 +37,16 @@
 - [seven]: /seven-url "seven-title"
 [seven]
 
+1.
+   [seven-point-one]: /seven-point-one-url "seven-point-one-title"
+[seve-point-one]
+
 [eight]
 - [eight]: /eight-url "eight-title"
+
+[eight-point-one]
+1.
+   [eight-point-one]: /eight-point-one-url "eight-point-one-title"
 
 # duplicate reference definitions
 [nine]
@@ -45,3 +55,39 @@
 
 # reference definition without a link
 [ten]: /ten-url "ten-url"
+
+# Deeply nested reference definitions
+>
+> [eleven]: /eleven-url
+>
+>>
+>> [twelve]: </twelve-url> (twelve-title)
+>>
+>>
+>>> [thirteen] </thirteen-url> 'thirteen-title'
+>>>
+>>>> [eleven]
+>>>> [twelve]
+>>>> [thirteen]
+
+> * [fourteen]
+>   >
+>   > [fourteen]: fourteen-url 'fourteen-title'
+>   > *
+>   > *
+>   >   *
+>   >   * [fifteen]: /fifteen-url (fifteen-title)
+>   >     + [fifteen]
+
+# I tried defining the reference in a table. I don't think it works
+| col 1     | col 2 |
+| --------- | ----- |
+| [sixteen] |       |
+|           |       |
+
+[sixteen]: /sixteen-url 'sixteen-title'
+
+# emojis!
+[7️⃣-teen]
+
+[7️⃣]: 7️⃣-teen-url '7️⃣-teen-title'
