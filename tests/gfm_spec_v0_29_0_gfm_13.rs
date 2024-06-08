@@ -1435,20 +1435,17 @@ fn gfm_markdown_link_reference_definitions_164() {
 [Foo bar]"##);
 }
 
+// relaxed testing with the `test` macro because we normalize the title text
 #[test]
 fn gfm_markdown_link_reference_definitions_165() {
     // https://github.github.com/gfm/#example-165
-    test_identical_markdown_events!(r##"[foo]: /url '
+    test!(r##"[foo]: /url '
 title
 line1
 line2
 '
 
-[foo]"##,r##"[foo]: /url '
-title
-line1
-line2
-'
+[foo]"##,r##"[foo]: /url 'title line1 line2'
 
 [foo]"##);
 }
@@ -1524,9 +1521,7 @@ fn gfm_markdown_link_reference_definitions_173() {
     test_identical_markdown_events!(r##"[foo]
 
 [foo]: first
-[foo]: second"##,r##"[foo]
-
-[foo]: first"##);
+[foo]: second"##);
 }
 
 #[test]
@@ -1571,7 +1566,6 @@ fn gfm_markdown_link_reference_definitions_178() {
     test_identical_markdown_events!(r##"[foo]: /url "title" ok"##);
 }
 
-// FIXME(ytmim) the "title" is duplcated here
 #[test]
 fn gfm_markdown_link_reference_definitions_179() {
     // https://github.github.com/gfm/#example-179
@@ -1658,10 +1652,7 @@ fn gfm_markdown_link_reference_definitions_187() {
     // https://github.github.com/gfm/#example-187
     test!(r##"[foo]
 
-> [foo]: /url"##,r##"[foo]
-
->
-[foo]: /url"##);
+> [foo]: /url"##);
 }
 
 #[test]
@@ -2715,10 +2706,6 @@ fn gfm_markdown_lists_297() {
 - b
 
   [ref]: /url
-- d"##,r##"- a
-- b
-
-[ref]: /url
 - d"##);
 }
 
@@ -4373,10 +4360,6 @@ fn gfm_markdown_links_552() {
     test_identical_markdown_events!(r##"[foo]: /url1
 
 [foo]: /url2
-
-[bar][foo]"##,r##"[foo]: /url1
-
-
 
 [bar][foo]"##);
 }

@@ -1667,20 +1667,17 @@ fn markdown_link_reference_definitions_195() {
 [Foo bar]"##);
 }
 
+// relaxed testing with the `test` macro because we normalize the title text
 #[test]
 fn markdown_link_reference_definitions_196() {
     // https://spec.commonmark.org/0.30/#example-196
-    test_identical_markdown_events!(r##"[foo]: /url '
+    test!(r##"[foo]: /url '
 title
 line1
 line2
 '
 
-[foo]"##,r##"[foo]: /url '
-title
-line1
-line2
-'
+[foo]"##,r##"[foo]: /url 'title line1 line2'
 
 [foo]"##);
 }
@@ -1756,9 +1753,7 @@ fn markdown_link_reference_definitions_204() {
     test_identical_markdown_events!(r##"[foo]
 
 [foo]: first
-[foo]: second"##,r##"[foo]
-
-[foo]: first"##);
+[foo]: second"##);
 }
 
 #[test]
@@ -1801,7 +1796,6 @@ fn markdown_link_reference_definitions_209() {
     test_identical_markdown_events!(r##"[foo]: /url "title" ok"##);
 }
 
-// FIXME(ytmim) the "title" is duplcated here
 #[test]
 fn markdown_link_reference_definitions_210() {
     // https://spec.commonmark.org/0.30/#example-210
@@ -1885,10 +1879,7 @@ fn markdown_link_reference_definitions_218() {
     // https://spec.commonmark.org/0.30/#example-218
     test!(r##"[foo]
 
-> [foo]: /url"##,r##"[foo]
-
->
-[foo]: /url"##);
+> [foo]: /url"##);
 }
 
 #[test]
@@ -2841,10 +2832,6 @@ fn markdown_lists_317() {
 - b
 
   [ref]: /url
-- d"##,r##"- a
-- b
-
-[ref]: /url
 - d"##);
 }
 
@@ -4301,10 +4288,6 @@ fn markdown_links_543() {
     test!(r##"[foo]: /url1
 
 [foo]: /url2
-
-[bar][foo]"##,r##"[foo]: /url1
-
-
 
 [bar][foo]"##);
 }

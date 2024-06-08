@@ -79,6 +79,10 @@ impl ListMarker {
             Self::Unordered(_) => 2,
         }
     }
+
+    pub(super) fn len(&self) -> usize {
+        self.indentation_len() - 1
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
