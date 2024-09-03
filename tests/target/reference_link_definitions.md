@@ -64,7 +64,7 @@
 >> [twelve]: </twelve-url> (twelve-title)
 >>
 >>
->>> [thirteen] </thirteen-url> 'thirteen-title'
+>>> [thirteen]: </thirteen-url> 'thirteen-title'
 >>>
 >>>> [eleven]
 >>>> [twelve]
@@ -90,4 +90,4 @@
 # emojis!
 [7️⃣-teen]
 
-[7️⃣]: 7️⃣-teen-url '7️⃣-teen-title'
+[7️⃣-teen]: 7️⃣-teen-url '7️⃣-teen-title'
