@@ -81,6 +81,11 @@ mod utils;
 pub use builder::FormatterBuilder;
 pub use formatter::MarkdownFormatter;
 
+// Used for doctests in the README
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadMe;
+
 /// Reformat a markdown snippet with all the default settings.
 ///
 /// ```rust
