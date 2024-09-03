@@ -180,6 +180,7 @@
     "end_line": 620,
     "section": "Thematic breaks",
     "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different",
     "extensions": []
   },
   {
@@ -959,6 +960,7 @@
     "end_line": 1828,
     "section": "Fenced code blocks",
     "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different",
     "extensions": []
   },
   {
@@ -970,6 +972,7 @@
     "end_line": 1842,
     "section": "Fenced code blocks",
     "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different",
     "extensions": []
   },
   {
@@ -1537,7 +1540,7 @@
     "markdown": "[foo]: /url '\ntitle\nline1\nline2\n'\n\n[foo]\n",
     "formattedMarkdown": "[foo]: /url 'title line1 line2'\n\n[foo]",
     "testMacro": "test",
-    "comment": "relaxed testing with the `test` macro because we normalize the title text",
+    "comment": "relaxed testing with the `test!` macro because we normalize the title text",
     "html": "<p><a href=\"/url\" title=\"\ntitle\nline1\nline2\n\">foo</a></p>\n",
     "example": 165,
     "start_line": 2871,
@@ -1749,7 +1752,6 @@
     "start_line": 3150,
     "end_line": 3158,
     "section": "Link reference definitions",
-    "testMacro": "test",
     "extensions": []
   },
   {
@@ -2223,6 +2225,7 @@
     "end_line": 4091,
     "section": "List items",
     "testMacro": "test",
+    "comment": "Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed",
     "extensions": []
   },
   {
@@ -2776,6 +2779,7 @@
     "end_line": 5492,
     "section": "Lists",
     "testMacro": "test",
+    "comment": "Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed",
     "extensions": []
   },
   {
@@ -2812,7 +2816,6 @@
     "start_line": 5564,
     "end_line": 5582,
     "section": "Lists",
-    "testMacro": "test",
     "extensions": []
   },
   {
@@ -4783,6 +4786,7 @@
     "end_line": 8030,
     "section": "Links",
     "testMacro": "test",
+    "comment": "Using the `test!` macro because the formatted Markdown Events are different",
     "extensions": []
   },
   {

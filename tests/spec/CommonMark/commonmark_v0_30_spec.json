@@ -414,7 +414,8 @@
     "start_line": 943,
     "end_line": 949,
     "section": "Thematic breaks",
-    "testMacro": "test"
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different"
   },
   {
     "markdown": "_____________________________________\n",
@@ -1065,8 +1066,7 @@
     "example": 127,
     "start_line": 2082,
     "end_line": 2092,
-    "section": "Fenced code blocks",
-    "testMacro": "test"
+    "section": "Fenced code blocks"
   },
   {
     "markdown": "> ```\n> aaa\n\nbbb\n",
@@ -1111,7 +1111,8 @@
     "start_line": 2149,
     "end_line": 2160,
     "section": "Fenced code blocks",
-    "testMacro": "test"
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different"
   },
   {
     "markdown": "   ```\n   aaa\n    aaa\n  aaa\n   ```\n",
@@ -1121,7 +1122,8 @@
     "start_line": 2163,
     "end_line": 2174,
     "section": "Fenced code blocks",
-    "testMacro": "test"
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different"
   },
   {
     "markdown": "    ```\n    aaa\n    ```\n",
@@ -1156,8 +1158,7 @@
     "example": 137,
     "start_line": 2216,
     "end_line": 2224,
-    "section": "Fenced code blocks",
-    "testMacro": "test"
+    "section": "Fenced code blocks"
   },
   {
     "markdown": "``` ```\naaa\n",
@@ -1174,8 +1175,7 @@
     "example": 139,
     "start_line": 2239,
     "end_line": 2247,
-    "section": "Fenced code blocks",
-    "testMacro": "test"
+    "section": "Fenced code blocks"
   },
   {
     "markdown": "foo\n```\nbar\n```\nbaz\n",
@@ -1638,7 +1638,7 @@
     "markdown": "[foo]: /url '\ntitle\nline1\nline2\n'\n\n[foo]\n",
     "formattedMarkdown": "[foo]: /url 'title line1 line2'\n\n[foo]",
     "testMacro": "test",
-    "comment": "relaxed testing with the `test` macro because we normalize the title text",
+    "comment": "relaxed testing with the `test!` macro because we normalize the title text",
     "html": "<p><a href=\"/url\" title=\"\ntitle\nline1\nline2\n\">foo</a></p>\n",
     "example": 196,
     "start_line": 3225,
@@ -1825,8 +1825,7 @@
     "example": 218,
     "start_line": 3507,
     "end_line": 3515,
-    "section": "Link reference definitions",
-    "testMacro": "test"
+    "section": "Link reference definitions"
   },
   {
     "markdown": "aaa\n\nbbb\n",
@@ -2159,7 +2158,8 @@
     "start_line": 4220,
     "end_line": 4230,
     "section": "List items",
-    "testMacro": "test"
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed"
   },
   {
     "markdown": " -    one\n\n      two\n",
@@ -2635,7 +2635,8 @@
     "start_line": 5556,
     "end_line": 5573,
     "section": "Lists",
-    "testMacro": "test"
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed"
   },
   {
     "markdown": "- a\n- b\n\n- c\n",
@@ -2667,8 +2668,7 @@
     "example": 317,
     "start_line": 5645,
     "end_line": 5663,
-    "section": "Lists",
-    "testMacro":"test"
+    "section": "Lists"
   },
   {
     "markdown": "- a\n- ```\n  b\n\n\n  ```\n- c\n",
@@ -2677,8 +2677,7 @@
     "example": 318,
     "start_line": 5668,
     "end_line": 5687,
-    "section": "Lists",
-    "testMacro": "test"
+    "section": "Lists"
   },
   {
     "markdown": "- a\n  - b\n\n    c\n- d\n",
@@ -4191,7 +4190,8 @@
     "start_line": 7765,
     "end_line": 7769,
     "section": "Links",
-    "testMacro": "test"
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the formatted Markdown Events are different"
   },
   {
     "markdown": "[link](/url \"title \"and\" title\")\n",
@@ -4490,8 +4490,7 @@
     "example": 543,
     "start_line": 8193,
     "end_line": 8201,
-    "section": "Links",
-    "testMacro": "test"
+    "section": "Links"
   },
   {
     "markdown": "[bar][foo\\!]\n\n[foo!]: /url\n",
