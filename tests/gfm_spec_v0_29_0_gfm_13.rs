@@ -135,6 +135,7 @@ fn gfm_markdown_thematic_breaks_18() {
     test_identical_markdown_events!(r##"    ***"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different
 #[test]
 fn gfm_markdown_thematic_breaks_19() {
     // https://github.github.com/gfm/#example-19
@@ -827,6 +828,7 @@ aaa
 ```"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different
 #[test]
 fn gfm_markdown_fenced_code_blocks_102() {
     // https://github.github.com/gfm/#example-102
@@ -841,6 +843,7 @@ aaa
 ```"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different
 #[test]
 fn gfm_markdown_fenced_code_blocks_103() {
     // https://github.github.com/gfm/#example-103
@@ -1435,7 +1438,7 @@ fn gfm_markdown_link_reference_definitions_164() {
 [Foo bar]"##);
 }
 
-// relaxed testing with the `test` macro because we normalize the title text
+// relaxed testing with the `test!` macro because we normalize the title text
 #[test]
 fn gfm_markdown_link_reference_definitions_165() {
     // https://github.github.com/gfm/#example-165
@@ -1650,7 +1653,7 @@ fn gfm_markdown_link_reference_definitions_186() {
 #[test]
 fn gfm_markdown_link_reference_definitions_187() {
     // https://github.github.com/gfm/#example-187
-    test!(r##"[foo]
+    test_identical_markdown_events!(r##"[foo]
 
 > [foo]: /url"##);
 }
@@ -2072,6 +2075,7 @@ fn gfm_markdown_list_items_234() {
   two"##);
 }
 
+// Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed
 #[test]
 fn gfm_markdown_list_items_235() {
     // https://github.github.com/gfm/#example-235
@@ -2655,6 +2659,7 @@ fn gfm_markdown_lists_292() {
   \- e"##);
 }
 
+// Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed
 #[test]
 fn gfm_markdown_lists_293() {
     // https://github.github.com/gfm/#example-293
@@ -2702,7 +2707,7 @@ fn gfm_markdown_lists_296() {
 #[test]
 fn gfm_markdown_lists_297() {
     // https://github.github.com/gfm/#example-297
-    test!(r##"- a
+    test_identical_markdown_events!(r##"- a
 - b
 
   [ref]: /url
@@ -4093,6 +4098,7 @@ fn gfm_markdown_links_514() {
     test_identical_markdown_events!(r##"[link](/url "title \"&quot;")"##);
 }
 
+// Using the `test!` macro because the formatted Markdown Events are different
 #[test]
 fn gfm_markdown_links_515() {
     // https://github.github.com/gfm/#example-515

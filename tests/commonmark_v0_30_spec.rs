@@ -353,6 +353,7 @@ fn markdown_thematic_breaks_48() {
     test_identical_markdown_events!(r##"    ***"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different
 #[test]
 fn markdown_thematic_breaks_49() {
     // https://spec.commonmark.org/0.30/#example-49
@@ -996,7 +997,7 @@ fn markdown_fenced_code_blocks_126() {
 #[test]
 fn markdown_fenced_code_blocks_127() {
     // https://spec.commonmark.org/0.30/#example-127
-    test!(r##"`````
+    test_identical_markdown_events!(r##"`````
 
 ```
 aaa"##,r##"`````
@@ -1045,6 +1046,7 @@ aaa
 ```"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different
 #[test]
 fn markdown_fenced_code_blocks_132() {
     // https://spec.commonmark.org/0.30/#example-132
@@ -1059,6 +1061,7 @@ aaa
 ```"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different
 #[test]
 fn markdown_fenced_code_blocks_133() {
     // https://spec.commonmark.org/0.30/#example-133
@@ -1104,7 +1107,7 @@ aaa
 #[test]
 fn markdown_fenced_code_blocks_137() {
     // https://spec.commonmark.org/0.30/#example-137
-    test!(r##"```
+    test_identical_markdown_events!(r##"```
 aaa
     ```"##,r##"```
 aaa
@@ -1122,7 +1125,7 @@ aaa"##);
 #[test]
 fn markdown_fenced_code_blocks_139() {
     // https://spec.commonmark.org/0.30/#example-139
-    test!(r##"~~~~~~
+    test_identical_markdown_events!(r##"~~~~~~
 aaa
 ~~~ ~~"##,r##"~~~~~~
 aaa
@@ -1667,7 +1670,7 @@ fn markdown_link_reference_definitions_195() {
 [Foo bar]"##);
 }
 
-// relaxed testing with the `test` macro because we normalize the title text
+// relaxed testing with the `test!` macro because we normalize the title text
 #[test]
 fn markdown_link_reference_definitions_196() {
     // https://spec.commonmark.org/0.30/#example-196
@@ -1877,7 +1880,7 @@ fn markdown_link_reference_definitions_217() {
 #[test]
 fn markdown_link_reference_definitions_218() {
     // https://spec.commonmark.org/0.30/#example-218
-    test!(r##"[foo]
+    test_identical_markdown_events!(r##"[foo]
 
 > [foo]: /url"##);
 }
@@ -2211,6 +2214,7 @@ fn markdown_list_items_256() {
   two"##);
 }
 
+// Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed
 #[test]
 fn markdown_list_items_257() {
     // https://spec.commonmark.org/0.30/#example-257
@@ -2781,6 +2785,7 @@ fn markdown_lists_312() {
   \- e"##);
 }
 
+// Using the `test!` macro because the formatted Markdown includes comments to prevent the code block from being absorbed
 #[test]
 fn markdown_lists_313() {
     // https://spec.commonmark.org/0.30/#example-313
@@ -2828,7 +2833,7 @@ fn markdown_lists_316() {
 #[test]
 fn markdown_lists_317() {
     // https://spec.commonmark.org/0.30/#example-317
-    test!(r##"- a
+    test_identical_markdown_events!(r##"- a
 - b
 
   [ref]: /url
@@ -2838,7 +2843,7 @@ fn markdown_lists_317() {
 #[test]
 fn markdown_lists_318() {
     // https://spec.commonmark.org/0.30/#example-318
-    test!(r##"- a
+    test_identical_markdown_events!(r##"- a
 - ```
   b
 
@@ -4019,6 +4024,7 @@ fn markdown_links_505() {
     test_identical_markdown_events!(r##"[link](/url "title \"&quot;")"##);
 }
 
+// Using the `test!` macro because the formatted Markdown Events are different
 #[test]
 fn markdown_links_506() {
     // https://spec.commonmark.org/0.30/#example-506
@@ -4285,7 +4291,7 @@ fn markdown_links_542() {
 #[test]
 fn markdown_links_543() {
     // https://spec.commonmark.org/0.30/#example-543
-    test!(r##"[foo]: /url1
+    test_identical_markdown_events!(r##"[foo]: /url1
 
 [foo]: /url2
 
