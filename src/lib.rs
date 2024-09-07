@@ -24,14 +24,14 @@
 //! # Ok::<(), std::fmt::Error>(())
 //! ```
 //!
-//! # Using the [Builder](builder::FormatterBuilder)
+//! # Using the [Builder](builder::FormatBuilder)
 //!
 //! The builder gives you more control to configure Markdown formatting.
 //!
 //! ````rust
-//! use markdown_fmt::{rewrite_markdown, rewrite_markdown_with_builder, FormatterBuilder};
+//! use markdown_fmt::{rewrite_markdown, rewrite_markdown_with_builder, FormatBuilder};
 //!
-//! let builder = FormatterBuilder::with_code_block_formatter(|info_string, code_block| {
+//! let builder = FormatBuilder::with_code_block_formatter(|info_string, code_block| {
 //!     match info_string.to_lowercase().as_str() {
 //!         "markdown" => rewrite_markdown(&code_block).unwrap_or(code_block),
 //!         _ => code_block
@@ -78,7 +78,7 @@ mod table;
 mod test;
 mod utils;
 
-pub use builder::FormatterBuilder;
+pub use builder::FormatBuilder;
 pub use formatter::MarkdownFormatter;
 
 // Used for doctests in the README
@@ -110,13 +110,13 @@ struct ReadMe;
 /// assert_eq!(output, formatted_markdown);
 /// ```
 pub fn rewrite_markdown(input: &str) -> Result<String, std::fmt::Error> {
-    rewrite_markdown_with_builder(input, FormatterBuilder::default())
+    rewrite_markdown_with_builder(input, FormatBuilder::default())
 }
 
 /// Reformat a markdown snippet with user specified settings
 ///
 /// ```rust
-/// # use markdown_fmt::{rewrite_markdown_with_builder, FormatterBuilder};
+/// # use markdown_fmt::{rewrite_markdown_with_builder, FormatBuilder};
 /// let markdown = r##"  #   Learn Rust Checklist!
 /// 1. Read [The Book]
 ///  2.  Watch tutorials
@@ -133,13 +133,13 @@ pub fn rewrite_markdown(input: &str) -> Result<String, std::fmt::Error> {
 /// [The Book]: https://doc.rust-lang.org/book/
 /// "##;
 ///
-/// let builder = FormatterBuilder::default();
+/// let builder = FormatBuilder::default();
 /// let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
 /// assert_eq!(output, formatted_markdown);
 /// ```
 pub fn rewrite_markdown_with_builder(
     input: &str,
-    builder: FormatterBuilder,
+    builder: FormatBuilder,
 ) -> Result<String, std::fmt::Error> {
     let formatter = builder.build();
     formatter.format(input)

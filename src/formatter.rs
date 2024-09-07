@@ -17,9 +17,9 @@ use crate::table::TableState;
 
 /// Used to format Markdown inputs.
 ///
-/// To get a [MarkdownFormatter] use [FormatterBuilder::build]
+/// To get a [MarkdownFormatter] use [FormatBuilder::build]
 ///
-/// [FormatterBuilder::build]: crate::FormatterBuilder::build
+/// [FormatBuilder::build]: crate::FormatBuilder::build
 pub struct MarkdownFormatter {
     code_block_formatter: CodeBlockFormatter,
     config: Config,
@@ -29,8 +29,8 @@ impl MarkdownFormatter {
     /// Format Markdown input
     ///
     /// ```rust
-    /// # use markdown_fmt::FormatterBuilder;
-    /// let builder = FormatterBuilder::default();
+    /// # use markdown_fmt::FormatBuilder;
+    /// let builder = FormatBuilder::default();
     /// let formatter = builder.build();
     /// let input = "   #  Header! ";
     /// let rewrite = formatter.format(input).unwrap();
@@ -55,10 +55,10 @@ impl MarkdownFormatter {
 
     /// Helper method to easily initiazlie the [MarkdownFormatter].
     ///
-    /// This is marked as `pub(crate)` because users are expected to use the [FormatterBuilder]
+    /// This is marked as `pub(crate)` because users are expected to use the [FormatBuilder]
     /// When creating a [MarkdownFormatter].
     ///
-    /// [FormatterBuilder]: crate::FormatterBuilder
+    /// [FormatBuilder]: crate::FormatBuilder
     pub(crate) fn new(code_block_formatter: CodeBlockFormatter, config: Config) -> Self {
         Self {
             code_block_formatter,

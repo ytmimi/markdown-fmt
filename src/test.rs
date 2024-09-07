@@ -1,9 +1,9 @@
 use crate::config::Config;
-use crate::{rewrite_markdown, rewrite_markdown_with_builder, FormatterBuilder};
+use crate::{rewrite_markdown, rewrite_markdown_with_builder, FormatBuilder};
 use rust_search::SearchBuilder;
 use std::path::{Path, PathBuf};
 
-impl FormatterBuilder {
+impl FormatBuilder {
     pub fn from_leading_config_comments(input: &str) -> Self {
         let mut config = Config::default();
 
@@ -22,7 +22,7 @@ impl FormatterBuilder {
             config.set(config_option, value.trim());
         }
 
-        let mut builder = FormatterBuilder::default();
+        let mut builder = FormatBuilder::default();
         builder.config(config);
         builder
     }
@@ -75,7 +75,7 @@ fn check_markdown_formatting() {
 
     for file in get_test_files("tests/source", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
-        let builder = FormatterBuilder::from_leading_config_comments(&input);
+        let builder = FormatBuilder::from_leading_config_comments(&input);
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
         let target_file = file
             .strip_prefix("tests/source")
@@ -98,7 +98,7 @@ fn idempotence_test() {
 
     for file in get_test_files("tests/target", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
-        let builder = FormatterBuilder::from_leading_config_comments(&input);
+        let builder = FormatBuilder::from_leading_config_comments(&input);
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
 
         if formatted_input != input {
