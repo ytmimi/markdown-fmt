@@ -3,21 +3,21 @@ use crate::config::Config;
 pub(crate) type CodeBlockFormatter = Box<dyn Fn(&str, String) -> String>;
 
 /// Builder for the [MarkdownFormatter](crate::MarkdownFormatter)
-pub struct FormatterBuilder {
+pub struct FormatBuilder {
     code_block_formatter: CodeBlockFormatter,
     config: Config,
 }
 
-impl FormatterBuilder {
-    /// Create a [FormatterBuilder] with a custom code block formatter.
+impl FormatBuilder {
+    /// Create a [FormatBuilder] with a custom code block formatter.
     ///
     /// The closure used to reformat code blocks takes two arguments;
     /// the [`info string`] and the complete code snippet
     ///
     /// ```rust
     /// # use markdown_fmt::MarkdownFormatter;
-    /// # use markdown_fmt::FormatterBuilder;
-    /// let builder = FormatterBuilder::with_code_block_formatter(|info_string, code_block| {
+    /// # use markdown_fmt::FormatBuilder;
+    /// let builder = FormatBuilder::with_code_block_formatter(|info_string, code_block| {
     ///     // Set the code block formatting logic
     ///     match info_string.to_lowercase().as_str() {
     ///         "rust" => {
@@ -43,15 +43,15 @@ impl FormatterBuilder {
     ///
     /// ```rust
     /// # use markdown_fmt::MarkdownFormatter;
-    /// # use markdown_fmt::FormatterBuilder;
-    /// let builder = FormatterBuilder::default();
+    /// # use markdown_fmt::FormatBuilder;
+    /// let builder = FormatBuilder::default();
     /// let formatter: MarkdownFormatter = builder.build();
     /// ```
     pub fn build(self) -> crate::MarkdownFormatter {
         crate::MarkdownFormatter::new(self.code_block_formatter, self.config)
     }
 
-    /// Configure how code blocks should be reformatted after creating the [FormatterBuilder].
+    /// Configure how code blocks should be reformatted after creating the [FormatBuilder].
     ///
     /// The closure passed to `code_block_formatter` takes two arguments;
     /// the [`info string`] and the complete code snippet
@@ -81,9 +81,9 @@ impl FormatterBuilder {
     }
 }
 
-impl std::fmt::Debug for FormatterBuilder {
+impl std::fmt::Debug for FormatBuilder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "FormatterBuilder")
+        write!(f, "FormatBuilder")
     }
 }
 
@@ -92,9 +92,9 @@ fn default_code_block_formatter(_info_str: &str, code_block: String) -> String {
     code_block
 }
 
-impl Default for FormatterBuilder {
+impl Default for FormatBuilder {
     fn default() -> Self {
-        FormatterBuilder {
+        FormatBuilder {
             code_block_formatter: Box::new(default_code_block_formatter),
             config: Config::default(),
         }

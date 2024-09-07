@@ -33,12 +33,12 @@ let output = rewrite_markdown(markdown).unwrap();
 assert_eq!(output, expected);
 ```
 
-If you need more control over markdown formatting you can use the `FormatterBuilder` and the
+If you need more control over markdown formatting you can use the `FormatBuilder` and the
 `rewrite_markdown_with_builder` function.
 
 
 ```rust
-use markdown_fmt::{FormatterBuilder, rewrite_markdown_with_builder};
+use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
 
 let markdown = r##"# The standard Lorem Ipsum passage, used since the 1500s
 
@@ -62,7 +62,7 @@ sunt in culpa qui officia deserunt mollit anim id
 est laborum."
 "##;
 
-let mut builder = FormatterBuilder::default();
+let mut builder = FormatBuilder::default();
 builder.max_width(Some(50));
 
 let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
