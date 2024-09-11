@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::fmt::Write;
 use std::iter::Peekable;
 use std::ops::Range;
@@ -22,7 +23,7 @@ use crate::table::TableState;
 /// [FormatBuilder::build]: crate::FormatBuilder::build
 pub struct MarkdownFormatter {
     code_block_formatter: CodeBlockFormatter,
-    config: Config,
+    config: RefCell<Config>,
 }
 
 impl MarkdownFormatter {
@@ -57,7 +58,14 @@ impl MarkdownFormatter {
     where
         F: Fn(&Config) -> O,
     {
-        f(&self.config)
+        f(&self.config.borrow())
+    }
+
+    pub(crate) fn set_config<F>(&self, f: F)
+    where
+        F: Fn(&mut Config),
+    {
+        f(&mut self.config.borrow_mut())
     }
 
     /// Helper method to easily initiazlie the [MarkdownFormatter].
@@ -69,7 +77,7 @@ impl MarkdownFormatter {
     pub(crate) fn new(code_block_formatter: CodeBlockFormatter, config: Config) -> Self {
         Self {
             code_block_formatter,
-            config,
+            config: RefCell::new(config),
         }
     }
 }
@@ -466,8 +474,28 @@ where
             return code_block_buffer;
         };
 
-        // Call the code_block_formatter fn
-        (self.formatter.code_block_formatter)(info_string, code_block_buffer)
+        // To prepare for a nested code block that might recursively call into the markdown
+        // formatter we should get a snapshot of the width and update it for the nested context.
+        let indentation = self.indentation_len();
+        let current_max_width = self.formatter.get_config(|c| c.max_width());
+        let new_max_with = current_max_width.map(|width| width.saturating_sub(indentation));
+        self.formatter.set_config(|c| c.set_max_width(new_max_with));
+
+        let rewrite = if info_string.contains("markdown") {
+            // recursively call into the the `MarkdownFormatter`
+            self.formatter
+                .format(&code_block_buffer)
+                .unwrap_or(code_block_buffer)
+        } else {
+            // Call the code_block_formatter fn
+            (self.formatter.code_block_formatter)(info_string, code_block_buffer)
+        };
+
+        // restore the width after formatting the code block
+        self.formatter
+            .set_config(|c| c.set_max_width(current_max_width));
+
+        rewrite
     }
 
     fn write_code_block_buffer(&mut self, info_string: Option<&str>) -> std::fmt::Result {
