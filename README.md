@@ -68,3 +68,25 @@ builder.max_width(Some(50));
 let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
 assert_eq!(output, expected);
 ```
+
+You can also configure how code blocks are formatted.
+
+````rust
+use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
+
+let markdown = "```text\nhello world!\n```";
+
+let expected = "```text\nHELLO WORLD!\n```";
+
+let mut builder = FormatBuilder::default();
+builder.code_block_formatter(|_ctx, info_str, code_block| {
+    match info_str {
+        "text" => code_block.to_uppercase(),
+        _ => code_block
+    }
+
+});
+
+let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
+assert_eq!(output, expected);
+`````
