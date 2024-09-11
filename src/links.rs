@@ -3,7 +3,7 @@ use pulldown_cmark::Event;
 use std::borrow::Cow;
 use std::fmt::Write;
 
-impl<'i, F, I> FormatState<'i, F, I>
+impl<'i, I> FormatState<'i, '_, I>
 where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {

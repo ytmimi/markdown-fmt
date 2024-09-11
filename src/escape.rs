@@ -2,7 +2,7 @@ use super::formatter::FormatState;
 
 const ATX_HEADER_ESCAPES: [&str; 6] = ["# ", "## ", "### ", "#### ", "##### ", "###### "];
 
-impl<'i, F, I> FormatState<'i, F, I>
+impl<I> FormatState<'_, '_, I>
 where
     I: Iterator,
 {

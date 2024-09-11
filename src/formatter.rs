@@ -36,7 +36,7 @@ impl MarkdownFormatter {
     /// let rewrite = formatter.format(input).unwrap();
     /// assert_eq!(rewrite, String::from("# Header!"));
     /// ```
-    pub fn format(self, input: &str) -> Result<String, std::fmt::Error> {
+    pub fn format(&self, input: &str) -> Result<String, std::fmt::Error> {
         // callback that will always revcover broken links
         let mut callback = |broken_link| {
             tracing::trace!("found boken link: {broken_link:?}");
@@ -49,8 +49,15 @@ impl MarkdownFormatter {
         let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
         let iter = parser.into_offset_iter().all_loose_lists();
 
-        let fmt_state = FormatState::new(input, self.config, self.code_block_formatter, iter);
+        let fmt_state = FormatState::new(input, self, iter);
         fmt_state.format()
+    }
+
+    pub(crate) fn get_config<F, O>(&self, f: F) -> O
+    where
+        F: Fn(&Config) -> O,
+    {
+        f(&self.config)
     }
 
     /// Helper method to easily initiazlie the [MarkdownFormatter].
@@ -67,7 +74,7 @@ impl MarkdownFormatter {
     }
 }
 
-pub(crate) struct FormatState<'i, F, I>
+pub(crate) struct FormatState<'i, 'm, I>
 where
     I: Iterator,
 {
@@ -110,18 +117,15 @@ where
     needs_indent: bool,
     table_state: Option<TableState<'i>>,
     last_position: usize,
-    code_block_formatter: F,
     trim_link_or_image_start: bool,
     /// Handles paragraph formatting.
     paragraph: Option<Paragraph>,
-    /// Format configurations
-    #[allow(dead_code)]
-    config: Config,
+    formatter: &'m MarkdownFormatter,
 }
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
 /// write formatted markdown events. The Write impl helps us centralize this logic.
-impl<'i, F, I> Write for FormatState<'i, F, I>
+impl<'i, I> Write for FormatState<'i, '_, I>
 where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
@@ -140,7 +144,7 @@ where
     }
 }
 
-impl<'i, F, I> FormatState<'i, F, I>
+impl<'i, I> FormatState<'i, '_, I>
 where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
@@ -427,12 +431,11 @@ where
     }
 }
 
-impl<'i, F, I> FormatState<'i, F, I>
+impl<'i, 'm, I> FormatState<'i, 'm, I>
 where
-    F: Fn(&str, String) -> String,
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
-    pub(crate) fn new(input: &'i str, config: Config, code_block_formatter: F, iter: I) -> Self {
+    pub(crate) fn new(input: &'i str, formatter: &'m MarkdownFormatter, iter: I) -> Self {
         Self {
             input,
             last_was_softbreak: false,
@@ -448,10 +451,9 @@ where
             needs_indent: false,
             table_state: None,
             last_position: 0,
-            code_block_formatter,
             trim_link_or_image_start: false,
             paragraph: None,
-            config,
+            formatter,
         }
     }
 
@@ -465,7 +467,7 @@ where
         };
 
         // Call the code_block_formatter fn
-        (self.code_block_formatter)(info_string, code_block_buffer)
+        (self.formatter.code_block_formatter)(info_string, code_block_buffer)
     }
 
     fn write_code_block_buffer(&mut self, info_string: Option<&str>) -> std::fmt::Result {
@@ -638,8 +640,8 @@ where
                 self.nested_context.push(tag);
                 let capacity = (range.end - range.start) * 2;
                 let width = self
-                    .config
-                    .max_width()
+                    .formatter
+                    .get_config(|c| c.max_width())
                     .map(|w| w.saturating_sub(self.indentation_len()));
                 self.paragraph = Some(Paragraph::new(width, capacity));
             }
