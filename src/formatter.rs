@@ -671,11 +671,13 @@ where
                 }
                 self.nested_context.push(tag);
                 let capacity = (range.end - range.start) * 2;
-                let width = self
-                    .formatter
-                    .get_config(|c| c.max_width())
-                    .map(|w| w.saturating_sub(self.indentation_len()));
-                self.paragraph = Some(Paragraph::new(width, capacity));
+                let (max_width, should_reflow_text) = self.formatter.get_config(|c| {
+                    let width = c
+                        .max_width()
+                        .map(|w| w.saturating_sub(self.indentation_len()));
+                    (width, c.reflow_text())
+                });
+                self.paragraph = Some(Paragraph::new(max_width, should_reflow_text, capacity));
             }
             Tag::Heading(level, _, _) => {
                 if self.needs_indent {

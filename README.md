@@ -63,7 +63,7 @@ est laborum."
 "##;
 
 let mut builder = FormatBuilder::default();
-builder.max_width(Some(50));
+builder.max_width(Some(50)).reflow_text(true);
 
 let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
 assert_eq!(output, expected);

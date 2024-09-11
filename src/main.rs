@@ -19,6 +19,9 @@ struct Cli {
     /// The max width to use when reformatting paragraphs.
     #[arg(short, long)]
     max_width: Option<usize>,
+    /// Should text reflow when max width is also configured.
+    #[arg(short, long)]
+    reflow_text: bool,
 }
 
 fn output_result(input: &Path, result: &str, stdout: bool) -> Result<(), anyhow::Error> {
@@ -42,7 +45,9 @@ fn main() -> Result<(), anyhow::Error> {
         Some("md") => {
             let input = fs::read_to_string(&cli.input)?;
             let mut builder = FormatBuilder::default();
-            builder.max_width(cli.max_width);
+            builder
+                .max_width(cli.max_width)
+                .reflow_text(cli.reflow_text);
             let result = rewrite_markdown_with_builder(&input, builder)?;
             output_result(&cli.input, &result, cli.stdout)
         }
