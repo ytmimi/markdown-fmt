@@ -9,7 +9,7 @@ use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel};
 use pulldown_cmark::{LinkType, Options, Parser, Tag};
 
 use crate::adapters::LooseListExt;
-use crate::builder::CodeBlockFormatter;
+use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::links::{parse_link_reference_definitions, LinkReferenceDefinition};
 use crate::list::ListMarker;
@@ -487,8 +487,12 @@ where
                 .format(&code_block_buffer)
                 .unwrap_or(code_block_buffer)
         } else {
+            let ctx = CodeBlockContext {
+                indentation,
+                max_width: current_max_width,
+            };
             // Call the code_block_formatter fn
-            (self.formatter.code_block_formatter)(info_string, code_block_buffer)
+            (self.formatter.code_block_formatter)(&ctx, info_string, code_block_buffer)
         };
 
         // restore the width after formatting the code block
