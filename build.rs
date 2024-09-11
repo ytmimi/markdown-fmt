@@ -82,13 +82,12 @@ fn write_test_cases<W>(
 where
     W: std::io::Write,
 {
-    write!(writer, "// @generated\n")?;
-    write!(writer, "// generated running `cargo build -F gen-tests`\n")?;
-    write!(
-        writer,
-        "// test macros are defined in tests/common/mod.rs\n"
-    )?;
-    write!(writer, "mod common;\n")?;
+    writeln!(writer, "// @generated")?;
+    writeln!(writer, "// generated running `cargo build -F gen-tests`")?;
+    writeln!(writer, "// test macros are defined in tests/common/mod.rs")?;
+    // #![allow(missing_docs)] to work around missing_doc issue on nightly
+    writeln!(writer, "#![allow(missing_docs)]")?;
+    writeln!(writer, "mod common;")?;
 
     for test_case in test_cases.into_iter() {
         write_test_case(writer, prefix, test_case, url)?;

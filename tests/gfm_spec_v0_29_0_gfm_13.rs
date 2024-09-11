@@ -1,6 +1,7 @@
 // @generated
 // generated running `cargo build -F gen-tests`
 // test macros are defined in tests/common/mod.rs
+#![allow(missing_docs)]
 mod common;
 
 #[test]

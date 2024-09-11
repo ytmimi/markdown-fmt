@@ -4,6 +4,14 @@ use rust_search::SearchBuilder;
 use std::path::{Path, PathBuf};
 
 impl FormatBuilder {
+    /// Configure the FormatBuilder using leading comments in test files.
+    ///
+    /// For example:
+    /// ```markdown
+    /// <!-- :max_width:50 -->
+    ///
+    /// Paragraphs will now wrap at a column width of 50.
+    /// ```
     pub fn from_leading_config_comments(input: &str) -> Self {
         let mut config = Config::default();
 
