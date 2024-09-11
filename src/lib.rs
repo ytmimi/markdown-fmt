@@ -31,7 +31,7 @@
 //! ````rust
 //! use markdown_fmt::{rewrite_markdown, rewrite_markdown_with_builder, FormatBuilder};
 //!
-//! let builder = FormatBuilder::with_code_block_formatter(|info_string, code_block| {
+//! let builder = FormatBuilder::with_code_block_formatter(|_ctx, info_string, code_block| {
 //!     match info_string.to_lowercase().as_str() {
 //!         "markdown" => rewrite_markdown(&code_block).unwrap_or(code_block),
 //!         _ => code_block
@@ -78,7 +78,7 @@ mod table;
 mod test;
 mod utils;
 
-pub use builder::FormatBuilder;
+pub use builder::{CodeBlockContext, FormatBuilder};
 pub use formatter::MarkdownFormatter;
 
 // Used for doctests in the README
