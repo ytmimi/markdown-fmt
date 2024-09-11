@@ -7,6 +7,7 @@ const MARKDOWN_HARD_BREAK: &str = "  \n";
 pub(super) struct Paragraph {
     buffer: String,
     max_width: Option<usize>,
+    should_reflow_text: bool,
 }
 
 impl Write for Paragraph {
@@ -22,8 +23,9 @@ impl Write for Paragraph {
             return Ok(());
         }
 
-        if self.max_width.is_some() && s.trim().is_empty() {
-            // If the user configured the max_width then push a space so we can reflow text
+        if self.max_width.is_some() && self.should_reflow_text && s.trim().is_empty() {
+            // If the user configured the max_width and the reflow text option
+            // then push a space so we can reflow text
             self.buffer.push(' ');
         } else {
             self.buffer.push_str(s);
@@ -34,10 +36,11 @@ impl Write for Paragraph {
 }
 
 impl Paragraph {
-    pub(super) fn new(max_width: Option<usize>, capacity: usize) -> Self {
+    pub(super) fn new(max_width: Option<usize>, should_reflow_text: bool, capacity: usize) -> Self {
         Self {
             max_width,
             buffer: String::with_capacity(capacity),
+            should_reflow_text,
         }
     }
 
@@ -73,7 +76,12 @@ impl Paragraph {
 
         while let Some(text) = split_on_hard_breaks.next() {
             let has_next = split_on_hard_breaks.peek().is_some();
-            let wrapped_text = textwrap::fill(text, wrap_options.clone());
+            let wrapped_text = if self.should_reflow_text {
+                let (text, _) = textwrap::unfill(text);
+                textwrap::fill(&text, wrap_options.clone())
+            } else {
+                textwrap::fill(text, wrap_options.clone())
+            };
             output_buffer.push_str(&wrapped_text);
             if has_next {
                 output_buffer.push_str(MARKDOWN_HARD_BREAK);

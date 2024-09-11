@@ -109,11 +109,74 @@ impl FormatBuilder {
         self
     }
 
-    /// Configure the max with when rewriting paragraphs.
+    /// Configure the max width when rewriting paragraphs.
     ///
     /// When set to [None], the deafault, paragraph width is left unchanged.
+    ///
+    /// # Setting [`max_width`](Self::max_width) to [None] (default)
+    ///
+    /// ```rust
+    /// # use markdown_fmt::FormatBuilder;
+    /// let mut builder = FormatBuilder::default();
+    /// builder.max_width(None);
+    ///
+    /// let input = "this text should not wrap";
+    /// let output = builder.build().format(input).unwrap();
+    /// assert_eq!(output, input)
+    /// ```
+    /// ---
+    /// # Setting [`max_width`](Self::max_width) to `20`
+    /// ```rust
+    /// # use markdown_fmt::FormatBuilder;
+    /// let mut builder = FormatBuilder::default();
+    /// builder.max_width(Some(20));
+    ///
+    /// let input = "this text should definetly wrap";
+    ///
+    /// let expected = "this text should
+    /// definetly wrap";
+    /// let output = builder.build().format(input).unwrap();
+    /// assert_eq!(output, expected)
+    /// ```
     pub fn max_width(&mut self, max_width: Option<usize>) -> &mut Self {
         self.config.set_max_width(max_width);
+        self
+    }
+
+    /// Configure whether or not paragraph text should reflow when `max_width`
+    /// is also configured. By default text will not reflow.
+    ///
+    /// # Setting [`reflow_text`](Self::reflow_text) to `false` (default)
+    /// ```rust
+    /// # use markdown_fmt::FormatBuilder;
+    /// let mut builder = FormatBuilder::default();
+    /// builder.max_width(Some(30)).reflow_text(false);
+    ///
+    /// let input = "this
+    /// will not
+    /// reflow";
+    ///
+    /// let output = builder.build().format(input).unwrap();
+    /// assert_eq!(output, input)
+    /// ```
+    /// ---
+    /// # Setting [`reflow_text`](Self::reflow_text) to `true`
+    /// ```rust
+    /// # use markdown_fmt::FormatBuilder;
+    /// let mut builder = FormatBuilder::default();
+    /// builder.max_width(Some(30)).reflow_text(true);
+    ///
+    /// let input = "this
+    /// text
+    /// should
+    /// reflow";
+    ///
+    /// let expected = "this text should reflow";
+    /// let output = builder.build().format(input).unwrap();
+    /// assert_eq!(output, expected)
+    /// ```
+    pub fn reflow_text(&mut self, should_reflow: bool) -> &mut Self {
+        self.config.set_reflow_text(should_reflow);
         self
     }
 
