@@ -84,7 +84,6 @@ builder.code_block_formatter(|_ctx, info_str, code_block| {
         "text" => code_block.to_uppercase(),
         _ => code_block
     }
-
 });
 
 let output = rewrite_markdown_with_builder(markdown, builder).unwrap();
