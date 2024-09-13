@@ -8,6 +8,6 @@ Description:
 Tests for the CommonMark spec.
 
 Local Modifications:
-This directory only contains the commonmark_v0_30_spec.json file, which is derived from spec.txt
-by running `python test/spec_tests.py -d -s ./spec.txt`. The generated JSON was further modifed to
+This directory only contains the commonmark_v0_30_spec.json file, which is derived from commonmark-spec/spec.txt
+by running `python ./tests/spec_tests.py -d -s commonmark-spec/spec.txt`. The generated JSON was further modifed to
 produce test cases for this project.
