@@ -4584,6 +4584,7 @@
   },
   {
     "markdown": "[foo] \n[]\n\n[foo]: /url \"title\"\n",
+    "formattedMarkdown": "[foo]\n[]\n\n[foo]: /url \"title\"",
     "html": "<p><a href=\"/url\" title=\"title\">foo</a>\n[]</p>\n",
     "example": 555,
     "start_line": 8339,
@@ -4837,6 +4838,7 @@
   },
   {
     "markdown": "![foo] \n[]\n\n[foo]: /url \"title\"\n",
+    "formattedMarkdown":"![foo]\n[]\n\n[foo]: /url \"title\"",
     "html": "<p><img src=\"/url\" alt=\"foo\" title=\"title\" />\n[]</p>\n",
     "example": 586,
     "start_line": 8667,
@@ -5345,7 +5347,7 @@
   },
   {
     "markdown": "foo \n baz\n",
-    "formattedMarkdown": "foo \nbaz",
+    "formattedMarkdown": "foo\nbaz",
     "html": "<p>foo\nbaz</p>\n",
     "example": 649,
     "start_line": 9375,

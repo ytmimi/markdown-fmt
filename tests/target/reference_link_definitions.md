@@ -27,6 +27,7 @@
 
 # reference definition in block quote, but link outside
 > [five]: /five-url "five-title"
+
 [five]
 
 [six]
@@ -35,16 +36,19 @@
 
 # reference definition in list item, but link outside
 - [seven]: /seven-url "seven-title"
+
 [seven]
 
 1.
    [seven-point-one]: /seven-point-one-url "seven-point-one-title"
+
 [seve-point-one]
 
 [eight]
 - [eight]: /eight-url "eight-title"
 
 [eight-point-one]
+
 1.
    [eight-point-one]: /eight-point-one-url "eight-point-one-title"
 
@@ -73,6 +77,7 @@
 > * [fourteen]
 >   >
 >   > [fourteen]: fourteen-url 'fourteen-title'
+>   >
 >   > *
 >   > *
 >   >   *
