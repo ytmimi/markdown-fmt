@@ -4468,7 +4468,10 @@ fn gfm_markdown_links_563() {
 #[test]
 fn gfm_markdown_links_564() {
     // https://github.github.com/gfm/#example-564
-    test_identical_markdown_events!("[foo] \n[]\n\n[foo]: /url \"title\"");
+    test_identical_markdown_events!("[foo] \n[]\n\n[foo]: /url \"title\"",r##"[foo]
+[]
+
+[foo]: /url "title""##);
 }
 
 #[test]
@@ -4703,7 +4706,10 @@ fn gfm_markdown_images_594() {
 #[test]
 fn gfm_markdown_images_595() {
     // https://github.github.com/gfm/#example-595
-    test_identical_markdown_events!("![foo] \n[]\n\n[foo]: /url \"title\"");
+    test_identical_markdown_events!("![foo] \n[]\n\n[foo]: /url \"title\"",r##"![foo]
+[]
+
+[foo]: /url "title""##);
 }
 
 #[test]
@@ -5198,7 +5204,8 @@ baz"##);
 #[test]
 fn gfm_markdown_soft_line_breaks_669() {
     // https://github.github.com/gfm/#example-669
-    test_identical_markdown_events!("foo \n baz","foo \nbaz");
+    test_identical_markdown_events!("foo \n baz",r##"foo
+baz"##);
 }
 
 #[test]

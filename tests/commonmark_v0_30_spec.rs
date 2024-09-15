@@ -4398,7 +4398,10 @@ fn markdown_links_554() {
 #[test]
 fn markdown_links_555() {
     // https://spec.commonmark.org/0.30/#example-555
-    test_identical_markdown_events!("[foo] \n[]\n\n[foo]: /url \"title\"");
+    test_identical_markdown_events!("[foo] \n[]\n\n[foo]: /url \"title\"",r##"[foo]
+[]
+
+[foo]: /url "title""##);
 }
 
 #[test]
@@ -4639,7 +4642,10 @@ fn markdown_images_585() {
 #[test]
 fn markdown_images_586() {
     // https://spec.commonmark.org/0.30/#example-586
-    test_identical_markdown_events!("![foo] \n[]\n\n[foo]: /url \"title\"");
+    test_identical_markdown_events!("![foo] \n[]\n\n[foo]: /url \"title\"",r##"![foo]
+[]
+
+[foo]: /url "title""##);
 }
 
 #[test]
@@ -5044,7 +5050,8 @@ baz"##);
 #[test]
 fn markdown_soft_line_breaks_649() {
     // https://spec.commonmark.org/0.30/#example-649
-    test_identical_markdown_events!("foo \n baz","foo \nbaz");
+    test_identical_markdown_events!("foo \n baz",r##"foo
+baz"##);
 }
 
 #[test]

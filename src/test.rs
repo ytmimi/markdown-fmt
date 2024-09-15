@@ -84,14 +84,21 @@ fn check_markdown_formatting() {
     for file in get_test_files("tests/source", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
         let builder = FormatBuilder::from_leading_config_comments(&input);
-        let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
+        let rewrite = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            rewrite_markdown_with_builder(&input, builder).unwrap()
+        }));
+
         let target_file = file
             .strip_prefix("tests/source")
             .map(|p| PathBuf::from("tests/target").join(p))
             .unwrap();
         let expected_output = std::fs::read_to_string(target_file).unwrap();
 
-        if formatted_input != expected_output {
+        let Ok(formatted_output) = rewrite else {
+            panic!("Paniced when formatting {}", file.display())
+        };
+
+        if formatted_output != expected_output {
             errors += 1;
             eprintln!("error formatting {}", file.display());
         }
