@@ -37,7 +37,10 @@ macro_rules! test_identical_markdown_events {
             | pulldown_cmark::Options::ENABLE_FOOTNOTES
             | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
             | pulldown_cmark::Options::ENABLE_TASKLISTS
-            | pulldown_cmark::Options::ENABLE_HEADING_ATTRIBUTES;
+            | pulldown_cmark::Options::ENABLE_HEADING_ATTRIBUTES
+            | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+            | pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS;
+
         let input_events = pulldown_cmark::Parser::new_ext($input, options.clone()).into_iter()
                 .filter(|e| {
                     // We don't care about removing empty text nodes
