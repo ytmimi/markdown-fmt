@@ -11,6 +11,7 @@ use pulldown_cmark::{LinkType, Options, Parser, Tag};
 use crate::adapters::LooseListExt;
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
+use crate::footnote::FootnoteDefinition;
 use crate::links::{parse_link_reference_definitions, LinkReferenceDefinition};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
@@ -129,8 +130,11 @@ where
     table_state: Option<TableState<'i>>,
     last_position: usize,
     trim_link_or_image_start: bool,
+    escape_link_or_image_start: Option<()>,
     /// Handles paragraph formatting.
     paragraph: Option<Paragraph>,
+    /// Handles Footnote definition formatting
+    footnote: Option<FootnoteDefinition>,
     formatter: &'m MarkdownFormatter,
 }
 
@@ -235,6 +239,11 @@ where
         self.paragraph.is_some()
     }
 
+    /// Check if we're currently formatting a footnote
+    fn in_footnote(&self) -> bool {
+        self.footnote.is_some()
+    }
+
     /// Check if we're formatting in a nested context
     fn is_nested(&self) -> bool {
         !self.nested_context.is_empty()
@@ -259,6 +268,10 @@ where
             self.paragraph
                 .as_mut()
                 .map(|p| p as &mut dyn std::fmt::Write)
+        } else if self.in_footnote() {
+            self.footnote
+                .as_mut()
+                .map(|f| f as &mut dyn std::fmt::Write)
         } else {
             Some(&mut self.rewrite_buffer)
         }
@@ -272,6 +285,8 @@ where
             self.table_state.as_ref().is_some_and(|s| s.is_empty())
         } else if self.in_paragraph() {
             self.paragraph.as_ref().is_some_and(|p| p.is_empty())
+        } else if self.in_footnote() {
+            self.footnote.as_ref().is_some_and(|p| p.is_empty())
         } else {
             self.rewrite_buffer.is_empty()
         }
@@ -468,7 +483,9 @@ where
             table_state: None,
             last_position: 0,
             trim_link_or_image_start: false,
+            escape_link_or_image_start: None,
             paragraph: None,
+            footnote: None,
             formatter,
         }
     }
@@ -587,7 +604,10 @@ where
                         self.needs_indent = false;
                     }
 
-                    if starts_with_escape || self.needs_escape(text) {
+                    let escape_link_text =
+                        self.escape_link_or_image_start.take().is_some() && text.starts_with('^');
+
+                    if starts_with_escape || self.needs_escape(text) || escape_link_text {
                         // recover escape characters
                         write!(self, "\\{text}")?;
                     } else {
@@ -979,8 +999,47 @@ where
 
                 self.rewrite_reference_link_definitions_inner(link_defs)?;
             }
-            Tag::FootnoteDefinition(label) => {
-                write!(self, "[^{label}]: ")?;
+            Tag::FootnoteDefinition(ref label) => {
+                let newlines = self.count_newlines(&range);
+                self.write_newlines(newlines)?;
+
+                // Anchor the last_position at the start of the footnote definition. This prevents
+                // picking up extra newlines in case we need to recover refernce link definitions
+                self.last_position = range.start;
+
+                let recover_link_defs = |range: Range<usize>| -> Vec<LinkReferenceDefinition> {
+                    let start = range.start;
+                    let snippet = &self.input[range];
+                    let colon_index = snippet.find(':').unwrap_or(0);
+                    let snippet = &snippet[colon_index..];
+                    parse_link_reference_definitions(snippet, start + colon_index)
+                };
+
+                let link_defs = match self.events.peek() {
+                    Some((Event::End(TagEnd::FootnoteDefinition), _)) => {
+                        recover_link_defs(range.clone())
+                    }
+                    Some((_, next_range)) => recover_link_defs(range.start..next_range.start),
+                    None => {
+                        // Peeking at the next event should always return `Some()` for start events
+                        unreachable!(
+                            "At the very least we'd expect an `End(FootnoteDefinition)` event."
+                        );
+                    }
+                };
+
+                write!(self, "[^{label}]:")?;
+
+                let footnote = FootnoteDefinition::new(
+                    // Take the indentaiton so that nested items are written without indentation.
+                    // We will restore the indentation after we're done formatting the footnote def.
+                    std::mem::take(&mut self.indentation),
+                    (range.end - range.start) * 2,
+                );
+
+                self.footnote = Some(footnote);
+                self.rewrite_reference_link_definitions_inner(link_defs)?;
+                self.nested_context.push(tag);
             }
             Tag::Emphasis => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(1))?;
@@ -1006,6 +1065,8 @@ where
                 if matches!(self.peek(), Some(Event::Text(_) | Event::SoftBreak)) {
                     self.trim_link_or_image_start = true
                 }
+
+                self.escape_link_or_image_start = Some(());
             }
             Tag::Image { .. } => {
                 let newlines = self.count_newlines(&range);
@@ -1186,7 +1247,31 @@ where
                 // if the next event is a Start(Item), then we need to set needs_indent
                 self.needs_indent = matches!(self.peek(), Some(Event::Start(Tag::Item)));
             }
-            TagEnd::FootnoteDefinition => {}
+            TagEnd::FootnoteDefinition => {
+                let ref_def_range = self.last_position..range.end;
+                self.rewrite_reference_link_definitions(&ref_def_range)?;
+                let popped_tag = self.nested_context.pop();
+                debug_assert_eq!(popped_tag.map(|t| t.to_end()), Some(tag));
+
+                let Some(footnote) = self.footnote.take() else {
+                    return Ok(());
+                };
+
+                let (buffer, indentation, footnote_indent) = footnote.into_parts();
+                self.indentation = indentation;
+
+                if !buffer.is_empty() {
+                    writeln!(self)?;
+                    self.indentation.push(footnote_indent);
+                    self.join_with_indentation(&buffer, true)?;
+                    self.indentation.pop();
+                }
+
+                if let Some(Event::Start(Tag::FootnoteDefinition(_))) = self.peek() {
+                    // separte consecutive footnote definitinons by at least one line
+                    self.write_newlines(1)?;
+                };
+            }
             TagEnd::Emphasis => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(1))?;
             }

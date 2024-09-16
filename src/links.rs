@@ -204,7 +204,14 @@ impl<'a> LinkReferenceDefinitionBuilder<'a> {
     fn set_label(&mut self, label: Cow<'a, str>, range: std::ops::Range<usize>, offset: usize) {
         let mut label_parts = self.label.take().unwrap_or(LinkLines::new());
         let offset_range = (offset + range.start)..(offset + range.end);
-        label_parts.push((label, offset_range));
+        if label_parts.is_empty() && label.starts_with('^') {
+            let mut new_label = String::with_capacity(label.len() + 1);
+            new_label.push('\\');
+            new_label.push_str(&label);
+            label_parts.push((new_label.into(), offset_range));
+        } else {
+            label_parts.push((label, offset_range));
+        }
         self.label = Some(label_parts);
     }
 
@@ -410,6 +417,10 @@ impl<'a> LinkLines<'a> {
 
     fn iter(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|(item, _)| item.as_ref())
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     fn write<W: std::fmt::Write>(&self, writer: &mut W) -> std::fmt::Result {
