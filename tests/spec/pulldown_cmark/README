@@ -1,0 +1,12 @@
+URL: https://github.com/pulldown-cmark/pulldown-cmark.git
+Version: v0.10.3
+Commit: 1cfaf02e516d24fd8c93f39b422548610c541aae
+License: MIT
+License File: LICENSE
+
+Description:
+Test cases used by pulldown-cmark.
+
+Local Modifications:
+This directory contains footnotes_v0_10_3.json, which was derived from it's respective spec file in pulldown-cmark/pulldown-cmark/specs.
+The generated JSON was further modifed to produce test cases for this project.
