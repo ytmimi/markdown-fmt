@@ -1,0 +1,137 @@
+[
+  {
+    "markdown": "---\ntitle: example\nanother_field: 0\n---\n",
+    "html": "",
+    "example": 1,
+    "start_line": 18,
+    "end_line": 24,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---\ntitle: example\nanother_field: 0\n",
+    "html": "<hr>\n<p>title: example\nanother_field: 0</p>\n",
+    "example": 2,
+    "start_line": 27,
+    "end_line": 35,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---\n---\n",
+    "html": "<hr>\n<hr>\n",
+    "example": 3,
+    "start_line": 38,
+    "end_line": 44,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---\n\ntitle: example\nanother_field: 0\n---\n",
+    "html": "<hr>\n<h2>title: example\nanother_field: 0</h2>\n",
+    "example": 4,
+    "start_line": 47,
+    "end_line": 57,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "My paragraph here.\n---\ntitle: example\nanother_field: 0\n---\n",
+    "html": "<h2>My paragraph here.</h2>\n<h2>title: example\nanother_field: 0</h2>\n",
+    "example": 5,
+    "start_line": 60,
+    "end_line": 70,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "My paragraph here.\n\n---\ntitle: example\nanother_field: 0\n---\n",
+    "html": "<p>My paragraph here.</p>\n",
+    "example": 6,
+    "start_line": 73,
+    "end_line": 82,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---    \ntitle: example\nanother_field: 0\n---\n\n--- -\ntitle: example\nanother_field: 0\n---\n",
+    "formattedMarkdown": "---\ntitle: example\nanother_field: 0\n---\n\n--- -\ntitle: example\nanother_field: 0\n---",
+    "html": "<hr>\n<h2>title: example\nanother_field: 0</h2>\n",
+    "example": 7,
+    "start_line": 85,
+    "end_line": 99,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---\ntitle: example\nanother_field: 0\n---        \n\n---\ntitle: example\nanother_field: 0\n---a\n",
+    "formattedMarkdown": "---\ntitle: example\nanother_field: 0\n---\n\n---\ntitle: example\nanother_field: 0\n---a",
+    "html": "<hr>\n<p>title: example\nanother_field: 0\n---a</p>\n",
+    "example": 8,
+    "start_line": 102,
+    "end_line": 117,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---\ntitle: example\nanother_field: 0\n...\n",
+    "formattedMarkdown": "---\ntitle: example\nanother_field: 0\n---",
+    "html": "",
+    "example": 9,
+    "start_line": 121,
+    "end_line": 127,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "+++\ntitle: example\nanother_field: 0\n+++\n",
+    "html": "",
+    "example": 10,
+    "start_line": 132,
+    "end_line": 138,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "    ---\n    Things\n    ---\n",
+    "html": "<pre><code>---\nThings\n---\n</code></pre>\n",
+    "example": 11,
+    "start_line": 142,
+    "end_line": 151,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  },
+  {
+    "markdown": "---\n- Item 1\n- Item 2\n---\n",
+    "html": "",
+    "example": 12,
+    "start_line": 155,
+    "end_line": 161,
+    "section": "metadata_blocks",
+    "extensions": [
+      "_metadata_blocks"
+    ]
+  }
+]

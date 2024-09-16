@@ -49,7 +49,9 @@ impl MarkdownFormatter {
             | Options::ENABLE_FOOTNOTES
             | Options::ENABLE_STRIKETHROUGH
             | Options::ENABLE_TASKLISTS
-            | Options::ENABLE_HEADING_ATTRIBUTES;
+            | Options::ENABLE_HEADING_ATTRIBUTES
+            | Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+            | Options::ENABLE_YAML_STYLE_METADATA_BLOCKS;
 
         let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
         let iter = parser.into_offset_iter().all_loose_lists();
@@ -1116,7 +1118,12 @@ where
                 self.write_newlines(newlines)?;
                 self.nested_context.push(tag);
             }
-            Tag::MetadataBlock(_meta) => {}
+            Tag::MetadataBlock(_meta) => {
+                let newlines = self.count_newlines(&range);
+                self.write_newlines(newlines)?;
+                rewrite_marker(self.input, &range, self)?;
+                self.needs_indent = true;
+            }
         }
         Ok(())
     }
@@ -1352,7 +1359,10 @@ where
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
             }
-            TagEnd::MetadataBlock(_meta) => {}
+            TagEnd::MetadataBlock(_meta) => {
+                rewrite_marker(self.input, &range, self)?;
+                self.needs_indent = true;
+            }
         }
         Ok(())
     }
