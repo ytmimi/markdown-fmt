@@ -55,7 +55,11 @@ macro_rules! test_identical_markdown_events {
                 })
                 .collect::<Vec<_>>();
 
-        assert_eq!(formatted_events.len(), input_events.len());
+        assert_eq!(
+            formatted_events.len(),
+            input_events.len(),
+            "\nformatted_events: {formatted_events:?}\ninput_events: {input_events:?}"
+        );
 
         let all_events_equal = input_events.into_iter()
             .zip(formatted_events.into_iter())
