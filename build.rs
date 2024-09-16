@@ -10,6 +10,33 @@ fn generate_tests_markdown_tests() -> std::io::Result<()> {
 }
 
 #[cfg(feature = "gen-tests")]
+const PULLDOWN_CMARK_PREFIX: &str = "pulldown_cmark_";
+
+#[cfg(feature = "gen-tests")]
+const COMMONMARK_SPEC_URL: &str = "https://spec.commonmark.org/0.30/";
+
+#[cfg(feature = "gen-tests")]
+const GITHUB_FLAVORED_MARKDOWN_SPEC_URL: &str = "https://github.github.com/gfm/";
+
+#[cfg(feature = "gen-tests")]
+const PULLDOWN_CMARK_SPEC_URL: &str =
+    "https://github.com/pulldown-cmark/pulldown-cmark/tree/v0.10.3/pulldown-cmark/specs";
+
+/// How to link to the source example
+#[cfg(feature = "gen-tests")]
+#[derive(Debug, Clone, Copy)]
+enum UrlKind {
+    /// Link to an example from the commonmark spec as
+    /// https://spec.commonmark.org/0.30/
+    CommonMarkSpec,
+    /// Link to an example from the GitHub flavored commonmark spec as
+    /// https://github.github.com/gfm/
+    GitHubFlavoredMarkdownSpec,
+    /// Link to line numbers within the pulldown-cmark source code
+    PulldownCmarkRepoSpec { filename: &'static str },
+}
+
+#[cfg(feature = "gen-tests")]
 fn generate_tests_markdown_tests() -> std::io::Result<()> {
     use std::fs::File;
     use std::io::BufWriter;
@@ -21,12 +48,19 @@ fn generate_tests_markdown_tests() -> std::io::Result<()> {
         (
             "",
             "./tests/spec/CommonMark/commonmark_v0_30_spec.json",
-            "https://spec.commonmark.org/0.30/",
+            UrlKind::CommonMarkSpec,
         ),
         (
             "gfm_",
             "./tests/spec/GitHub/gfm_spec_v0_29_0_gfm_13.json",
-            "https://github.github.com/gfm/",
+            UrlKind::GitHubFlavoredMarkdownSpec,
+        ),
+        (
+            PULLDOWN_CMARK_PREFIX,
+            "./tests/spec/pulldown_cmark/footnotes_v0_10_3.json",
+            UrlKind::PulldownCmarkRepoSpec {
+                filename: "footnotes.txt",
+            },
         ),
     ];
 
@@ -64,6 +98,8 @@ struct TestCase<'a> {
     #[serde(default = "default_test", rename(deserialize = "testMacro"))]
     test_macro: std::borrow::Cow<'a, str>,
     comment: Option<std::borrow::Cow<'a, str>>,
+    start_line: usize,
+    end_line: usize,
 }
 
 #[cfg(feature = "gen-tests")]
@@ -77,7 +113,7 @@ fn write_test_cases<W>(
     writer: &mut W,
     prefix: &str,
     test_cases: Vec<TestCase<'_>>,
-    url: &str,
+    url: UrlKind,
 ) -> std::io::Result<()>
 where
     W: std::io::Write,
@@ -100,12 +136,24 @@ fn write_test_case<W: std::io::Write>(
     writer: &mut W,
     prefix: &str,
     test_case: TestCase<'_>,
-    url: &str,
+    url: UrlKind,
 ) -> std::io::Result<()> {
-    let url = if url.ends_with("/") {
-        format!("{}#example-{}", url, test_case.id)
-    } else {
-        format!("{}/#example-1{}", url, test_case.id)
+    let url = match url {
+        UrlKind::CommonMarkSpec => {
+            format!("{COMMONMARK_SPEC_URL}#example-{}", test_case.id)
+        }
+        UrlKind::GitHubFlavoredMarkdownSpec => {
+            format!(
+                "{GITHUB_FLAVORED_MARKDOWN_SPEC_URL}#example-{}",
+                test_case.id
+            )
+        }
+        UrlKind::PulldownCmarkRepoSpec { filename } => {
+            format!(
+                "{PULLDOWN_CMARK_SPEC_URL}/{filename}#L{}-L{}",
+                test_case.start_line, test_case.end_line
+            )
+        }
     };
 
     let replace_tab_chars = test_case.input.replace('→', "\t");
