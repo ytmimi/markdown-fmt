@@ -69,6 +69,7 @@ mod adapters;
 mod builder;
 mod config;
 mod escape;
+mod footnote;
 mod formatter;
 mod links;
 mod list;

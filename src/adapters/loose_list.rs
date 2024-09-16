@@ -236,7 +236,8 @@ where
                     | TagEnd::BlockQuote
                     | TagEnd::CodeBlock
                     | TagEnd::Table
-                    | TagEnd::HtmlBlock,
+                    | TagEnd::HtmlBlock
+                    | TagEnd::FootnoteDefinition,
                 ) => {
                     self.stashed_events
                         .push_back((current_event, current_range));
@@ -272,7 +273,8 @@ where
                                 | Tag::BlockQuote
                                 | Tag::CodeBlock(_)
                                 | Tag::Table(_)
-                                | Tag::HtmlBlock,
+                                | Tag::HtmlBlock
+                                | Tag::FootnoteDefinition(_),
                             ),
                             _,
                         )) => {
