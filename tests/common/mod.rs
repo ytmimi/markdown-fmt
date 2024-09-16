@@ -33,8 +33,11 @@ macro_rules! test_identical_markdown_events {
     ($input:expr, $output:expr) => {
         let formatted = $crate::test!($input, $output);
 
-        let mut options = pulldown_cmark::Options::all();
-        options.remove(pulldown_cmark::Options::ENABLE_SMART_PUNCTUATION);
+        let options = pulldown_cmark::Options::ENABLE_TABLES
+            | pulldown_cmark::Options::ENABLE_FOOTNOTES
+            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+            | pulldown_cmark::Options::ENABLE_TASKLISTS
+            | pulldown_cmark::Options::ENABLE_HEADING_ATTRIBUTES;
         let input_events = pulldown_cmark::Parser::new_ext($input, options.clone()).into_iter()
                 .filter(|e| {
                     // We don't care about removing empty text nodes
