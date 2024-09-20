@@ -6,7 +6,7 @@ use std::ops::Range;
 use std::str::FromStr;
 
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
-use pulldown_cmark::{LinkType, Options, Parser, Tag};
+use pulldown_cmark::{LinkType, Parser, Tag};
 
 use crate::adapters::LooseListExt;
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
@@ -16,6 +16,21 @@ use crate::links::{parse_link_reference_definitions, LinkReferenceDefinition};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
+
+// Defined using a macro so that the parsing options can be shared with tests for consistency.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! pulldown_cmark_options {
+    () => {
+        pulldown_cmark::Options::ENABLE_TABLES
+            | pulldown_cmark::Options::ENABLE_FOOTNOTES
+            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+            | pulldown_cmark::Options::ENABLE_TASKLISTS
+            | pulldown_cmark::Options::ENABLE_HEADING_ATTRIBUTES
+            | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+            | pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+    };
+}
 
 /// Used to format Markdown inputs.
 ///
@@ -45,13 +60,7 @@ impl MarkdownFormatter {
             Some(("".into(), "".into()))
         };
 
-        let options = Options::ENABLE_TABLES
-            | Options::ENABLE_FOOTNOTES
-            | Options::ENABLE_STRIKETHROUGH
-            | Options::ENABLE_TASKLISTS
-            | Options::ENABLE_HEADING_ATTRIBUTES
-            | Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
-            | Options::ENABLE_YAML_STYLE_METADATA_BLOCKS;
+        let options = pulldown_cmark_options!();
 
         let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
         let iter = parser.into_offset_iter().all_loose_lists();
