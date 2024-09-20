@@ -310,8 +310,7 @@ mod test {
 
     macro_rules! check_unchanged_events {
         ($markdown:literal) => {
-            let mut options = pulldown_cmark::Options::all();
-            options.remove(pulldown_cmark::Options::ENABLE_SMART_PUNCTUATION);
+            let options = crate::pulldown_cmark_options!();
 
             let input = pulldown_cmark::Parser::new_ext($markdown, options.clone())
                 .into_offset_iter()
@@ -420,8 +419,7 @@ mod test {
             let content = std::fs::read_to_string(&file).unwrap();
             let (markdown, expected_events) = content.split_once(SEPARATOR).unwrap();
 
-            let mut options = pulldown_cmark::Options::all();
-            options.remove(pulldown_cmark::Options::ENABLE_SMART_PUNCTUATION);
+            let options = crate::pulldown_cmark_options!();
 
             let events = pulldown_cmark::Parser::new_ext(markdown, options)
                 .into_offset_iter()
