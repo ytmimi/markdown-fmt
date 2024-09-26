@@ -12,7 +12,7 @@ use crate::adapters::LooseListExt;
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
-use crate::links::{parse_link_reference_definitions, LinkReferenceDefinition};
+use crate::links::{LinkReferenceDefinition, parse_link_reference_definitions};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;

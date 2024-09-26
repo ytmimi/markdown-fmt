@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::{rewrite_markdown, rewrite_markdown_with_builder, FormatBuilder};
+use crate::{FormatBuilder, rewrite_markdown, rewrite_markdown_with_builder};
 use rust_search::SearchBuilder;
 use std::path::{Path, PathBuf};
 

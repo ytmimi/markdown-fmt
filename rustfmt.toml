@@ -1,5 +1,5 @@
 error_on_line_overflow = true
 error_on_unformatted = true
 format_generated_files = false
-version = "Two"
+style_edition = "2024"
 format_code_in_doc_comments = true
