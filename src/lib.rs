@@ -71,6 +71,7 @@ mod config;
 mod escape;
 mod footnote;
 mod formatter;
+mod header;
 mod links;
 mod list;
 mod paragraph;
