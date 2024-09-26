@@ -9,6 +9,6 @@ Test cases used by pulldown-cmark.
 
 Local Modifications:
 
-This directory contains footnotes_v0_10_3.json and metadata_blocks_v0_10_3.json, which were derived from their respective spec
-file in pulldown-cmark/pulldown-cmark/specs.
+This directory contains footnotes_v0_10_3.json, metadata_blocks_v0_10_3.json, and heading_attrs_v0_10_3.json,
+which were derived from their respective spec file in pulldown-cmark/pulldown-cmark/specs.
 The generated JSON was further modifed to produce test cases for this project.
