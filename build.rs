@@ -69,6 +69,13 @@ fn generate_tests_markdown_tests() -> std::io::Result<()> {
                 filename: "metadata_blocks.txt",
             },
         ),
+        (
+            PULLDOWN_CMARK_PREFIX,
+            "./tests/spec/pulldown_cmark/heading_attrs_v0_10_3.json",
+            UrlKind::PulldownCmarkRepoSpec {
+                filename: "heading_attrs.txt",
+            },
+        ),
     ];
 
     for (prefix, spec, url) in spec_files {

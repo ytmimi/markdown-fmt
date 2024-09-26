@@ -1,0 +1,447 @@
+[
+  {
+    "markdown": "with the ID {#myh1}\n===================\nwith a class {.myclass}\n------------\nwith a custom attribute {myattr=myvalue}\n========================================\nmultiple! {.myclass1 myattr #myh3 otherattr=value .myclass2}\n--\n",
+    "formattedMarkdown": "with the ID {#myh1}\n===================\nwith a class {.myclass}\n------------\nwith a custom attribute {myattr=myvalue}\n========================================\nmultiple! {#myh3 .myclass1 .myclass2 myattr otherattr=value}\n--",
+    "html": "<h1 id=\"myh1\">with the ID</h1>\n<h2 class=\"myclass\">with a class</h2>\n<h1 myattr=\"myvalue\">with a custom attribute</h1>\n<h2 id=\"myh3\" class=\"myclass1 myclass2\" myattr=\"\" otherattr=\"value\">multiple!</h2>\n",
+    "example": 1,
+    "start_line": 23,
+    "end_line": 37,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "# with the ID {#myh1}\n## with a class {.myclass}\n#### with a custom attribute {myattr=myvalue}\n### multiple! {.myclass1 myattr #myh3 otherattr=value .myclass2}\n",
+    "formattedMarkdown": "# with the ID {#myh1}\n## with a class {.myclass}\n#### with a custom attribute {myattr=myvalue}\n### multiple! {#myh3 .myclass1 .myclass2 myattr otherattr=value}",
+    "html": "<h1 id=\"myh1\">with the ID</h1>\n<h2 class=\"myclass\">with a class</h2>\n<h4 myattr=\"myvalue\">with a custom attribute</h4>\n<h3 id=\"myh3\" class=\"myclass1 myclass2\" myattr=\"\" otherattr=\"value\">multiple!</h3>\n",
+    "example": 2,
+    "start_line": 41,
+    "end_line": 51,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 # {#id1}\n## H2 ## with ## multiple ## hashes ## {#id2}\n### with trailing hash # ### {#id3}\n\n#### non-attribute-block {#id4} ####\n",
+    "formattedMarkdown": "# H1 {#id1}\n## H2 ## with ## multiple ## hashes {#id2}\n### with trailing hash \\# {#id3}\n\n#### non-attribute-block {#id4}",
+    "html": "<h1 id=\"id1\">H1</h1>\n<h2 id=\"id2\">H2 ## with ## multiple ## hashes</h2>\n<h3 id=\"id3\">with trailing hash #</h3>\n<h4>non-attribute-block {#id4}</h4>\n",
+    "example": 3,
+    "start_line": 55,
+    "end_line": 66,
+    "section": "Basic usage",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro because after formatting the {#id4} is parsed as an id"
+  },
+  {
+    "markdown": "# spaces {#myid1}    \n## tabs {#myid2}\t\t\n",
+    "formattedMarkdown": "# spaces {#myid1}\n## tabs {#myid2}",
+    "html": "<h1 id=\"myid1\">spaces</h1>\n<h2 id=\"myid2\">tabs</h2>\n",
+    "example": 4,
+    "start_line": 70,
+    "end_line": 76,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 \\\nnextline\n",
+    "html": "<h1>H1 \\</h1>\n<p>nextline</p>\n",
+    "example": 5,
+    "start_line": 80,
+    "end_line": 86,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 \\\n{#myid}\n\n## H2 \\\nnextline {.class}\n\n### H3 [link\n](https://example.com/) {#myid3}\n",
+    "html": "<h1>H1 \\</h1>\n<p>{#myid}</p>\n<h2>H2 \\</h2>\n<p>nextline {.class}</p>\n<h3>H3 [link</h3>\n<p>](https://example.com/) {#myid3}</p>\n",
+    "example": 6,
+    "start_line": 90,
+    "end_line": 106,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "H1\ncont\n{#myid}\n==\n",
+    "html": "<h1 id=\"myid\">H1\ncont\n</h1>\n",
+    "example": 7,
+    "start_line": 117,
+    "end_line": 126,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "H1\n{\n  .class1\n  .class2\n}\n==\n",
+    "formattedMarkdown": "H1\n{\n.class1\n.class2\n}\n==",
+    "html": "<h1>H1\n{\n.class1\n.class2\n}</h1>\n",
+    "example": 8,
+    "start_line": 130,
+    "end_line": 143,
+    "section": "Basic usage",
+    "extensions": []
+  },
+  {
+    "markdown": "# without space, not recommended{#id1}\n## recommended style with spaces {#id2}\n",
+    "formattedMarkdown": "# without space, not recommended {#id1}\n## recommended style with spaces {#id2}",
+    "html": "<h1 id=\"id1\">without space, not recommended</h1>\n<h2 id=\"id2\">recommended style with spaces</h2>\n",
+    "example": 9,
+    "start_line": 161,
+    "end_line": 167,
+    "section": "Leading spaces",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 { #id1 }\n## H2 {.myclass      #id2 }\n### H3 {     .myclass}\n",
+    "formattedMarkdown": "# H1 {#id1}\n## H2 {#id2 .myclass}\n### H3 {.myclass}",
+    "html": "<h1 id=\"id1\">H1</h1>\n<h2 id=\"id2\" class=\"myclass\">H2</h2>\n<h3 class=\"myclass\">H3</h3>\n",
+    "example": 10,
+    "start_line": 174,
+    "end_line": 182,
+    "section": "Spaces inside braces",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {#id1.class1.class2 .class3}\n## H2 {.class1#id2.class2}\n",
+    "html": "<h1 id=\"id1.class1.class2\" class=\"class3\">H1</h1>\n<h2 class=\"class1#id2.class2\">H2</h2>\n",
+    "example": 11,
+    "start_line": 188,
+    "end_line": 194,
+    "section": "Separators",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 { #id1\n## H2 {#id2\n",
+    "html": "<h1>H1 { #id1</h1>\n<h2>H2 {#id2</h2>\n",
+    "example": 12,
+    "start_line": 201,
+    "end_line": 207,
+    "section": "Unclosed braces",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 #id1 }\n## H2 #id2}\n",
+    "html": "<h1>H1 #id1 }</h1>\n<h2>H2 #id2}</h2>\n",
+    "example": 13,
+    "start_line": 211,
+    "end_line": 217,
+    "section": "Unclosed braces",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 { #id1 } foo\n## H2 {#id2} <!-- hello -->\n",
+    "html": "<h1>H1 { #id1 } foo</h1>\n<h2>H2 {#id2} <!-- hello --></h2>\n",
+    "example": 14,
+    "start_line": 223,
+    "end_line": 229,
+    "section": "Non_suffix block",
+    "extensions": []
+  },
+  {
+    "markdown": "# *H1* { #id1 }\n## **H2** {#id2}\n### _H3_ {#id3}\n#### ~~H4~~ {#id4}\n##### [text](uri) {#id5}\n",
+    "formattedMarkdown": "# *H1* {#id1}\n## **H2** {#id2}\n### _H3_ {#id3}\n#### ~~H4~~ {#id4}\n##### [text](uri) {#id5}",
+    "html": "<h1 id=\"id1\"><em>H1</em></h1>\n<h2 id=\"id2\"><strong>H2</strong></h2>\n<h3 id=\"id3\"><em>H3</em></h3>\n<h4 id=\"id4\"><del>H4</del></h4>\n<h5 id=\"id5\"><a href=\"uri\">text</a></h5>\n",
+    "example": 15,
+    "start_line": 235,
+    "end_line": 247,
+    "section": "Inlines",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {#first #second #last}\n",
+    "formattedMarkdown": "# H1 {#last}",
+    "html": "<h1 id=\"last\">H1</h1>\n",
+    "example": 16,
+    "start_line": 257,
+    "end_line": 261,
+    "section": "ID",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.z .a .zz}\n",
+    "html": "<h1 class=\"z a zz\">H1</h1>\n",
+    "example": 17,
+    "start_line": 267,
+    "end_line": 271,
+    "section": "Classes",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.a .a .a}\n",
+    "html": "<h1 class=\"a a a\">H1</h1>\n",
+    "example": 18,
+    "start_line": 275,
+    "end_line": 279,
+    "section": "Classes",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.myclass #myid}\n## H2 {.z #m .a}\n",
+    "formattedMarkdown": "# H1 {#myid .myclass}\n## H2 {#m .z .a}",
+    "html": "<h1 id=\"myid\" class=\"myclass\">H1</h1>\n<h2 id=\"m\" class=\"z a\">H2</h2>\n",
+    "example": 19,
+    "start_line": 285,
+    "end_line": 291,
+    "section": "Combined",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {foo}\n## H2 {#myid unknown this#is.ignored attr=value .myclass}\n",
+    "formattedMarkdown": "# H1 {foo}\n## H2 {#myid .myclass unknown this#is.ignored attr=value}",
+    "html": "<h1 foo=\"\">H1</h1>\n<h2 id=\"myid\" class=\"myclass\" unknown=\"\" this#is.ignored=\"\" attr=\"value\">H2</h2>\n",
+    "example": 20,
+    "start_line": 301,
+    "end_line": 307,
+    "section": "Custom attributes",
+    "extensions": []
+  },
+  {
+    "markdown": "# Header # {myattr=value other_attr}\n",
+    "formattedMarkdown": "# Header {myattr=value other_attr}",
+    "html": "<h1 myattr=\"value\" other_attr=\"\">Header</h1>\n",
+    "example": 21,
+    "start_line": 309,
+    "end_line": 313,
+    "section": "Custom attributes",
+    "extensions": []
+  },
+  {
+    "markdown": "#### Header {#id myattr= .class1 other_attr=false}\n",
+    "formattedMarkdown": "#### Header {#id .class1 myattr= other_attr=false}",
+    "html": "<h4 id=\"id\" class=\"class1\" myattr=\"\" other_attr=\"false\">Header</h4>\n",
+    "example": 22,
+    "start_line": 315,
+    "end_line": 319,
+    "section": "Custom attributes",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.foo{unknown}\n## H2 {.foo{.bar}\n",
+    "formattedMarkdown": "# H1 {.foo {unknown}\n## H2 {.foo {.bar}",
+    "html": "<h1 unknown=\"\">H1 {.foo</h1>\n<h2 class=\"bar\">H2 {.foo</h2>\n",
+    "example": 23,
+    "start_line": 335,
+    "end_line": 341,
+    "section": "Forbidden characters",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.foo}bar}\n",
+    "html": "<h1>H1 {.foo}bar}</h1>\n",
+    "example": 24,
+    "start_line": 345,
+    "end_line": 349,
+    "section": "Forbidden characters",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {<i>foo</i>}\n",
+    "html": "<h1>H1 {<i>foo</i>}</h1>\n",
+    "example": 25,
+    "start_line": 353,
+    "end_line": 357,
+    "section": "Forbidden characters",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.foo\\}\n",
+    "html": "<h1>H1 {.foo}</h1>\n",
+    "example": 26,
+    "start_line": 361,
+    "end_line": 365,
+    "section": "Forbidden characters",
+    "extensions": []
+  },
+  {
+    "markdown": "H1 {.foo\n.bar}\n==\n",
+    "html": "<h1>H1 {.foo\n.bar}</h1>\n",
+    "example": 27,
+    "start_line": 369,
+    "end_line": 376,
+    "section": "Forbidden characters",
+    "extensions": []
+  },
+  {
+    "markdown": "H1 {} {}\n=====\n\n## H2 {} {}\n",
+    "formattedMarkdown": "H1 \\{\\}\n=====\n\n## H2 \\{\\}",
+    "html": "<h1>H1 {}</h1>\n<h2>H2 {}</h2>\n",
+    "example": 28,
+    "start_line": 385,
+    "end_line": 393,
+    "section": "Cancelling parsing of attribute blocks",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro since the strings are different"
+  },
+  {
+    "markdown": "## H2 {} ##\n",
+    "formattedMarkdown": "## H2 \\{\\}",
+    "html": "<h2>H2 {}</h2>\n",
+    "example": 29,
+    "start_line": 397,
+    "end_line": 401,
+    "section": "Cancelling parsing of attribute blocks",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro since the strings are different"
+  },
+  {
+    "markdown": "# H1 {\\}\n## this is also ok \\{\\}\n\nnewline can be used for setext heading {\n}\n--\n",
+    "html": "<h1>H1 {}</h1>\n<h2>this is also ok {}</h2>\n<h2>newline can be used for setext heading {\n}</h2>\n",
+    "example": 30,
+    "start_line": 406,
+    "end_line": 418,
+    "section": "Cancelling parsing of attribute blocks",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 \\{.foo}\n## H2 \\\\{.bar}\n### stray backslash at the end is preserved \\\n",
+    "formattedMarkdown": "# H1 \\{.foo}\n## H2 \\\\ {.bar}\n### stray backslash at the end is preserved \\",
+    "html": "<h1 class=\"foo\">H1 \\</h1>\n<h2 class=\"bar\">H2 \\</h2>\n<h3>stray backslash at the end is preserved \\</h3>\n",
+    "example": 31,
+    "start_line": 424,
+    "end_line": 432,
+    "section": "Cancelling parsing of attribute blocks",
+    "extensions": []
+  },
+  {
+    "markdown": "H1 \\{.foo}\n==\nH2 \\\\{.bar}\n--\n\nstray backslash at the end is preserved \\\n--\n",
+    "formattedMarkdown": "H1 \\{.foo}\n==\nH2 \\\\ {.bar}\n--\n\nstray backslash at the end is preserved \\\n--",
+    "html": "<h1 class=\"foo\">H1 \\</h1>\n<h2 class=\"bar\">H2 \\</h2>\n<h2>stray backslash at the end is preserved \\</h2>\n",
+    "example": 32,
+    "start_line": 455,
+    "end_line": 467,
+    "section": "Cancelling parsing of attribute blocks",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {#`code`}\n## H2 {#foo__bar__baz}\n### H3 {#foo**bar**baz}\n",
+    "html": "<h1 id=\"`code`\">H1</h1>\n<h2 id=\"foo__bar__baz\">H2</h2>\n<h3 id=\"foo**bar**baz\">H3</h3>\n",
+    "example": 33,
+    "start_line": 474,
+    "end_line": 482,
+    "section": "Disabled inlines",
+    "extensions": []
+  },
+  {
+    "markdown": "H1 {#`code`}\n==\n\nH2-1 {#foo__bar__baz}\n----\n\nH2-2 {#foo**bar**baz}\n--\n",
+    "html": "<h1 id=\"`code`\">H1</h1>\n<h2 id=\"foo__bar__baz\">H2-1</h2>\n<h2 id=\"foo**bar**baz\">H2-2</h2>\n",
+    "example": 34,
+    "start_line": 484,
+    "end_line": 497,
+    "section": "Disabled inlines",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 __{#my__id1}\n## H2 **{#my**id2}\n### H3 `{.code` }\n#### H4 ~~{.strike~~ }\n",
+    "formattedMarkdown": "# H1 __ {#my__id1}\n## H2 ** {#my**id2}\n### H3 ` {.code`}\n#### H4 ~~ {.strike~~}",
+    "html": "<h1 id=\"my__id1\">H1 __</h1>\n<h2 id=\"my**id2\">H2 **</h2>\n<h3 class=\"code`\">H3 `</h3>\n<h4 class=\".strike~~\">H4 ~~</h4>\n",
+    "example": 35,
+    "start_line": 502,
+    "end_line": 512,
+    "section": "Disabled inlines",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro because after formatting Text events are slightly different"
+  },
+  {
+    "markdown": "# H1__ {#my__id1}\n## H2** {#my**id2}\n### H3` {.code` }\n#### H4~~ {.strike~~ }\n",
+    "formattedMarkdown": "# H1__ {#my__id1}\n## H2** {#my**id2}\n### H3` {.code`}\n#### H4~~ {.strike~~}",
+    "html": "<h1 id=\"my__id1\">H1__ </h1>\n<h2 id=\"my**id2\">H2** </h2>\n<h3 class=\"code`\">H3` </h3>\n<h4 class=\".strike~~\">H4~~ </h4>\n",
+    "example": 36,
+    "start_line": 514,
+    "end_line": 524,
+    "section": "Disabled inlines",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1__ {.foo__bar**baz}\nqux**\n",
+    "html": "<h1 class=\"foo__bar**baz\">H1__</h1>\n<p>qux**</p>\n",
+    "example": 37,
+    "start_line": 526,
+    "end_line": 532,
+    "section": "Disabled inlines",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {.foo#bar}\n## H2 {#foo.bar}\n### H3 {.a\"b'c&d}\n",
+    "html": "<h1 class=\"foo#bar\">H1</h1>\n<h2 id=\"foo.bar\">H2</h2>\n<h3 class=\"a&quot;b&#39;c&amp;d\">H3</h3>\n",
+    "example": 38,
+    "start_line": 547,
+    "end_line": 555,
+    "section": "Escapes",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {#}\n## H2 {.}\n",
+    "formattedMarkdown": "# H1\n## H2",
+    "html": "<h1>H1</h1>\n<h2>H2</h2>\n",
+    "example": 39,
+    "start_line": 571,
+    "end_line": 577,
+    "section": "Empty IDs and classes",
+    "extensions": []
+  },
+  {
+    "markdown": "# H1 {#foo #}\n# H1 {.foo . . .bar}\n",
+    "formattedMarkdown": "# H1 {#foo}\n# H1 {.foo .bar}",
+    "html": "<h1 id=\"foo\">H1</h1>\n<h1 class=\"foo bar\">H1</h1>\n",
+    "example": 40,
+    "start_line": 579,
+    "end_line": 585,
+    "section": "Empty IDs and classes",
+    "extensions": []
+  },
+  {
+    "markdown": "# {}\n## {}\n### {\\}\n#### {} {}\n\n#{}\n",
+    "formattedMarkdown": "#\n##\n### {\\}\n#### \\{\\}\n\n#{}",
+    "html": "<h1></h1>\n<h2></h2>\n<h3>{}</h3>\n<h4>{}</h4>\n<p>#{}</p>\n",
+    "example": 41,
+    "start_line": 589,
+    "end_line": 602,
+    "section": "Empty headers",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro because after formatting empty attributes are escaped, which slightly changes events"
+  },
+  {
+    "markdown": "{}\n==\n\n\\{}\n--\n\n\\\n--\n\n{\\}\n==\n\n{}{}\n--\n",
+    "formattedMarkdown": "\\\n==\n\n\\\n--\n\n\\\n--\n\n{\\}\n==\n\n\\{\\}\n--",
+    "html": "<h1></h1>\n<h2>\\</h2>\n<h2>\\</h2>\n<h1>{}</h1>\n<h2>{}</h2>\n",
+    "example": 42,
+    "start_line": 604,
+    "end_line": 625,
+    "section": "Empty headers",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro because after formatting some empty attributes are replaced with escapes"
+  },
+  {
+    "markdown": "# horizontal tab\t\n# horizontal tab\t{#ht}\n## form feed\f\n## form feed\f{#ff}\n### vertical tab\u000b\n### vertical tab\u000b{#vt}\n",
+    "formattedMarkdown": "# horizontal tab\n# horizontal tab {#ht}\n## form feed\n## form feed {#ff}\n### vertical tab\n### vertical tab {#vt}",
+    "html": "<h1>horizontal tab\t</h1>\n<h1 id=\"ht\">horizontal tab\t</h1>\n<h2>form feed\f</h2>\n<h2 id=\"ff\">form feed\f</h2>\n<h3>vertical tab\u000b</h3>\n<h3 id=\"vt\">vertical tab\u000b</h3>\n",
+    "example": 43,
+    "start_line": 634,
+    "end_line": 648,
+    "section": "Trailing ASCII whitespaces",
+    "extensions": [],
+    "testMacro": "test",
+    "comment": "use test! macro because some whitespace characters change"
+  },
+  {
+    "markdown": "# horizontal tab (U+000A) {#ht\t.myclass}\n## form feed (U+000C) {#ff\f.myclass}\n\n# vertical tab (U+000B) {#vt\u000b.myclass}\n",
+    "formattedMarkdown": "# horizontal tab (U+000A) {#ht .myclass}\n## form feed (U+000C) {#ff .myclass}\n\n# vertical tab (U+000B) {#vt\u000b.myclass}",
+    "html": "<h1 id=\"ht\" class=\"myclass\">horizontal tab (U+000A)</h1>\n<h2 id=\"ff\" class=\"myclass\">form feed (U+000C)</h2>\n<h1 id=\"vt\u000b.myclass\">vertical tab (U+000B)</h1>\n",
+    "example": 44,
+    "start_line": 661,
+    "end_line": 670,
+    "section": "Attributes separators",
+    "extensions": []
+  },
+  {
+    "markdown": "# EN SPACE (U+2002) {#en-space\u2002.myclass}\n## IDEOGRAPHIC SPACE (U+3000) {#ideographic-space\u3000.myclass}\n",
+    "html": "<h1 id=\"en-space\u2002.myclass\">EN SPACE (U+2002)</h1>\n<h2 id=\"ideographic-space\u3000.myclass\">IDEOGRAPHIC SPACE (U+3000)</h2>\n",
+    "example": 45,
+    "start_line": 674,
+    "end_line": 680,
+    "section": "Attributes separators",
+    "extensions": []
+  }
+]
