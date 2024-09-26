@@ -1,4 +1,5 @@
 use super::formatter::FormatState;
+use crate::utils::is_char_esacped;
 use pulldown_cmark::Event;
 use std::borrow::Cow;
 use std::fmt::Write;
@@ -517,26 +518,6 @@ fn parse_link_reference_definition(
     let mut is_escaped: bool = false;
 
     let mut iter = input.char_indices().peekable();
-
-    // Too clever? Is there a simpler way to do this that I'm not realizing?
-    let is_char_esacped = |c: char, prev_escape_char: bool| -> bool {
-        // By applying the `xor` + `and` operation we get the following truth table.
-        // This helps us determine if we're escaping an escape character (\\), or
-        // if we're escaping a meaningful char liks `\]`, which esacapes the closing
-        // bracket for a label.
-        //
-        // `\]`  == escaped
-        // `\\]` != escaped
-        //
-        // | prev_escape_char (A) | is_escape_char (B) | A xor B (C)  | C && B |
-        // | -------------------- | ------------------ | ------------ | ------ |
-        // | true                 | true               | false        | false  |
-        // | false                | true               | true         | true   |
-        // | true                 | false              | true         | false  |
-        // | false                | false              | false        | false  |
-        let is_escape_char = c == '\\';
-        (prev_escape_char ^ is_escape_char) && is_escape_char
-    };
 
     while let Some((idx, c)) = iter.next() {
         tracing::trace!("c: {c:?}, phase: {phase:?} is_escaped: {is_escaped}");
