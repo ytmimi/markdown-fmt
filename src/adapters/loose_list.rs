@@ -302,9 +302,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::FormatBuilder;
     use crate::formatter::FormatState;
     use crate::test::get_test_files;
-    use crate::FormatBuilder;
     use std::borrow::Cow;
     use std::path::PathBuf;
 

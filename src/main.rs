@@ -1,11 +1,11 @@
 #![allow(missing_docs)]
 
 use clap::Parser;
-use markdown_fmt::{rewrite_markdown_with_builder, FormatBuilder};
+use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
