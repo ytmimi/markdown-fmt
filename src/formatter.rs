@@ -12,6 +12,7 @@ use crate::adapters::LooseListExt;
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
+use crate::header::{Header, HeaderKind};
 use crate::links::{LinkReferenceDefinition, parse_link_reference_definitions};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
@@ -130,12 +131,8 @@ where
     // TODO(ytmimi) will come in handy when adding an option to defer
     // rewriting link reference definitions until the end of the document
     reference_links: Vec<LinkReferenceDefinition<'i>>,
-    /// keep track of the current setext header.
-    /// ```markdown
-    /// Header
-    /// ======
-    /// ```
-    setext_header: Option<&'i str>,
+    /// Handles ATX and Setext header formatting
+    header: Option<Header<'i>>,
     /// next Start event should push indentation
     needs_indent: bool,
     table_state: Option<TableState<'i>>,
@@ -255,6 +252,11 @@ where
         self.footnote.is_some()
     }
 
+    /// Check if we're currently formatting a header
+    fn in_header(&self) -> bool {
+        self.header.is_some()
+    }
+
     /// Check if we're formatting in a nested context
     fn is_nested(&self) -> bool {
         !self.nested_context.is_empty()
@@ -279,6 +281,8 @@ where
             self.paragraph
                 .as_mut()
                 .map(|p| p as &mut dyn std::fmt::Write)
+        } else if self.in_header() {
+            self.header.as_mut().map(|h| h as &mut dyn std::fmt::Write)
         } else if self.in_footnote() {
             self.footnote
                 .as_mut()
@@ -296,6 +300,8 @@ where
             self.table_state.as_ref().is_some_and(|s| s.is_empty())
         } else if self.in_paragraph() {
             self.paragraph.as_ref().is_some_and(|p| p.is_empty())
+        } else if self.in_header() {
+            self.header.as_ref().is_some_and(|h| h.is_empty())
         } else if self.in_footnote() {
             self.footnote.as_ref().is_some_and(|p| p.is_empty())
         } else {
@@ -489,7 +495,7 @@ where
             indentation: vec![],
             nested_context: vec![],
             reference_links: vec![],
-            setext_header: None,
+            header: None,
             needs_indent: false,
             table_state: None,
             last_position: 0,
@@ -718,43 +724,22 @@ where
                 });
                 self.paragraph = Some(Paragraph::new(max_width, should_reflow_text, capacity));
             }
-            Tag::Heading { level, .. } => {
-                self.nested_context.push(tag);
+            Tag::Heading { .. } => {
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
                 let full_header = self.input[range].trim();
-
-                if full_header.contains('\n') && full_header.ends_with(['=', '-']) {
-                    // support for alternative syntax for H1 and H2
-                    // <https://www.markdownguide.org/basic-syntax/#alternate-syntax>
-                    let header_marker = full_header.split('\n').last().unwrap().trim();
-                    self.setext_header.replace(header_marker);
-                    // setext header are handled in `end_tag`
-                    return Ok(());
-                }
-
-                let header = match level {
-                    HeadingLevel::H1 => "# ",
-                    HeadingLevel::H2 => "## ",
-                    HeadingLevel::H3 => "### ",
-                    HeadingLevel::H4 => "#### ",
-                    HeadingLevel::H5 => "##### ",
-                    HeadingLevel::H6 => "###### ",
-                };
-
-                let empty_header = full_header
-                    .trim_start_matches(header)
-                    .trim_end_matches(|c: char| c.is_whitespace() || matches!(c, '#' | '\\'))
-                    .is_empty();
-
-                if empty_header {
-                    write!(self, "{}", header.trim())?;
-                } else {
-                    write!(self, "{header}")?;
-                }
+                let header = Header::new(
+                    // Take the indentaiton so that we don't accidentally write indentation into the
+                    // headers for setext headers that may span multiple lines.
+                    // We will restore the indentation after we're done formatting the header.
+                    std::mem::take(&mut self.indentation),
+                    full_header,
+                    tag,
+                );
+                self.header = Some(header);
             }
             Tag::BlockQuote => {
                 // Just in case we're starting a new block quote in a nested context where
@@ -1148,31 +1133,26 @@ where
                 }
             }
             TagEnd::Heading(_) => {
-                let popped_tag = self.nested_context.pop();
-                debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+                if let Some(h) = self.header.take() {
+                    if let HeaderKind::Atx(level) = h.kind() {
+                        let atx_header = match level {
+                            HeadingLevel::H1 => "#",
+                            HeadingLevel::H2 => "##",
+                            HeadingLevel::H3 => "###",
+                            HeadingLevel::H4 => "####",
+                            HeadingLevel::H5 => "#####",
+                            HeadingLevel::H6 => "######",
+                        };
 
-                let Some(Tag::Heading { id, classes, .. }) = popped_tag else {
-                    panic!("Handling `TagEnd::Heading` without the corresponding `Tag::Heading`")
-                };
-
-                match (id, classes.is_empty()) {
-                    (Some(id), false) => {
-                        let classes = rewirte_header_classes(classes)?;
-                        write!(self, " {{#{id}{classes}}}")?;
+                        if h.is_empty() {
+                            write!(self, "{}", atx_header.trim())?;
+                        } else {
+                            write!(self, "{atx_header} ")?;
+                        }
                     }
-                    (Some(id), true) => {
-                        write!(self, " {{#{id}}}")?;
-                    }
-                    (None, false) => {
-                        let classes = rewirte_header_classes(classes)?;
-                        write!(self, " {{{}}}", classes.trim())?;
-                    }
-                    (None, true) => {}
-                }
-
-                if let Some(marker) = self.setext_header.take() {
-                    self.write_newlines(1)?;
-                    write!(self, "{marker}")?;
+                    let (buffer, indentation) = h.into_parts()?;
+                    self.indentation = indentation;
+                    self.join_with_indentation(&buffer, false)?;
                 }
             }
             TagEnd::BlockQuote => {
@@ -1414,15 +1394,4 @@ fn rewrite_marker<W: std::fmt::Write>(
     writer: &mut W,
 ) -> std::fmt::Result {
     rewrite_marker_with_limit(input, range, writer, None)
-}
-
-/// Rewrite a list of h1, h2, h3, h4, h5, h6 classes
-fn rewirte_header_classes<T: AsRef<str>>(classes: Vec<T>) -> Result<String, std::fmt::Error> {
-    let item_len = classes.iter().map(|i| i.as_ref().len()).sum::<usize>();
-    let capacity = item_len + classes.len() * 2;
-    let mut result = String::with_capacity(capacity);
-    for class in classes {
-        write!(result, " .{}", class.as_ref())?;
-    }
-    Ok(result)
 }
