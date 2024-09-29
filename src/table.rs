@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use std::fmt::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
+#[derive(Debug, PartialEq)]
 pub(super) struct TableState<'a> {
     /// Alignment markers for HTML rendering
     /// * :-: center alignment

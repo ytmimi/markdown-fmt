@@ -79,6 +79,7 @@ mod table;
 #[cfg(test)]
 mod test;
 mod utils;
+mod writer;
 
 pub use builder::{CodeBlockContext, FormatBuilder};
 pub use formatter::MarkdownFormatter;

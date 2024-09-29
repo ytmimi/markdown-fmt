@@ -4,6 +4,7 @@ use textwrap::Options as TextWrapOptions;
 const MARKDOWN_HARD_BREAK: &str = "  \n";
 
 /// A buffer where we write text
+#[derive(Debug, PartialEq)]
 pub(super) struct Paragraph {
     buffer: String,
     max_width: Option<usize>,

@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use std::fmt::Write;
 
 /// A buffer where we write the content of markdown headers
+#[derive(Debug, PartialEq)]
 pub(super) struct Header<'i> {
     buffer: String,
     indentation: Vec<Cow<'static, str>>,
@@ -272,7 +273,7 @@ impl<'i> Header<'i> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub(super) enum HeaderKind<'i> {
     /// ATX headers like `#`, `##`, `###`, etc.
     Atx(HeadingLevel),

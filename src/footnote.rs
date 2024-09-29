@@ -4,6 +4,7 @@ use std::fmt::Write;
 static FOOTNOTE_INDENTATION: &str = "    ";
 
 /// A buffer where we write footnote definition text
+#[derive(Debug, PartialEq)]
 pub(crate) struct FootnoteDefinition {
     buffer: String,
     indentation: Vec<Cow<'static, str>>,
