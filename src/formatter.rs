@@ -17,6 +17,7 @@ use crate::links::{LinkReferenceDefinition, parse_link_reference_definitions};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
+use crate::writer::MarkdownWriter;
 
 // Defined using a macro so that the parsing options can be shared with tests for consistency.
 #[doc(hidden)]
@@ -108,8 +109,6 @@ where
     /// Iterator Supplying Markdown Events
     events: Peekable<I>,
     rewrite_buffer: String,
-    /// Stores code that we might try to format
-    code_block_buffer: String,
     /// Stack that keeps track of nested list markers.
     /// Unordered list markers are one of `*`, `+`, or `-`,
     /// while ordered lists markers start with 0-9 digits followed by a `.` or `)`.
@@ -119,6 +118,9 @@ where
     indentation: Vec<Cow<'static, str>>,
     /// Stack that keeps track of whether we're formatting inside of another element.
     nested_context: Vec<Tag<'i>>,
+    /// Stack of writers that handle individual Markdown structures like code blocks, tables,
+    /// paragraphs, headers and footnote definitions
+    writers: Vec<MarkdownWriter<'i>>,
     /// A set of reference link definitions that will be output after formatting.
     /// Reference style links contain 3 parts:
     /// 1. Text to display
@@ -131,18 +133,11 @@ where
     // TODO(ytmimi) will come in handy when adding an option to defer
     // rewriting link reference definitions until the end of the document
     reference_links: Vec<LinkReferenceDefinition<'i>>,
-    /// Handles ATX and Setext header formatting
-    header: Option<Header<'i>>,
     /// next Start event should push indentation
     needs_indent: bool,
-    table_state: Option<TableState<'i>>,
     last_position: usize,
     trim_link_or_image_start: bool,
     escape_link_or_image_start: Option<()>,
-    /// Handles paragraph formatting.
-    paragraph: Option<Paragraph>,
-    /// Handles Footnote definition formatting
-    footnote: Option<FootnoteDefinition>,
     formatter: &'m MarkdownFormatter,
 }
 
@@ -153,17 +148,13 @@ where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
     fn write_str(&mut self, text: &str) -> std::fmt::Result {
-        if let Some(writer) = self.current_buffer() {
-            writer.write_str(text)?
-        }
-        Ok(())
+        let writer = self.current_buffer();
+        writer.write_str(text)
     }
 
     fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::fmt::Result {
-        if let Some(writer) = self.current_buffer() {
-            writer.write_fmt(args)?
-        }
-        Ok(())
+        let writer = self.current_buffer();
+        writer.write_fmt(args)
     }
 }
 
@@ -196,38 +187,6 @@ where
         };
     }
 
-    /// Check if we're formatting a fenced code block
-    fn in_fenced_code_block(&self) -> bool {
-        matches!(
-            self.nested_context.last(),
-            Some(Tag::CodeBlock(CodeBlockKind::Fenced(_)))
-        )
-    }
-
-    /// Check if we're formatting an indented code block
-    fn in_indented_code_block(&self) -> bool {
-        matches!(
-            self.nested_context.last(),
-            Some(Tag::CodeBlock(CodeBlockKind::Indented))
-        )
-    }
-
-    // check if we're formatting a table header
-    fn in_table_header(&self) -> bool {
-        self.nested_context
-            .iter()
-            .rfind(|tag| **tag == Tag::TableHead)
-            .is_some()
-    }
-
-    // check if we're formatting a table row
-    fn in_table_row(&self) -> bool {
-        self.nested_context
-            .iter()
-            .rfind(|tag| **tag == Tag::TableRow)
-            .is_some()
-    }
-
     /// Check if we're formatting a link
     fn in_link_or_image(&self) -> bool {
         matches!(
@@ -244,17 +203,9 @@ where
     /// Check if we're in a "paragraph". A `Paragraph` might not necessarily be on the
     /// nested_context stack.
     fn in_paragraph(&self) -> bool {
-        self.paragraph.is_some()
-    }
-
-    /// Check if we're currently formatting a footnote
-    fn in_footnote(&self) -> bool {
-        self.footnote.is_some()
-    }
-
-    /// Check if we're currently formatting a header
-    fn in_header(&self) -> bool {
-        self.header.is_some()
+        self.writers
+            .last()
+            .is_some_and(|w| matches!(w, MarkdownWriter::Paragraph(_)))
     }
 
     /// Check if we're formatting in a nested context
@@ -270,40 +221,18 @@ where
     /// Get an exclusive reference to the current buffer we're writing to. That could be the main
     /// rewrite buffer, the code block buffer, the internal table state, or anything else we're
     /// writing to while reformatting
-    fn current_buffer(&mut self) -> Option<&mut dyn std::fmt::Write> {
-        if self.in_fenced_code_block() || self.in_indented_code_block() {
-            Some(&mut self.code_block_buffer)
-        } else if self.in_table_header() || self.in_table_row() {
-            self.table_state
-                .as_mut()
-                .map(|s| s as &mut dyn std::fmt::Write)
-        } else if self.in_paragraph() {
-            self.paragraph
-                .as_mut()
-                .map(|p| p as &mut dyn std::fmt::Write)
-        } else if self.in_header() {
-            self.header.as_mut().map(|h| h as &mut dyn std::fmt::Write)
-        } else if self.in_footnote() {
-            self.footnote
-                .as_mut()
-                .map(|f| f as &mut dyn std::fmt::Write)
+    fn current_buffer(&mut self) -> &mut dyn std::fmt::Write {
+        if let Some(writer) = self.writers.last_mut() {
+            writer as &mut dyn std::fmt::Write
         } else {
-            Some(&mut self.rewrite_buffer)
+            &mut self.rewrite_buffer
         }
     }
 
     /// Check if the current buffer we're writting to is empty
     fn is_current_buffer_empty(&self) -> bool {
-        if self.in_fenced_code_block() || self.in_indented_code_block() {
-            self.code_block_buffer.is_empty()
-        } else if self.in_table_header() || self.in_table_row() {
-            self.table_state.as_ref().is_some_and(|s| s.is_empty())
-        } else if self.in_paragraph() {
-            self.paragraph.as_ref().is_some_and(|p| p.is_empty())
-        } else if self.in_header() {
-            self.header.as_ref().is_some_and(|h| h.is_empty())
-        } else if self.in_footnote() {
-            self.footnote.as_ref().is_some_and(|p| p.is_empty())
+        if let Some(writer) = self.writers.last() {
+            writer.is_empty()
         } else {
             self.rewrite_buffer.is_empty()
         }
@@ -489,31 +418,28 @@ where
             last_was_softbreak: false,
             events: iter.peekable(),
             rewrite_buffer: String::with_capacity(input.len() * 2),
-            code_block_buffer: String::with_capacity(256),
             // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
             // list_markers: vec![],
             indentation: vec![],
             nested_context: vec![],
             reference_links: vec![],
-            header: None,
+            writers: vec![],
             needs_indent: false,
-            table_state: None,
             last_position: 0,
             trim_link_or_image_start: false,
             escape_link_or_image_start: None,
-            paragraph: None,
-            footnote: None,
             formatter,
         }
     }
 
-    fn format_code_buffer(&mut self, info_string: Option<&str>) -> String {
-        // use std::mem::take to work around the borrow checker
-        let code_block_buffer = std::mem::take(&mut self.code_block_buffer);
-
+    fn format_code_buffer(
+        &mut self,
+        info_string: Option<&str>,
+        unformatted_code: String,
+    ) -> String {
         let Some(info_string) = info_string else {
             // An indented code block won't have an info_string
-            return code_block_buffer;
+            return unformatted_code;
         };
 
         // To prepare for a nested code block that might recursively call into the markdown
@@ -526,15 +452,15 @@ where
         let rewrite = if info_string.contains("markdown") {
             // recursively call into the the `MarkdownFormatter`
             self.formatter
-                .format(&code_block_buffer)
-                .unwrap_or(code_block_buffer)
+                .format(&unformatted_code)
+                .unwrap_or(unformatted_code)
         } else {
             let ctx = CodeBlockContext {
                 indentation,
                 max_width: current_max_width,
             };
             // Call the code_block_formatter fn
-            (self.formatter.code_block_formatter)(&ctx, info_string, code_block_buffer)
+            (self.formatter.code_block_formatter)(&ctx, info_string, unformatted_code)
         };
 
         // restore the width after formatting the code block
@@ -544,8 +470,12 @@ where
         rewrite
     }
 
-    fn write_code_block_buffer(&mut self, info_string: Option<&str>) -> std::fmt::Result {
-        let code = self.format_code_buffer(info_string);
+    fn write_code_block_buffer(
+        &mut self,
+        info_string: Option<&str>,
+        unformatted_code: String,
+    ) -> std::fmt::Result {
+        let code = self.format_code_buffer(info_string, unformatted_code);
 
         if code.trim().is_empty() && info_string.is_some() {
             // The code fence is empty, and a newline should already ahve been added
@@ -714,7 +644,6 @@ where
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
-                self.nested_context.push(tag);
                 let capacity = (range.end - range.start) * 2;
                 let (max_width, should_reflow_text) = self.formatter.get_config(|c| {
                     let width = c
@@ -722,7 +651,8 @@ where
                         .map(|w| w.saturating_sub(self.indentation_len()));
                     (width, c.reflow_text())
                 });
-                self.paragraph = Some(Paragraph::new(max_width, should_reflow_text, capacity));
+                let paragraph = Paragraph::new(max_width, should_reflow_text, capacity);
+                self.writers.push(paragraph.into());
             }
             Tag::Heading { .. } => {
                 if self.needs_indent {
@@ -739,7 +669,7 @@ where
                     full_header,
                     tag,
                 );
-                self.header = Some(header);
+                self.writers.push(header.into())
             }
             Tag::BlockQuote => {
                 // Just in case we're starting a new block quote in a nested context where
@@ -842,19 +772,22 @@ where
                     }
                 }
             }
-            Tag::CodeBlock(ref kind) => {
+            Tag::CodeBlock(kind) => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
-                match kind {
+                let capacity = (range.end - range.start) * 2;
+                let code_block_buffer = String::with_capacity(capacity);
+                match &kind {
                     CodeBlockKind::Fenced(info_string) => {
                         rewrite_marker(self.input, &range, self)?;
 
                         if info_string.is_empty() {
                             writeln!(self)?;
-                            self.nested_context.push(tag);
+                            let writer = MarkdownWriter::CodeBlock((code_block_buffer, kind));
+                            self.writers.push(writer);
                             return Ok(());
                         }
 
@@ -887,7 +820,9 @@ where
                         self.indentation.push(indentation.into());
                     }
                 }
-                self.nested_context.push(tag);
+
+                let writer = MarkdownWriter::CodeBlock((code_block_buffer, kind));
+                self.writers.push(writer);
             }
             Tag::List(_) => {
                 if self.needs_indent {
@@ -1033,9 +968,8 @@ where
                     (range.end - range.start) * 2,
                 );
 
-                self.footnote = Some(footnote);
+                self.writers.push(footnote.into());
                 self.rewrite_reference_link_definitions_inner(link_defs)?;
-                self.nested_context.push(tag);
             }
             Tag::Emphasis => {
                 rewrite_marker_with_limit(self.input, &range, self, Some(1))?;
@@ -1084,17 +1018,17 @@ where
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
-                self.table_state.replace(TableState::new(alignment.clone()));
+                let table_state = TableState::new(alignment.clone());
                 write!(self, "|")?;
+                self.writers.push(table_state.into());
                 self.indentation.push("|".into());
-                self.nested_context.push(tag);
             }
             Tag::TableHead => {
                 self.nested_context.push(tag);
             }
             Tag::TableRow => {
                 self.nested_context.push(tag);
-                if let Some(state) = self.table_state.as_mut() {
+                if let Some(MarkdownWriter::Table(state)) = self.writers.last_mut() {
                     state.push_row()
                 }
             }
@@ -1103,7 +1037,7 @@ where
                     return Ok(());
                 }
 
-                if let Some(state) = self.table_state.as_mut() {
+                if let Some(MarkdownWriter::Table(state)) = self.writers.last_mut() {
                     state.write(String::new().into());
                 }
             }
@@ -1125,35 +1059,42 @@ where
     fn end_tag(&mut self, tag: TagEnd, range: Range<usize>) -> std::fmt::Result {
         match tag {
             TagEnd::Paragraph => {
-                let popped_tag = self.nested_context.pop();
-                debug_assert_eq!(popped_tag.map(|t| t.to_end()), Some(tag));
-
-                if let Some(p) = self.paragraph.take() {
-                    self.join_with_indentation(&p.into_buffer(), false)?;
-                }
+                debug_assert!(matches!(
+                    self.writers.last(),
+                    Some(MarkdownWriter::Paragraph(_))
+                ));
+                let Some(MarkdownWriter::Paragraph(p)) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::Paragraph")
+                };
+                self.join_with_indentation(&p.into_buffer(), false)?;
             }
             TagEnd::Heading(_) => {
-                if let Some(h) = self.header.take() {
-                    if let HeaderKind::Atx(level) = h.kind() {
-                        let atx_header = match level {
-                            HeadingLevel::H1 => "#",
-                            HeadingLevel::H2 => "##",
-                            HeadingLevel::H3 => "###",
-                            HeadingLevel::H4 => "####",
-                            HeadingLevel::H5 => "#####",
-                            HeadingLevel::H6 => "######",
-                        };
+                debug_assert!(matches!(
+                    self.writers.last(),
+                    Some(MarkdownWriter::Header(_))
+                ));
+                let Some(MarkdownWriter::Header(h)) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::Header")
+                };
+                if let HeaderKind::Atx(level) = h.kind() {
+                    let atx_header = match level {
+                        HeadingLevel::H1 => "#",
+                        HeadingLevel::H2 => "##",
+                        HeadingLevel::H3 => "###",
+                        HeadingLevel::H4 => "####",
+                        HeadingLevel::H5 => "#####",
+                        HeadingLevel::H6 => "######",
+                    };
 
-                        if h.is_empty() {
-                            write!(self, "{}", atx_header.trim())?;
-                        } else {
-                            write!(self, "{atx_header} ")?;
-                        }
+                    if h.is_empty() {
+                        write!(self, "{}", atx_header.trim())?;
+                    } else {
+                        write!(self, "{atx_header} ")?;
                     }
-                    let (buffer, indentation) = h.into_parts()?;
-                    self.indentation = indentation;
-                    self.join_with_indentation(&buffer, false)?;
                 }
+                let (buffer, indentation) = h.into_parts()?;
+                self.indentation = indentation;
+                self.join_with_indentation(&buffer, false)?;
             }
             TagEnd::BlockQuote => {
                 let ref_def_range = self.last_position..range.end;
@@ -1182,25 +1123,25 @@ where
                 }
             }
             TagEnd::CodeBlock => {
-                let popped_tag = self.nested_context.pop();
-                debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+                debug_assert!(matches!(
+                    self.writers.last(),
+                    Some(MarkdownWriter::CodeBlock(_))
+                ));
 
-                let Some(Tag::CodeBlock(kind)) = popped_tag else {
-                    panic!(
-                        "Handling `TagEnd::CodeBlock` without the corresponding `Tag::CodeBlock`"
-                    )
+                let Some(MarkdownWriter::CodeBlock((code_block, kind))) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::CodeBlock")
                 };
 
                 match kind {
                     CodeBlockKind::Fenced(info_string) => {
-                        self.write_code_block_buffer(Some(info_string.as_ref()))?;
+                        self.write_code_block_buffer(Some(info_string.as_ref()), code_block)?;
                         // write closing code fence
                         self.write_indentation(false)?;
                         rewrite_marker(self.input, &range, self)?;
                     }
                     CodeBlockKind::Indented => {
                         // Maybe we'll consider formatting indented code blocks??
-                        self.write_code_block_buffer(None)?;
+                        self.write_code_block_buffer(None, code_block)?;
 
                         let popped_indentation = self
                             .indentation
@@ -1244,16 +1185,19 @@ where
                 self.needs_indent = matches!(self.peek(), Some(Event::Start(Tag::Item)));
             }
             TagEnd::FootnoteDefinition => {
+                debug_assert!(matches!(
+                    self.writers.last(),
+                    Some(MarkdownWriter::FootnoteDefinition(_))
+                ));
+
                 let ref_def_range = self.last_position..range.end;
                 self.rewrite_reference_link_definitions(&ref_def_range)?;
-                let popped_tag = self.nested_context.pop();
-                debug_assert_eq!(popped_tag.map(|t| t.to_end()), Some(tag));
 
-                let Some(footnote) = self.footnote.take() else {
-                    return Ok(());
+                let Some(MarkdownWriter::FootnoteDefinition(f)) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::FootnoteDefinition")
                 };
 
-                let (buffer, indentation, footnote_indent) = footnote.into_parts();
+                let (buffer, indentation, footnote_indent) = f.into_parts();
                 self.indentation = indentation;
 
                 if !buffer.is_empty() {
@@ -1326,11 +1270,15 @@ where
                 }
             }
             TagEnd::Table => {
-                let popped_tag = self.nested_context.pop();
-                debug_assert_eq!(popped_tag.map(|t| t.to_end()), Some(tag));
-                if let Some(state) = self.table_state.take() {
-                    self.join_with_indentation(&state.format()?, false)?;
-                }
+                debug_assert!(matches!(
+                    self.writers.last(),
+                    Some(MarkdownWriter::Table(_))
+                ));
+
+                let Some(MarkdownWriter::Table(t)) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::Table")
+                };
+                self.join_with_indentation(&t.format()?, false)?;
                 let popped_indentation = self.indentation.pop().expect("we added `|` in start_tag");
                 debug_assert_eq!(popped_indentation, "|");
             }
@@ -1339,7 +1287,7 @@ where
                 debug_assert_eq!(popped_tag.map(|t| t.to_end()), Some(tag));
             }
             TagEnd::TableCell => {
-                if let Some(state) = self.table_state.as_mut() {
+                if let Some(MarkdownWriter::Table(state)) = self.writers.last_mut() {
                     // We finished formatting this cell. Setup the state to format the next cell
                     state.increment_col_index()
                 }
