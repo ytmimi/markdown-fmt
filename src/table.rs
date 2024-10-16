@@ -26,7 +26,7 @@ pub(super) struct TableState<'a> {
     col_index: usize,
 }
 
-impl<'a> Write for TableState<'a> {
+impl Write for TableState<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         self.write(s.to_owned().into());
         Ok(())
