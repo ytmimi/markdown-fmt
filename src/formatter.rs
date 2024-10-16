@@ -616,6 +616,9 @@ where
                         write!(self, "[ ] ")?;
                     }
                 }
+                Event::DisplayMath(..) | Event::InlineMath(..) => {
+                    unreachable!("pulldown_cmark::Options::ENABLE_MATH is not configured")
+                }
             }
             self.last_position = last_position
         }
@@ -671,7 +674,9 @@ where
                 );
                 self.writers.push(header.into())
             }
-            Tag::BlockQuote => {
+            // `pulldown_cmark::Options::ENABLE_GFM` is not configured so we shouldn't have
+            // a `BlockQuoteKind`` in the `Tag::BlockQuote`
+            Tag::BlockQuote(_) => {
                 // Just in case we're starting a new block quote in a nested context where
                 // We alternate indentation levels we want to remove trailing whitespace
                 // from the blockquote that we're about to push on top of
@@ -712,7 +717,7 @@ where
                         // If there are any other trailing lines those should be handled by
                         // The End(BlockQuote) event.
                     }
-                    Some((Event::Start(Tag::BlockQuote), next_range)) => {
+                    Some((Event::Start(Tag::BlockQuote(_)), next_range)) => {
                         let snippet = &self.input[range.start..next_range.start];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
 
