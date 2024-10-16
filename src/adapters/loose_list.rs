@@ -270,7 +270,7 @@ where
                             Event::Start(
                                 Tag::Heading { .. }
                                 | Tag::List(_)
-                                | Tag::BlockQuote
+                                | Tag::BlockQuote(_)
                                 | Tag::CodeBlock(_)
                                 | Tag::Table(_)
                                 | Tag::HtmlBlock
