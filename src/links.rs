@@ -274,7 +274,7 @@ pub(super) struct LinkReferenceDefinition<'a> {
     title: Option<LinkTitle<'a>>,
 }
 
-impl<'a> LinkReferenceDefinition<'a> {
+impl LinkReferenceDefinition<'_> {
     pub(super) fn range(&self) -> std::ops::Range<usize> {
         let start = self.label.range().expect("we have a label").start;
         let end = if let Some(title) = self.title.as_ref() {
@@ -310,7 +310,7 @@ pub(super) enum LinkDestination<'a> {
     Regular(Cow<'a, str>),
 }
 
-impl<'a> LinkDestination<'a> {
+impl LinkDestination<'_> {
     fn write<W: std::fmt::Write>(&self, writer: &mut W) -> std::fmt::Result {
         match self {
             Self::Bracketed(text) => write!(writer, "<{text}>"),
@@ -451,7 +451,7 @@ impl<'a> From<(Cow<'a, str>, std::ops::Range<usize>)> for LinkLines<'a> {
     }
 }
 
-impl<'a> From<(&'static str, std::ops::Range<usize>)> for LinkLines<'a> {
+impl From<(&'static str, std::ops::Range<usize>)> for LinkLines<'_> {
     fn from(value: (&'static str, std::ops::Range<usize>)) -> Self {
         LinkLines(vec![(Cow::from(value.0), value.1)])
     }
