@@ -181,7 +181,7 @@ where
     fn check_needs_indent(&mut self, event: &Event<'i>) {
         self.needs_indent = match self.peek() {
             Some(Event::Start(_) | Event::Rule | Event::Html(_) | Event::End(TagEnd::Item)) => true,
-            Some(Event::End(TagEnd::BlockQuote)) => matches!(event, Event::End(_)),
+            Some(Event::End(TagEnd::BlockQuote(..))) => matches!(event, Event::End(_)),
             Some(Event::Text(_)) => matches!(event, Event::End(_) | Event::Start(Tag::Item)),
             _ => matches!(event, Event::Rule),
         };
@@ -701,7 +701,7 @@ where
                 // FIXME(ytmimi) recovering link-reference-definitions adds some complexity here.
                 // Hoping to find a way to simplify this in the future.
                 match self.peek_with_range().map(|(e, r)| (e.clone(), r.clone())) {
-                    Some((Event::End(TagEnd::BlockQuote), _)) => {
+                    Some((Event::End(TagEnd::BlockQuote(..)), _)) => {
                         let snippet = &self.input[range.clone()];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
                         if !link_defs.is_empty() {
@@ -1057,6 +1057,9 @@ where
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
             }
+            Tag::DefinitionList | Tag::DefinitionListTitle | Tag::DefinitionListDefinition => {
+                unreachable!("pulldown_cmark::Options::ENABLE_DEFINITION_LIST is not configured")
+            }
         }
         Ok(())
     }
@@ -1101,7 +1104,7 @@ where
                 self.indentation = indentation;
                 self.join_with_indentation(&buffer, false)?;
             }
-            TagEnd::BlockQuote => {
+            TagEnd::BlockQuote(..) => {
                 let ref_def_range = self.last_position..range.end;
                 self.rewrite_reference_link_definitions(&ref_def_range)?;
                 let rest_range = self.last_position..range.end;
@@ -1304,6 +1307,11 @@ where
             TagEnd::MetadataBlock(_meta) => {
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
+            }
+            TagEnd::DefinitionList
+            | TagEnd::DefinitionListTitle
+            | TagEnd::DefinitionListDefinition => {
+                unreachable!("pulldown_cmark::Options::ENABLE_DEFINITION_LIST is not configured")
             }
         }
         Ok(())
