@@ -8,7 +8,7 @@ use std::str::FromStr;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
-use crate::adapters::LooseListExt;
+use crate::adapters::{ListEndAtLastItemExt, LooseListExt};
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
@@ -65,7 +65,10 @@ impl MarkdownFormatter {
         let options = pulldown_cmark_options!();
 
         let parser = Parser::new_with_broken_link_callback(input, options, Some(&mut callback));
-        let iter = parser.into_offset_iter().all_loose_lists();
+        let iter = parser
+            .into_offset_iter()
+            .all_loose_lists()
+            .list_end_at_last_item();
 
         let fmt_state = FormatState::new(input, self, iter);
         fmt_state.format()
