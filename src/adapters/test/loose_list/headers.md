@@ -27,4 +27,4 @@ event=Text(Borrowed("Lorem ipsum dolor sit amet, consectetur adipiscing elit,"))
 event=End(Heading(H1)) range=129..188
 event=End(Item) range=94..188
 event=End(List(false)) range=94..188
-event=End(BlockQuote) range=92..188
+event=End(BlockQuote(None)) range=92..188

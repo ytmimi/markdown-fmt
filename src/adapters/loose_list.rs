@@ -233,7 +233,7 @@ where
                 Event::End(
                     TagEnd::Heading(..)
                     | TagEnd::List(_)
-                    | TagEnd::BlockQuote
+                    | TagEnd::BlockQuote(..)
                     | TagEnd::CodeBlock
                     | TagEnd::Table
                     | TagEnd::HtmlBlock
