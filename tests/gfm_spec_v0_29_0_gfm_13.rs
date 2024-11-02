@@ -1022,8 +1022,6 @@ fn gfm_markdown_html_blocks_120() {
     // https://github.github.com/gfm/#example-120
     test_identical_markdown_events!(r##" <div>
   *hello*
-         <foo><a>"##,r##"<div>
-  *hello*
          <foo><a>"##);
 }
 
@@ -1300,8 +1298,6 @@ fn gfm_markdown_html_blocks_152() {
     // https://github.github.com/gfm/#example-152
     test_identical_markdown_events!(r##"  <!-- foo -->
 
-    <!-- foo -->"##,r##"<!-- foo -->
-
     <!-- foo -->"##);
 }
 
@@ -1309,8 +1305,6 @@ fn gfm_markdown_html_blocks_152() {
 fn gfm_markdown_html_blocks_153() {
     // https://github.github.com/gfm/#example-153
     test_identical_markdown_events!(r##"  <div>
-
-    <div>"##,r##"<div>
 
     <div>"##);
 }
@@ -1387,16 +1381,6 @@ fn gfm_markdown_html_blocks_160() {
     </td>
 
   </tr>
-
-</table>"##,r##"<table>
-
-<tr>
-
-    <td>
-      Hi
-    </td>
-
-</tr>
 
 </table>"##);
 }
