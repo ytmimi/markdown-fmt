@@ -1126,7 +1126,6 @@
   },
   {
     "markdown": " <div>\n  *hello*\n         <foo><a>\n",
-    "formattedMarkdown": "<div>\n  *hello*\n         <foo><a>",
     "html": " <div>\n  *hello*\n         <foo><a>\n",
     "example": 120,
     "start_line": 2151,
@@ -1415,7 +1414,6 @@
   },
   {
     "markdown": "  <!-- foo -->\n\n    <!-- foo -->\n",
-    "formattedMarkdown": "<!-- foo -->\n\n    <!-- foo -->",
     "html": "  <!-- foo -->\n<pre><code>&lt;!-- foo --&gt;\n</code></pre>\n",
     "example": 152,
     "start_line": 2621,
@@ -1425,7 +1423,6 @@
   },
   {
     "markdown": "  <div>\n\n    <div>\n",
-    "formattedMarkdown": "<div>\n\n    <div>",
     "html": "  <div>\n<pre><code>&lt;div&gt;\n</code></pre>\n",
     "example": 153,
     "start_line": 2632,
@@ -1489,7 +1486,6 @@
   },
   {
     "markdown": "<table>\n\n  <tr>\n\n    <td>\n      Hi\n    </td>\n\n  </tr>\n\n</table>\n",
-    "formattedMarkdown": "<table>\n\n<tr>\n\n    <td>\n      Hi\n    </td>\n\n</tr>\n\n</table>",
     "html": "<table>\n  <tr>\n<pre><code>&lt;td&gt;\n  Hi\n&lt;/td&gt;\n</code></pre>\n  </tr>\n</table>\n",
     "example": 160,
     "start_line": 2781,

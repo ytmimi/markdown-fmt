@@ -528,9 +528,7 @@ where
                     let starts_with_escape = self.input[..range.start].ends_with('\\');
                     let newlines = self.count_newlines(&range);
                     let text_from_source = &self.input[range];
-                    let mut text = if self.in_html_block() {
-                        text_from_source
-                    } else if text_from_source.is_empty() {
+                    let mut text = if text_from_source.is_empty() || self.in_html_block() {
                         // This seems to happen when the parsed text is whitespace only.
                         // To preserve leading whitespace use the parsed text instead.
                         parsed_text.as_ref()

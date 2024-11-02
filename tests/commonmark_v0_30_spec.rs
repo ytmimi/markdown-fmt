@@ -1240,8 +1240,6 @@ fn markdown_html_blocks_150() {
     // https://spec.commonmark.org/0.30/#example-150
     test_identical_markdown_events!(r##" <div>
   *hello*
-         <foo><a>"##,r##"<div>
-  *hello*
          <foo><a>"##);
 }
 
@@ -1530,8 +1528,6 @@ fn markdown_html_blocks_183() {
     // https://spec.commonmark.org/0.30/#example-183
     test_identical_markdown_events!(r##"  <!-- foo -->
 
-    <!-- foo -->"##,r##"<!-- foo -->
-
     <!-- foo -->"##);
 }
 
@@ -1539,8 +1535,6 @@ fn markdown_html_blocks_183() {
 fn markdown_html_blocks_184() {
     // https://spec.commonmark.org/0.30/#example-184
     test_identical_markdown_events!(r##"  <div>
-
-    <div>"##,r##"<div>
 
     <div>"##);
 }
@@ -1617,16 +1611,6 @@ fn markdown_html_blocks_191() {
     </td>
 
   </tr>
-
-</table>"##,r##"<table>
-
-<tr>
-
-    <td>
-      Hi
-    </td>
-
-</tr>
 
 </table>"##);
 }
