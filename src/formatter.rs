@@ -19,6 +19,8 @@ use crate::paragraph::Paragraph;
 use crate::table::TableState;
 use crate::writer::MarkdownWriter;
 
+static DEFINITION_LIST_INDENTATION: &str = "  ";
+
 // Defined using a macro so that the parsing options can be shared with tests for consistency.
 #[doc(hidden)]
 #[macro_export]
@@ -31,6 +33,7 @@ macro_rules! pulldown_cmark_options {
             | pulldown_cmark::Options::ENABLE_HEADING_ATTRIBUTES
             | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
             | pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+            | pulldown_cmark::Options::ENABLE_DEFINITION_LIST
     };
 }
 
@@ -211,6 +214,14 @@ where
             .is_some_and(|w| matches!(w, MarkdownWriter::Paragraph(_)))
     }
 
+    /// Check if we're currently formatting the definition of a definition list
+    fn in_definition_list_definition(&self) -> bool {
+        matches!(
+            self.nested_context.last(),
+            Some(Tag::DefinitionListDefinition)
+        )
+    }
+
     /// Check if we're formatting in a nested context
     fn is_nested(&self) -> bool {
         !self.nested_context.is_empty()
@@ -219,6 +230,15 @@ where
     /// Get the length of the indentation
     fn indentation_len(&self) -> usize {
         self.indentation.iter().map(|i| i.len()).sum()
+    }
+
+    /// Dynamically determine how much indentation to use for indented code blocks
+    fn indented_code_block_indentation(&self) -> &'static str {
+        if self.in_definition_list_definition() {
+            "   "
+        } else {
+            "    "
+        }
     }
 
     /// Get an exclusive reference to the current buffer we're writing to. That could be the main
@@ -816,7 +836,7 @@ where
                     }
                     CodeBlockKind::Indented => {
                         // TODO(ytmimi) support tab as an indent
-                        let indentation = "    ";
+                        let indentation = self.indented_code_block_indentation();
 
                         if !matches!(self.peek(), Some(Event::End(TagEnd::CodeBlock))) {
                             // Only write indentation if this isn't an empty indented code block
@@ -1058,8 +1078,82 @@ where
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
             }
-            Tag::DefinitionList | Tag::DefinitionListTitle | Tag::DefinitionListDefinition => {
-                unreachable!("pulldown_cmark::Options::ENABLE_DEFINITION_LIST is not configured")
+            Tag::DefinitionList => {
+                let newlines = self.count_newlines(&range);
+                self.write_newlines(newlines)?;
+                self.nested_context.push(tag);
+            }
+            Tag::DefinitionListTitle => {
+                let newlines = self.count_newlines(&range);
+                self.write_newlines(newlines)?;
+            }
+            Tag::DefinitionListDefinition => {
+                let newlines = self.count_newlines(&range);
+                self.write_newlines(newlines)?;
+                // Anchor the last_position at the start of the definition list definition.
+                // This prevents picking up extra newlines in case we need to recover any refernce
+                // link definitions
+                self.last_position = range.start;
+
+                // FIXME(ytmimi) `is_empty_list` is copied from `Tag::Item` above
+                let is_empty_list = |snippet: &str| -> bool {
+                    snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
+                };
+
+                let (empty_definition_marker, force_newline_count, link_defs) = match self
+                    .events
+                    .peek()
+                {
+                    Some((Event::End(TagEnd::DefinitionListDefinition), _)) => {
+                        let snippet = &self.input[range.clone()];
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+                        let end = link_defs
+                            .first()
+                            .map(|l| l.range().start)
+                            .unwrap_or(range.end);
+                        let snippet = &self.input[range.start..end];
+                        (is_empty_list(snippet), 0, link_defs)
+                    }
+                    Some((next_event, next_range)) => {
+                        let snippet = &self.input[range.start..next_range.start];
+                        let link_defs = parse_link_reference_definitions(snippet, range.start);
+                        let end = link_defs
+                            .first()
+                            .map(|l| l.range().start)
+                            .unwrap_or(next_range.start);
+                        let snippet = &self.input[range.start..end];
+                        let force_newlines = link_defs.is_empty()
+                            && matches!(
+                                next_event,
+                                Event::Start(Tag::CodeBlock(CodeBlockKind::Indented))
+                            );
+                        let is_empty_list = is_empty_list(snippet);
+                        if !is_empty_list && force_newlines {
+                            (true, 1, link_defs)
+                        } else {
+                            (is_empty_list, 0, link_defs)
+                        }
+                    }
+                    None => {
+                        // Peeking at the next event should always return `Some()` for start events
+                        unreachable!(
+                            "At the very least we'd expect an `End(DefinitionListDefinition)` event"
+                        );
+                    }
+                };
+
+                if empty_definition_marker {
+                    write!(self, ":")?;
+                } else {
+                    write!(self, ": ")?;
+                }
+
+                self.nested_context.push(tag);
+                self.indentation.push(DEFINITION_LIST_INDENTATION.into());
+                if force_newline_count > 0 {
+                    self.write_newlines(force_newline_count)?;
+                }
+                self.rewrite_reference_link_definitions_inner(link_defs)?;
             }
         }
         Ok(())
@@ -1156,7 +1250,9 @@ where
                             .indentation
                             .pop()
                             .expect("we added 4 spaces in start_tag");
-                        debug_assert_eq!(popped_indentation, "    ");
+
+                        let expected_indentation = self.indented_code_block_indentation();
+                        debug_assert_eq!(popped_indentation, expected_indentation);
                     }
                 }
             }
@@ -1309,10 +1405,30 @@ where
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
             }
-            TagEnd::DefinitionList
-            | TagEnd::DefinitionListTitle
-            | TagEnd::DefinitionListDefinition => {
-                unreachable!("pulldown_cmark::Options::ENABLE_DEFINITION_LIST is not configured")
+            TagEnd::DefinitionList => {
+                let popped_tag = self.nested_context.pop();
+                debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+            }
+            TagEnd::DefinitionListTitle => {}
+            TagEnd::DefinitionListDefinition => {
+                let ref_def_range = self.last_position..range.end;
+                self.rewrite_reference_link_definitions(&ref_def_range)?;
+
+                let popped_tag = self.nested_context.pop();
+                debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+
+                let popped_indentation = self
+                    .indentation
+                    .pop()
+                    .expect(r#"we added "  " in Tag::DefinitionListDefinition"#);
+                debug_assert_eq!(popped_indentation, DEFINITION_LIST_INDENTATION);
+
+                let rest_range = self.last_position..range.end;
+                let newlines = self.count_newlines_in_range(&rest_range);
+                if newlines > 0 {
+                    // Recover empty lines at the end of the definition list
+                    self.write_newlines_no_trailing_whitespace(newlines)?;
+                }
             }
         }
         Ok(())
