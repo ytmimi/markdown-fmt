@@ -199,7 +199,7 @@ where
             tracing::debug!(event=?current_event, range=?current_range);
 
             match current_event {
-                Event::Start(Tag::Item) => {
+                Event::Start(Tag::Item | Tag::DefinitionListDefinition) => {
                     self.stashed_events
                         .push_back((current_event, current_range));
 
@@ -219,7 +219,7 @@ where
                         }
                     }
                 }
-                Event::End(TagEnd::Item) => {
+                Event::End(TagEnd::Item | TagEnd::DefinitionListDefinition) => {
                     self.stashed_events
                         .push_back((current_event, current_range));
 
@@ -233,6 +233,7 @@ where
                 Event::End(
                     TagEnd::Heading(..)
                     | TagEnd::List(_)
+                    | TagEnd::DefinitionList
                     | TagEnd::BlockQuote(..)
                     | TagEnd::CodeBlock
                     | TagEnd::Table
@@ -259,7 +260,7 @@ where
                     // Match on events that could interrupt a paragraph, and if we're currently
                     // converting a "tight" list to a "loose" list, then push an `End(Paragraph)`
                     match self.inner.peek() {
-                        Some((Event::End(TagEnd::Item), _)) => {
+                        Some((Event::End(TagEnd::Item | TagEnd::DefinitionListDefinition), _)) => {
                             // NOTE that we pop off of the loose_list_stack instead of peeking at
                             // it like we do in the other arms
                             if let Some(Some(index)) = self.loose_list_stack.pop() {
@@ -270,6 +271,7 @@ where
                             Event::Start(
                                 Tag::Heading { .. }
                                 | Tag::List(_)
+                                | Tag::DefinitionList
                                 | Tag::BlockQuote(_)
                                 | Tag::CodeBlock(_)
                                 | Tag::Table(_)
