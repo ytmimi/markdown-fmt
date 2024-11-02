@@ -415,7 +415,7 @@ mod test {
         let mut file = PathBuf::from(std::file!());
         file.pop();
         let test_dir = file.join("test/loose_list");
-        for file in get_test_files(test_dir, "txt") {
+        for file in get_test_files(test_dir, "md") {
             let content = std::fs::read_to_string(&file).unwrap();
             let (markdown, expected_events) = content.split_once(SEPARATOR).unwrap();
 
