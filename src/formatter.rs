@@ -1068,6 +1068,19 @@ where
                 }
             }
             Tag::HtmlBlock => {
+                // From what I've noticed leading whitespace isn't always parsed in definition lists
+                let is_next_leading_whitespace =
+                    matches!(self.peek(), Some(Event::Text(t)) if t.trim().is_empty());
+
+                if self.in_definition_list_definition() && is_next_leading_whitespace {
+                    // Because of how leading whitespace gets parsed for HTML blocks
+                    // we need to update the definition list's indentation. so that the output
+                    // stays idempotent.
+                    if let Some(indent) = self.indentation.last_mut() {
+                        *indent = " ".into();
+                    }
+                }
+
                 let newlines = self.count_newlines(&range);
                 self.write_newlines(newlines)?;
                 self.nested_context.push(tag);
@@ -1400,6 +1413,13 @@ where
             TagEnd::HtmlBlock => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+
+                if self.in_definition_list_definition() {
+                    // Restore the indentation that we modified in `Tag::HtmlBlock`.
+                    if let Some(indent) = self.indentation.last_mut() {
+                        *indent = DEFINITION_LIST_INDENTATION.into();
+                    }
+                }
             }
             TagEnd::MetadataBlock(_meta) => {
                 rewrite_marker(self.input, &range, self)?;
