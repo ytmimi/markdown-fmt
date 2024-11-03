@@ -24,7 +24,7 @@ missing-docs = "deny"
 
 [dependencies]
 itertools = "0.10"
-pulldown-cmark = { version = "0.12.2", default-features = false }
+pulldown-cmark = { default-features = false, git = "https://github.com/ytmimi/pulldown-cmark.git", branch = "notriddle/definition-list-indent" }
 unicode-width = "0.1"
 unicode-segmentation = "1.9"
 clap = { version = "4.5.2", features = ["derive"], optional = true }
