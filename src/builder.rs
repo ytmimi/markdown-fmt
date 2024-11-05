@@ -49,7 +49,7 @@ pub(crate) type CodeBlockFormatter = Box<dyn Fn(&CodeBlockContext, &str, String)
 /// Builder for the [MarkdownFormatter](crate::MarkdownFormatter)
 pub struct FormatBuilder {
     code_block_formatter: CodeBlockFormatter,
-    config: Config,
+    pub(crate) config: Config,
 }
 
 impl FormatBuilder {

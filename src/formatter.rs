@@ -864,8 +864,14 @@ where
                     snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
                 };
 
-                let list_marker = ListMarker::from_str(&self.input[range.clone()])
+                let mut list_marker = ListMarker::from_str(&self.input[range.clone()])
                     .expect("Should be able to parse a list marker");
+
+                if list_marker.is_unordered() {
+                    if let Some(marker) = self.formatter.get_config(|c| c.unordered_list_marker()) {
+                        list_marker = ListMarker::Unordered(marker.into());
+                    }
+                }
 
                 // FIXME(ytmimi) luckily recovering link-reference-definitions isn't overly
                 // complicated for list items, but the implementations are very similar, so

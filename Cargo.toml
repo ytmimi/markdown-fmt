@@ -36,6 +36,10 @@ textwrap = "0.16.1"
 [features]
 gen-tests = ["dep:serde", "dep:serde_json"]
 build-binary = ["dep:clap", "dep:anyhow", "dep:tracing-subscriber"]
+# Enable all unstable configuration options.
+unstable-configs = ["unordered-list-marker"]
+# Enable option to normalize unordered list markers.
+unordered-list-marker = []
 
 [build-dependencies]
 serde = { version = "1.0.160", features = ["derive"], optional = true }
