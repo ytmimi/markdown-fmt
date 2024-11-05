@@ -1,4 +1,4 @@
-# markdown-fmt
+# markdown-format
 
 A library that applies a light touch when formatting markdown documents.
 The project supports [CommonMark] and [GitHub Flavored Markdown]
@@ -13,7 +13,7 @@ If you don't need to configure anything and just want to get started, you can us
 `rewrite_markdown` function.
 
 ```rust
-use markdown_fmt::rewrite_markdown;
+use markdown_format::rewrite_markdown;
 
 let markdown = r##"  # Getting Started
 1. numbered lists
@@ -38,7 +38,7 @@ If you need more control over markdown formatting you can use the `FormatBuilder
 
 
 ```rust
-use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
+use markdown_format::{FormatBuilder, rewrite_markdown_with_builder};
 
 let markdown = r##"# The standard Lorem Ipsum passage, used since the 1500s
 
@@ -72,7 +72,7 @@ assert_eq!(output, expected);
 You can also configure how code blocks are formatted.
 
 ````rust
-use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
+use markdown_format::{FormatBuilder, rewrite_markdown_with_builder};
 
 let markdown = "```text\nhello world!\n```";
 

@@ -5,7 +5,7 @@ pub fn check_formatted_markdown<'a>(
     input: &'a str,
     expected_output: &str,
 ) -> std::borrow::Cow<'a, str> {
-    let formatted = markdown_fmt::rewrite_markdown(input).expect("formatting won't fail");
+    let formatted = markdown_format::rewrite_markdown(input).expect("formatting won't fail");
     assert_eq!(formatted, expected_output);
     formatted.into()
 }
@@ -33,7 +33,7 @@ macro_rules! test_identical_markdown_events {
     ($input:expr, $output:expr) => {
         let formatted = $crate::test!($input, $output);
 
-        let options = markdown_fmt::pulldown_cmark_options!();
+        let options = markdown_format::pulldown_cmark_options!();
 
         let input_events = pulldown_cmark::Parser::new_ext($input, options.clone()).into_iter()
                 .filter(|e| {

@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use clap::Parser;
-use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
+use markdown_format::{FormatBuilder, rewrite_markdown_with_builder};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -36,7 +36,7 @@ fn output_result(input: &Path, result: &str, stdout: bool) -> Result<(), anyhow:
 fn main() -> Result<(), anyhow::Error> {
     tracing_subscriber::registry()
         .with(fmt::layer())
-        .with(EnvFilter::from_env("MARKDOWN_FMT_LOG"))
+        .with(EnvFilter::from_env("MARKDOWN_FORMAT_LOG"))
         .init();
 
     let cli = Cli::parse();

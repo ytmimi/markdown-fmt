@@ -1,13 +1,13 @@
-//! Easily format Markdown. [markdown_fmt] supports [CommonMark] and [GitHub Flavored Markdown].
+//! Easily format Markdown. [markdown_format] supports [CommonMark] and [GitHub Flavored Markdown].
 //!
-//! [markdown_fmt]: index.html
+//! [markdown_format]: index.html
 //! [CommonMark]: https://spec.commonmark.org/
 //! [GitHub Flavored Markdown]: https://github.github.com/gfm/
 //!
 //! # Getting Started
 //!
 //! ```rust
-//! use markdown_fmt::rewrite_markdown;
+//! use markdown_format::rewrite_markdown;
 //!
 //! let markdown = r##" # Getting Started
 //! 1. numbered lists
@@ -29,7 +29,7 @@
 //! The builder gives you more control to configure Markdown formatting.
 //!
 //! ````rust
-//! use markdown_fmt::{rewrite_markdown, rewrite_markdown_with_builder, FormatBuilder};
+//! use markdown_format::{rewrite_markdown, rewrite_markdown_with_builder, FormatBuilder};
 //!
 //! let builder = FormatBuilder::with_code_block_formatter(|_ctx, info_string, code_block| {
 //!     match info_string.to_lowercase().as_str() {
@@ -92,7 +92,7 @@ struct ReadMe;
 /// Reformat a markdown snippet with all the default settings.
 ///
 /// ```rust
-/// # use markdown_fmt::rewrite_markdown;
+/// # use markdown_format::rewrite_markdown;
 /// let markdown = r##"  #   Learn Rust Checklist!
 /// 1. Read [The Book]
 ///  2.  Watch tutorials
@@ -119,7 +119,7 @@ pub fn rewrite_markdown(input: &str) -> Result<String, std::fmt::Error> {
 /// Reformat a markdown snippet with user specified settings
 ///
 /// ```rust
-/// # use markdown_fmt::{rewrite_markdown_with_builder, FormatBuilder};
+/// # use markdown_format::{rewrite_markdown_with_builder, FormatBuilder};
 /// let markdown = r##"  #   Learn Rust Checklist!
 /// 1. Read [The Book]
 ///  2.  Watch tutorials

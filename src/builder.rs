@@ -59,8 +59,8 @@ impl FormatBuilder {
     /// The [`CodeBlockContext`], [`info string`], and the complete code snippet.
     ///
     /// ```rust
-    /// # use markdown_fmt::MarkdownFormatter;
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::MarkdownFormatter;
+    /// # use markdown_format::FormatBuilder;
     /// let builder = FormatBuilder::with_code_block_formatter(|_ctx, info_string, code_block| {
     ///     // Set the code block formatting logic
     ///     match info_string.to_lowercase().as_str() {
@@ -86,8 +86,8 @@ impl FormatBuilder {
     /// Build a [MarkdownFormatter](crate::MarkdownFormatter).
     ///
     /// ```rust
-    /// # use markdown_fmt::MarkdownFormatter;
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::MarkdownFormatter;
+    /// # use markdown_format::FormatBuilder;
     /// let builder = FormatBuilder::default();
     /// let formatter: MarkdownFormatter = builder.build();
     /// ```
@@ -116,7 +116,7 @@ impl FormatBuilder {
     /// # Setting [`max_width`](Self::max_width) to [None] (default)
     ///
     /// ```rust
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::FormatBuilder;
     /// let mut builder = FormatBuilder::default();
     /// builder.max_width(None);
     ///
@@ -127,7 +127,7 @@ impl FormatBuilder {
     /// ---
     /// # Setting [`max_width`](Self::max_width) to `20`
     /// ```rust
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::FormatBuilder;
     /// let mut builder = FormatBuilder::default();
     /// builder.max_width(Some(20));
     ///
@@ -148,7 +148,7 @@ impl FormatBuilder {
     ///
     /// # Setting [`reflow_text`](Self::reflow_text) to `false` (default)
     /// ```rust
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::FormatBuilder;
     /// let mut builder = FormatBuilder::default();
     /// builder.max_width(Some(30)).reflow_text(false);
     ///
@@ -162,7 +162,7 @@ impl FormatBuilder {
     /// ---
     /// # Setting [`reflow_text`](Self::reflow_text) to `true`
     /// ```rust
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::FormatBuilder;
     /// let mut builder = FormatBuilder::default();
     /// builder.max_width(Some(30)).reflow_text(true);
     ///

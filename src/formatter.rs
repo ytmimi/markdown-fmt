@@ -48,7 +48,7 @@ impl MarkdownFormatter {
     /// Format Markdown input
     ///
     /// ```rust
-    /// # use markdown_fmt::FormatBuilder;
+    /// # use markdown_format::FormatBuilder;
     /// let builder = FormatBuilder::default();
     /// let formatter = builder.build();
     /// let input = "   #  Header! ";
