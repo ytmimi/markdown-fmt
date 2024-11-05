@@ -80,6 +80,11 @@ impl ListMarker {
         }
     }
 
+    /// Check if this in an unordered list
+    pub(super) fn is_unordered(&self) -> bool {
+        matches!(self, Self::Unordered(_))
+    }
+
     pub(super) fn len(&self) -> usize {
         self.indentation_len() - 1
     }

@@ -1,7 +1,24 @@
+pub mod options;
+
 #[derive(Debug, Default)]
 pub(crate) struct Config {
     max_width: Option<usize>,
     reflow_text: bool,
+    #[cfg(any(feature = "unstable-configs", feature = "unordered-list-marker"))]
+    pub(crate) unordered_list_marker: Option<options::UnorderedListMarkerConfig>,
+}
+
+/// An error occured when trying to set a config in a test
+#[cfg(test)]
+#[derive(Debug)]
+pub(crate) enum ConfigSetError<'a> {
+    /// The feature needed to run this test hasn't been enabled.
+    /// This should be treated as a warning, and the test should be skipped.
+    #[allow(dead_code)]
+    MissingFeature(&'static str),
+    /// Some unknown configuration option was referenced in the test.
+    /// This should be treated as a hard error.
+    UnknownConfig(&'a str),
 }
 
 impl Config {
@@ -23,7 +40,11 @@ impl Config {
 
     /// Internal setter for config options. Used for testing
     #[cfg(test)]
-    pub(crate) fn set(&mut self, field: &str, value: &str) {
+    pub(crate) fn set<'a>(
+        &mut self,
+        field: &'a str,
+        value: &str,
+    ) -> Result<(), ConfigSetError<'a>> {
         match field {
             "max_width" => {
                 let value = value.parse::<usize>().unwrap();
@@ -33,7 +54,8 @@ impl Config {
                 let value = value.parse::<bool>().unwrap();
                 self.reflow_text = value;
             }
-            _ => panic!("unknown configuration {field}"),
+            _ => return self.set_unstable(field, value),
         }
+        Ok(())
     }
 }

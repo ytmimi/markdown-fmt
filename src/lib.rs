@@ -78,10 +78,12 @@ mod paragraph;
 mod table;
 #[cfg(test)]
 mod test;
+mod unstable;
 mod utils;
 mod writer;
 
 pub use builder::{CodeBlockContext, FormatBuilder};
+pub use config::options;
 pub use formatter::MarkdownFormatter;
 
 // Used for doctests in the README

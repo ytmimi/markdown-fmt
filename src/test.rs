@@ -1,6 +1,7 @@
-use crate::config::Config;
+use crate::config::{Config, ConfigSetError};
 use crate::{FormatBuilder, rewrite_markdown, rewrite_markdown_with_builder};
 use rust_search::SearchBuilder;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 impl FormatBuilder {
@@ -12,7 +13,7 @@ impl FormatBuilder {
     ///
     /// Paragraphs will now wrap at a column width of 50.
     /// ```
-    pub fn from_leading_config_comments(input: &str) -> Self {
+    fn from_leading_config_comments(input: &str) -> Result<Self, ConfigSetError> {
         let mut config = Config::default();
 
         let opener = "<!-- :";
@@ -27,12 +28,12 @@ impl FormatBuilder {
             else {
                 continue;
             };
-            config.set(config_option, value.trim());
+            config.set(config_option, value.trim())?;
         }
 
         let mut builder = FormatBuilder::default();
         builder.config(config);
-        builder
+        Ok(builder)
     }
 }
 
@@ -81,9 +82,31 @@ pub(crate) fn get_test_files<P: AsRef<Path>>(
 fn check_markdown_formatting() {
     let mut errors = 0;
 
+    // Additional features required to run this test
+    let mut missing_features: HashMap<&'static str, Vec<PathBuf>> = HashMap::new();
+
+    // Any unexpected configuration. Probably a typo that should be error on.
+    let mut unknown_configs: HashMap<String, Vec<PathBuf>> = HashMap::new();
+
     for file in get_test_files("tests/source", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
-        let builder = FormatBuilder::from_leading_config_comments(&input);
+        let builder = match FormatBuilder::from_leading_config_comments(&input) {
+            Ok(b) => b,
+            Err(e) => {
+                match e {
+                    ConfigSetError::MissingFeature(name) => {
+                        missing_features.entry(name.into()).or_default().push(file);
+                    }
+                    ConfigSetError::UnknownConfig(name) => {
+                        unknown_configs
+                            .entry(name.to_string())
+                            .or_default()
+                            .push(file);
+                    }
+                }
+                continue;
+            }
+        };
         let rewrite = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             rewrite_markdown_with_builder(&input, builder).unwrap()
         }));
@@ -104,16 +127,62 @@ fn check_markdown_formatting() {
         }
     }
 
+    for (feature, files) in missing_features {
+        for file in files {
+            eprintln!(
+                "\n\twarning can't check markdown formatting for {}. Must enable `-F {}`",
+                file.display(),
+                feature
+            );
+        }
+    }
+
     assert_eq!(errors, 0, "there should be no formatting error");
+
+    let any_unknown_features = !unknown_configs.is_empty();
+
+    for (feature, files) in unknown_configs {
+        for file in files {
+            eprintln!(
+                "\n\terror check markdown formatting for {}. Unknown feature `{}`",
+                file.display(),
+                feature
+            );
+        }
+    }
+
+    assert!(!any_unknown_features, "there should be no unknown features");
 }
 
 #[test]
 fn idempotence_test() {
     let mut errors = 0;
 
+    // Additional features required to run this test
+    let mut missing_features: HashMap<&'static str, Vec<PathBuf>> = HashMap::new();
+
+    // Any unexpected configuration. Probably a typo that should be error on.
+    let mut unknown_configs: HashMap<String, Vec<PathBuf>> = HashMap::new();
+
     for file in get_test_files("tests/target", "md") {
         let input = std::fs::read_to_string(&file).unwrap();
-        let builder = FormatBuilder::from_leading_config_comments(&input);
+        let builder = match FormatBuilder::from_leading_config_comments(&input) {
+            Ok(b) => b,
+            Err(e) => {
+                match e {
+                    ConfigSetError::MissingFeature(name) => {
+                        missing_features.entry(name.into()).or_default().push(file);
+                    }
+                    ConfigSetError::UnknownConfig(name) => {
+                        unknown_configs
+                            .entry(name.to_string())
+                            .or_default()
+                            .push(file);
+                    }
+                }
+                continue;
+            }
+        };
         let formatted_input = rewrite_markdown_with_builder(&input, builder).unwrap();
 
         if formatted_input != input {
@@ -122,5 +191,29 @@ fn idempotence_test() {
         }
     }
 
+    for (feature, files) in missing_features {
+        for file in files {
+            eprintln!(
+                "\n\twarning can't run idempotence test for {}. Must enable `-F {}`",
+                file.display(),
+                feature
+            );
+        }
+    }
+
     assert_eq!(errors, 0, "formatting should not change in target files");
+
+    let any_unknown_features = !unknown_configs.is_empty();
+
+    for (feature, files) in unknown_configs {
+        for file in files {
+            eprintln!(
+                "\n\terror can't run idempotence test for {}. Unknown feature `{}`",
+                file.display(),
+                feature
+            );
+        }
+    }
+
+    assert!(!any_unknown_features, "there should be no unknown features");
 }

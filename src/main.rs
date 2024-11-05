@@ -1,10 +1,11 @@
 #![allow(missing_docs)]
 
 use clap::Parser;
-use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
+use markdown_fmt::{FormatBuilder, options, rewrite_markdown_with_builder};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[derive(Parser)]
@@ -22,6 +23,11 @@ struct Cli {
     /// Should text reflow when max width is also configured.
     #[arg(short, long)]
     reflow_text: bool,
+    /// Normalize all unorderd list markers to the specified selection.
+    /// Must enable the `unordered-list-marker` or `unstable-configs` feature.
+    #[cfg(any(feature = "unstable-configs", feature = "unordered-list-marker"))]
+    #[arg(short, long, value_parser = ["*", "+", "-"])]
+    unordered_list_marker: Option<String>,
 }
 
 fn output_result(input: &Path, result: &str, stdout: bool) -> Result<(), anyhow::Error> {
@@ -48,6 +54,16 @@ fn main() -> Result<(), anyhow::Error> {
             builder
                 .max_width(cli.max_width)
                 .reflow_text(cli.reflow_text);
+
+            #[cfg(any(feature = "unstable-configs", feature = "unordered-list-marker"))]
+            {
+                if let Some(marker) = cli.unordered_list_marker {
+                    let marker = options::UnorderedListMarkerConfig::from_str(&marker)
+                        .expect("valid marker");
+                    builder.unordered_list_marker(Some(marker));
+                }
+            }
+
             let result = rewrite_markdown_with_builder(&input, builder)?;
             output_result(&cli.input, &result, cli.stdout)
         }
