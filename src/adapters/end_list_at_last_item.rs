@@ -42,12 +42,14 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let (event, mut range) = self.inner.next()?;
         match event {
-            Event::End(TagEnd::Item) => {
-                // `TagEnd::Item` should always precede `TagEnd::List`
+            Event::End(TagEnd::Item | TagEnd::DefinitionListDefinition) => {
+                // `TagEnd::Item` should always precede `TagEnd::List` and
+                // `TagEnd::DefinitionListDefinition` should always precede `TagEnd::DefinitionList`
                 self.end_position = range.end
             }
-            Event::End(TagEnd::List(..)) => {
-                // Just update the current `TagEnd::List` with the last `TagEnd::Item` range.end
+            Event::End(TagEnd::List(..) | TagEnd::DefinitionList) => {
+                // Just update the current `TagEnd::List` with the last `TagEnd::Item` range.end or
+                // update the TagEnd::DefinitionList with the TagEnd::DefinitionListDefinition end
                 range.end = self.end_position
             }
             _ => {}

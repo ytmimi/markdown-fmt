@@ -196,3 +196,9 @@ level one!
         >>     [last inner label]: /url "title"
 
         [last outer label]: /url "title"
+
+<!-- empyt definition list followed by paragraph -->
+
+some title
+:
+new paragraph
