@@ -136,5 +136,9 @@ mod tester {
 
         let result = rewrite_markdown("##").unwrap();
         assert_eq!(result, "#");
+
+        let input = "<?*?'\n  \n  ";
+        let result = rewrite_markdown(input).unwrap();
+        assert_eq!(result, "<?*?'\n\n");
     }
 }

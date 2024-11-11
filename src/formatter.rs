@@ -612,7 +612,7 @@ where
                     if self.needs_indent {
                         self.write_newlines(newlines)?;
                     }
-                    write!(self, "{}", &self.input[range].trim_end_matches('\n'))?;
+                    write!(self, "{}", &self.input[range].trim_end())?;
                     self.check_needs_indent(&event);
                 }
                 Event::InlineHtml(_) => {
