@@ -18,13 +18,18 @@ where
 
         self.last_was_softbreak = false;
 
-        if input.len() <= 2 {
-            return false;
-        }
-
         let Some(first_char) = input.chars().next() else {
             return false;
         };
+
+        // Don't interpret the `:` as a definition list
+        if first_char == ':' {
+            return true;
+        }
+
+        if input.len() <= 2 {
+            return false;
+        }
 
         let is_setext_heading = |value: u8| input.trim_end().bytes().all(|b| b == value);
         let is_unordered_list_marker = |value: &str| input.starts_with(value);

@@ -202,3 +202,7 @@ level one!
 some title
 :
 new paragraph
+
+<!-- Looks like a definition list but it's not -->
+start of a paragraph
+\:next line of a paragraph
