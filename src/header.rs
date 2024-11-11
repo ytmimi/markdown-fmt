@@ -38,17 +38,25 @@ impl<'i> Header<'i> {
             panic!("Tried to initialize a `Header` without a `Tag::Heading`")
         };
 
-        let header_marker = if full_header.contains('\n') && full_header.ends_with(['=', '-']) {
-            // support for alternative syntax for H1 and H2
-            // <https://www.markdownguide.org/basic-syntax/#alternate-syntax>
-            full_header.lines().last().map(|marker| {
-                marker
-                    .trim_start_matches(|c: char| c.is_whitespace() || c == '>')
-                    .trim_end()
-            })
-        } else {
-            None
-        };
+        let header_marker =
+            if full_header.contains(['\r', '\n']) && full_header.ends_with(['=', '-']) {
+                // support for alternative syntax for H1 and H2
+                // <https://www.markdownguide.org/basic-syntax/#alternate-syntax>
+                full_header
+                    .lines()
+                    .last()
+                    .and_then(|maybe_last_line| {
+                        // The `lines` iterator won't split on `\r` so we'll do that ourselves.
+                        maybe_last_line.split('\r').last()
+                    })
+                    .map(|marker| {
+                        marker
+                            .trim_start_matches(|c: char| c.is_whitespace() || c == '>')
+                            .trim_end()
+                    })
+            } else {
+                None
+            };
 
         let attrs_on_own_line = full_header
             .lines()
@@ -79,7 +87,7 @@ impl<'i> Header<'i> {
     }
 
     /// Determine what kind of markdown header this represents
-    pub(super) fn kind(&self) -> HeaderKind {
+    pub(super) fn kind(&self) -> HeaderKind<'i> {
         self.kind.clone()
     }
 
@@ -93,16 +101,37 @@ impl<'i> Header<'i> {
     pub(super) fn into_parts(
         mut self,
     ) -> Result<(String, Vec<Cow<'static, str>>), std::fmt::Error> {
-        if !self.is_setext_header() && self.has_attributes() && self.buffer.ends_with('#') {
-            // Make sure we properly escape trailing `#` at the end of the header.
-            // Otherwise our formatting might not be idempotent
-            self.escape_trailing_hashtag()
+        if matches!(self.kind(), HeaderKind::Atx(_)) && self.buffer.trim_end().ends_with('#') {
+            if self.has_attributes() {
+                // Make sure we properly escape trailing `#` at the end of the header.
+                // Otherwise our formatting might not be idempotent
+                self.escape_trailing_hashtag()
+            } else {
+                // Similarly, we need to remove trailing `#` so that the output is idempotent
+                self.remove_trailing_hashtags()
+            }
         }
 
         self.escape_trailing_empty_attribute_brackets();
         self.write_header_attributes()?;
         self.write_setext_header()?;
         Ok((self.buffer, self.indentation))
+    }
+
+    fn remove_trailing_hashtags(&mut self) {
+        let snippet = self.buffer.trim_end().trim_end_matches('#');
+        let is_escaped = sequence_ends_on_escape(snippet);
+        let no_spaces = !snippet.ends_with(char::is_whitespace);
+        if is_escaped || (no_spaces && !snippet.is_empty()) {
+            return;
+        }
+
+        while self
+            .buffer
+            .ends_with(|c: char| c.is_whitespace() || c == '#')
+        {
+            self.buffer.pop();
+        }
     }
 
     // Note: Should only call this after we determine that we need to escape trailing hashtags

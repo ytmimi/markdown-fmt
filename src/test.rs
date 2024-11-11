@@ -133,5 +133,8 @@ mod tester {
     fn test_edge_cases() {
         let result = rewrite_markdown(">\rsome text").unwrap();
         assert_eq!(result, ">\nsome text");
+
+        let result = rewrite_markdown("##").unwrap();
+        assert_eq!(result, "#");
     }
 }
