@@ -152,7 +152,7 @@ impl<'i> Header<'i> {
         // Find out where the last line starts. Attributes can't contain any newlines
         let last_line_start_index = if self.is_setext_header() {
             self.buffer
-                .rfind('\n')
+                .rfind(['\r', '\n'])
                 .map(|i| i + '\n'.len_utf8())
                 .unwrap_or(0)
         } else {
