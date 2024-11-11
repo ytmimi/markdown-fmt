@@ -17,6 +17,7 @@ use crate::links::{LinkReferenceDefinition, parse_link_reference_definitions};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
+use crate::utils::count_newlines;
 use crate::writer::MarkdownWriter;
 
 static DEFINITION_LIST_INDENTATION: &str = "  ";
@@ -264,11 +265,7 @@ where
     // Does not count trailing newlines. For some reason that caused issues
     fn count_newlines_in_range(&self, range: &Range<usize>) -> usize {
         let snippet = &self.input[range.clone()];
-        snippet
-            .trim_end_matches('\n')
-            .bytes()
-            .filter(|b| *b == b'\n')
-            .count()
+        count_newlines(snippet.trim_end_matches(['\r', '\n']))
     }
 
     fn count_newlines(&self, range: &Range<usize>) -> usize {
@@ -281,10 +278,9 @@ where
             &self.input[self.last_position..range.start]
         } else {
             // likely in some nested context
-            self.input[self.last_position..range.end].trim_end_matches('\n')
+            self.input[self.last_position..range.end].trim_end_matches(['\r', '\n'])
         };
-
-        snippet.bytes().filter(|b| *b == b'\n').count()
+        count_newlines(snippet)
     }
 
     fn write_indentation(&mut self, trim_trailing_whiltespace: bool) -> std::fmt::Result {
@@ -343,7 +339,7 @@ where
             .rewrite_buffer
             .chars()
             .rev()
-            .take_while(|c| *c == '\n')
+            .take_while(|c| *c == '\n' || *c == '\r')
             .count();
 
         let nested = self.is_nested();
@@ -644,7 +640,7 @@ where
             self.last_position = last_position
         }
         debug_assert!(self.nested_context.is_empty());
-        let trailing_newline = self.input.ends_with('\n');
+        let trailing_newline = self.input.ends_with(['\r', '\n']);
         self.rewrite_final_reference_links().map(|mut output| {
             if trailing_newline {
                 output.push('\n');
@@ -745,15 +741,12 @@ where
                         if link_defs.is_empty() {
                             write!(self, ">")?;
                             self.indentation.push(">".into());
-                            let newlines = snippet.bytes().filter(|b| matches!(b, b'\n')).count();
+                            let newlines = count_newlines(snippet);
                             self.write_newlines(newlines)?;
                         } else {
                             let end = link_defs.first().expect("we have link_defs").range().start;
                             let leading_newline_snippet = &self.input[range.start..end];
-                            let newlines = leading_newline_snippet
-                                .bytes()
-                                .filter(|b| matches!(b, b'\n'))
-                                .count();
+                            let newlines = count_newlines(leading_newline_snippet);
 
                             self.indentation.push("> ".into());
                             if newlines > 0 {
@@ -774,10 +767,7 @@ where
                             .map(|l| l.range().start)
                             .unwrap_or(next_range.start);
                         let newline_snippet = &self.input[self.last_position..end];
-                        let newlines = newline_snippet
-                            .bytes()
-                            .filter(|b| matches!(b, b'\n'))
-                            .count();
+                        let newlines = count_newlines(newline_snippet);
 
                         self.indentation.push("> ".into());
                         if newlines > 0 {
@@ -881,7 +871,7 @@ where
                     // -
                     //   foo
                     // ```
-                    snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
+                    count_newlines(snippet) > 0
                 };
 
                 let list_marker = ListMarker::from_str(&self.input[range.clone()])
@@ -1109,9 +1099,7 @@ where
                 self.last_position = range.start;
 
                 // FIXME(ytmimi) `is_empty_list` is copied from `Tag::Item` above
-                let is_empty_list = |snippet: &str| -> bool {
-                    snippet.bytes().filter(|b| matches!(b, b'\n')).count() > 0
-                };
+                let is_empty_list = |snippet: &str| -> bool { count_newlines(snippet) > 0 };
 
                 let (empty_definition_marker, force_newline_count, link_defs) = match self
                     .events

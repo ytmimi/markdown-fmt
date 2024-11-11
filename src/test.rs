@@ -124,3 +124,14 @@ fn idempotence_test() {
 
     assert_eq!(errors, 0, "formatting should not change in target files");
 }
+
+#[cfg(test)]
+mod tester {
+    use crate::rewrite_markdown;
+
+    #[test]
+    fn test_edge_cases() {
+        let result = rewrite_markdown(">\rsome text").unwrap();
+        assert_eq!(result, ">\nsome text");
+    }
+}
