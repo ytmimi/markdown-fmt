@@ -1,3 +1,4 @@
+use std::iter::Iterator;
 use unicode_width::UnicodeWidthStr;
 
 // Duplicated from the rustfmt::util module
@@ -56,6 +57,53 @@ pub(crate) fn count_newlines(s: &str) -> usize {
     newline_count
 }
 
+struct SplitLines<'input> {
+    input: &'input str,
+    offset: usize,
+}
+
+impl<'input> Iterator for SplitLines<'input> {
+    type Item = &'input str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.offset >= self.input.len() {
+            return None;
+        }
+
+        let mut iter = self.input[self.offset..].bytes().peekable();
+        let mut new_offset = 0;
+
+        while let Some(b) = iter.next() {
+            new_offset += 1;
+            match b {
+                CARRIAGE_RETURN => {
+                    if matches!(iter.peek(), Some(&LINE_FEED)) {
+                        // Advance the iter past the CRLF(\r\n)
+                        new_offset += 1;
+                    }
+                    break;
+                }
+                LINE_FEED => {
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        let end = self.offset + new_offset;
+        let result = &self.input[self.offset..end].trim_end_matches(['\r', '\n']);
+        self.offset = end;
+        Some(result)
+    }
+}
+
+pub(crate) fn split_lines(s: &str) -> impl Iterator<Item = &str> {
+    SplitLines {
+        input: s,
+        offset: 0,
+    }
+}
+
 #[test]
 fn make_sure_sequence_ends_on_escape_works() {
     // Sequences that end on an unescaped backslash
@@ -92,3 +140,19 @@ fn test_count_newlines() {
     assert_eq!(count_newlines("*"), 0);
 }
 
+#[test]
+fn test_split_lines() {
+    for input in ["\r", "\r\n", "\n"] {
+        let mut iter = split_lines(input);
+        assert_eq!(iter.next(), Some(""));
+        assert_eq!(iter.next(), None);
+    }
+
+    for input in ["\r\r\n\n", "\r\n\r\n\r\n", "\n\n\n"] {
+        let mut iter = split_lines(input);
+        assert_eq!(iter.next(), Some(""));
+        assert_eq!(iter.next(), Some(""));
+        assert_eq!(iter.next(), Some(""));
+        assert_eq!(iter.next(), None);
+    }
+}
