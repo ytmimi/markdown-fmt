@@ -31,6 +31,31 @@ pub(crate) fn sequence_ends_on_escape(s: &str) -> bool {
     })
 }
 
+const CARRIAGE_RETURN: u8 = b'\r';
+const LINE_FEED: u8 = b'\n';
+
+pub(crate) fn count_newlines(s: &str) -> usize {
+    let mut iter = s.bytes().peekable();
+    let mut newline_count = 0;
+
+    while let Some(b) = iter.next() {
+        match b {
+            CARRIAGE_RETURN => {
+                if matches!(iter.peek(), Some(&LINE_FEED)) {
+                    // Advance the iter past the CRLF(\r\n)
+                    iter.next();
+                }
+                newline_count += 1;
+            }
+            LINE_FEED => {
+                newline_count += 1;
+            }
+            _ => {}
+        }
+    }
+    newline_count
+}
+
 #[test]
 fn make_sure_sequence_ends_on_escape_works() {
     // Sequences that end on an unescaped backslash
@@ -51,4 +76,18 @@ fn make_sure_sequence_ends_on_escape_works() {
     assert!(!sequence_ends_on_escape("\\\\}"));
     assert!(!sequence_ends_on_escape("\\\\{"));
     assert!(!sequence_ends_on_escape("\\\\\\🥳"));
+}
+
+#[test]
+fn test_count_newlines() {
+    assert_eq!(count_newlines("\r"), 1);
+    assert_eq!(count_newlines("\n>"), 1);
+    assert_eq!(count_newlines("\r\n>"), 1);
+    assert_eq!(count_newlines("\r\r\n\n"), 3);
+    assert_eq!(count_newlines("\r\r\r"), 3);
+    assert_eq!(count_newlines("\n\n\n"), 3);
+    assert_eq!(count_newlines("\r\n\r\n\r\n"), 3);
+    assert_eq!(count_newlines(""), 0);
+    assert_eq!(count_newlines(">"), 0);
+    assert_eq!(count_newlines("*"), 0);
 }
