@@ -5,6 +5,7 @@ use std::iter::Peekable;
 use std::ops::Range;
 use std::str::FromStr;
 
+use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
@@ -17,7 +18,7 @@ use crate::links::{LinkReferenceDefinition, parse_link_reference_definitions};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
-use crate::utils::count_newlines;
+use crate::utils::{count_newlines, split_lines};
 use crate::writer::MarkdownWriter;
 
 // Defined using a macro so that the parsing options can be shared with tests for consistency.
@@ -405,6 +406,18 @@ where
         }
         Ok(())
     }
+
+    fn trim_leading_indentation<'a>(&self, s: &'a str) -> &'a str {
+        let mut output = s.trim_start();
+        for indent in self.indentation.iter() {
+            if indent.starts_with('>') {
+                output = output.strip_prefix('>').unwrap_or(output).trim_start();
+            } else {
+                output = output.trim_start();
+            }
+        }
+        output
+    }
 }
 
 impl<'i, 'm, I> FormatState<'i, 'm, I>
@@ -559,8 +572,16 @@ where
                     }
                     self.check_needs_indent(&event);
                 }
-                Event::Code(_) => {
-                    write!(self, "{}", &self.input[range])?;
+                Event::Code(_code) => {
+                    let snippet = &self.input[range.clone()];
+                    if count_newlines(snippet) > 0 {
+                        let code = split_lines(snippet)
+                            .map(|s| self.trim_leading_indentation(s))
+                            .join("\n");
+                        write!(self, "{}", code)?;
+                    } else {
+                        write!(self, "{}", snippet)?;
+                    }
                 }
                 Event::SoftBreak => {
                     last_position = range.end;
