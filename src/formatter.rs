@@ -1104,7 +1104,10 @@ where
                 let Some(MarkdownWriter::Header(h)) = self.writers.pop() else {
                     unreachable!("Should have popped a MarkdownWriter::Header")
                 };
-                if let HeaderKind::Atx(level) = h.kind() {
+                let header_kind = h.kind();
+                let (buffer, indentation) = h.into_parts()?;
+
+                if let HeaderKind::Atx(level) = header_kind {
                     let atx_header = match level {
                         HeadingLevel::H1 => "#",
                         HeadingLevel::H2 => "##",
@@ -1114,13 +1117,12 @@ where
                         HeadingLevel::H6 => "######",
                     };
 
-                    if h.is_empty() {
+                    if buffer.is_empty() {
                         write!(self, "{}", atx_header.trim())?;
                     } else {
                         write!(self, "{atx_header} ")?;
                     }
                 }
-                let (buffer, indentation) = h.into_parts()?;
                 self.indentation = indentation;
                 self.join_with_indentation(&buffer, false)?;
             }
