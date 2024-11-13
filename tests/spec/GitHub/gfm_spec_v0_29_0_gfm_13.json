@@ -810,7 +810,7 @@
   },
   {
     "markdown": "\n    \n    foo\n    \n\n",
-    "formattedMarkdown": "    foo",
+    "formattedMarkdown": "    foo\n",
     "html": "<pre><code>foo\n</code></pre>\n",
     "example": 87,
     "start_line": 1583,
@@ -1837,7 +1837,7 @@
   },
   {
     "markdown": "  \n\naaa\n  \n\n# aaa\n\n  \n",
-    "formattedMarkdown": "aaa\n\n\n# aaa",
+    "formattedMarkdown": "aaa\n\n\n# aaa\n",
     "html": "<p>aaa</p>\n<h1>aaa</h1>\n",
     "example": 197,
     "start_line": 3291,
