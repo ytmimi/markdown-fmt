@@ -595,7 +595,7 @@ where
                     if self.in_link_or_image() {
                         write!(self, " ")?;
                     } else {
-                        write!(self, "{}", &self.input[range])?;
+                        writeln!(self)?;
 
                         // paraphraphs write their indentation after reformatting the text
                         if !self.in_paragraph() {
@@ -606,7 +606,12 @@ where
                     }
                 }
                 Event::HardBreak => {
-                    write!(self, "{}", &self.input[range])?;
+                    let hard_break = match &self.input[range] {
+                        "\\\r" | "\\\r\n" | "\\\n" => "\\\n",
+                        "  \r" | "  \r\n" | "  \n" => "  \n",
+                        h => h,
+                    };
+                    self.write_str(hard_break)?;
                 }
                 Event::Html(_) => {
                     let newlines = self.count_newlines(&range);
