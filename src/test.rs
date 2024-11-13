@@ -146,6 +146,12 @@ mod tester {
 
         let input = ">z\\\rS[\nz\\\rS#`~\\\r33~[\n#";
         let result = rewrite_markdown(input).unwrap();
-        assert_eq!(result, "> z\\\rS[\n> z\\\rS#`~\\\r33~[\n#");
+        assert_eq!(result, "> z\\\n> S[\n> z\\\n> S#`~\\\n> 33~[\n#");
+
+        let result = rewrite_markdown("*DDD\u{c}\r\u{c}\r< ").unwrap();
+        assert_eq!(result, "*DDD\n\n<");
+
+        let result = rewrite_markdown("text  \rmore text  \r\neven more text  \n").unwrap();
+        assert_eq!(result, "text  \nmore text  \neven more text\n");
     }
 }
