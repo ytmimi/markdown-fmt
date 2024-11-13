@@ -100,6 +100,7 @@
   },
   {
     "markdown": "*\t*\t*\t\n",
+    "formattedMarkdown": "*\t*\t*",
     "html": "<hr />\n",
     "example": 11,
     "start_line": 485,
@@ -223,6 +224,7 @@
   },
   {
     "markdown": "- - - -    \n",
+    "formattedMarkdown": "- - - -",
     "html": "<hr />\n",
     "example": 24,
     "start_line": 657,

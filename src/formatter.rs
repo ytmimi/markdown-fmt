@@ -622,7 +622,7 @@ where
                 Event::Rule => {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
-                    write!(self, "{}", &self.input[range])?;
+                    write!(self, "{}", &self.input[range].trim_end())?;
                     self.check_needs_indent(&event)
                 }
                 Event::FootnoteReference(text) => {

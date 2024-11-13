@@ -82,7 +82,7 @@ fn gfm_markdown_tabs_10() {
 #[test]
 fn gfm_markdown_tabs_11() {
     // https://github.github.com/gfm/#example-11
-    test_identical_markdown_events!("*\t*\t*\t");
+    test_identical_markdown_events!("*\t*\t*\t",r##"*	*	*"##);
 }
 
 #[test]
@@ -172,7 +172,7 @@ fn gfm_markdown_thematic_breaks_23() {
 #[test]
 fn gfm_markdown_thematic_breaks_24() {
     // https://github.github.com/gfm/#example-24
-    test_identical_markdown_events!("- - - -    ");
+    test_identical_markdown_events!("- - - -    ",r##"- - - -"##);
 }
 
 #[test]
