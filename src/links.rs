@@ -4,6 +4,50 @@ use pulldown_cmark::Event;
 use std::borrow::Cow;
 use std::fmt::Write;
 
+/// Rewrites the content of all [LinkType](pulldown_cmark::LinkType) Events.
+#[derive(Debug, PartialEq)]
+pub(crate) struct LinkWriter {
+    buffer: String,
+}
+
+impl Write for LinkWriter {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        if self.is_empty() {
+            // While the buffer is empty trim leading whitespace
+            let s = s.trim_start();
+            if s.starts_with('^') {
+                self.buffer.push('\\');
+            }
+            self.buffer.push_str(s.trim_start());
+            return Ok(());
+        }
+
+        self.buffer.push_str(s);
+        Ok(())
+    }
+}
+
+impl LinkWriter {
+    pub(crate) fn new(capacity: usize) -> Self {
+        Self {
+            buffer: String::with_capacity(capacity),
+        }
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.buffer.is_empty()
+    }
+
+    pub(crate) fn into_buffer(mut self) -> String {
+        // Remove any trailing whitespace from the buffer
+        while self.buffer.ends_with(char::is_whitespace) {
+            self.buffer.pop();
+        }
+
+        self.buffer
+    }
+}
+
 impl<'i, I> FormatState<'i, '_, I>
 where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
