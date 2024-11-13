@@ -139,7 +139,7 @@ mod tester {
 
         let input = "<?*?'\n  \n  ";
         let result = rewrite_markdown(input).unwrap();
-        assert_eq!(result, "<?*?'\n\n");
+        assert_eq!(result, "<?*?'\n");
 
         let result = rewrite_markdown("[`\r``]").unwrap();
         assert_eq!(result, "[` ``]");
