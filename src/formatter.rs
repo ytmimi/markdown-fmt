@@ -622,8 +622,18 @@ where
             self.last_position = last_position
         }
         debug_assert!(self.nested_context.is_empty());
-        let trailing_newline = self.input.ends_with(['\r', '\n']);
+
+        let trailing_newline = self
+            .input
+            .rfind(|c: char| !c.is_whitespace())
+            .is_some_and(|start| self.input[start..].contains(['\r', '\n']));
+
         self.rewrite_final_reference_links().map(|mut output| {
+            // Prevent extranious newlines at the end of the output
+            while output.ends_with(['\r', '\n']) {
+                output.pop();
+            }
+
             if trailing_newline {
                 output.push('\n');
             }
