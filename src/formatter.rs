@@ -525,13 +525,17 @@ where
     pub fn format(mut self) -> Result<String, std::fmt::Error> {
         while let Some((event, range)) = self.events.next() {
             tracing::debug!(?event, ?range, last_position = self.last_position);
-            let mut last_position = self.input[..range.end]
-                .bytes()
-                .rposition(|b| !b.is_ascii_whitespace())
-                .map(
-                    |offset| offset + 1, /* +1 to start on the whitespace or end of input */
-                )
-                .unwrap_or(0);
+            let mut last_position = if matches!(event, Event::HardBreak) {
+                range.end
+            } else {
+                self.input[..range.end]
+                    .bytes()
+                    .rposition(|b| !b.is_ascii_whitespace())
+                    .map(
+                        |offset| offset + 1, /* +1 to start on the whitespace or end of input */
+                    )
+                    .unwrap_or(0)
+            };
 
             match event {
                 Event::Start(tag) => {
