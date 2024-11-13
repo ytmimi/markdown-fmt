@@ -1,5 +1,6 @@
 use crate::footnote::FootnoteDefinition;
 use crate::header::Header;
+use crate::links::LinkWriter;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
 use pulldown_cmark::CodeBlockKind;
@@ -11,6 +12,7 @@ pub(super) enum MarkdownWriter<'i> {
     FootnoteDefinition(FootnoteDefinition),
     Paragraph(Paragraph),
     Table(TableState<'i>),
+    Link(LinkWriter),
 }
 
 impl MarkdownWriter<'_> {
@@ -21,6 +23,7 @@ impl MarkdownWriter<'_> {
             Self::Header(h) => h.is_empty(),
             Self::Paragraph(p) => p.is_empty(),
             Self::Table(t) => t.is_empty(),
+            Self::Link(l) => l.is_empty(),
         }
     }
 }
@@ -33,6 +36,7 @@ impl std::fmt::Write for MarkdownWriter<'_> {
             Self::Header(h) => h.write_str(s),
             Self::Paragraph(p) => p.write_str(s),
             Self::Table(t) => t.write_str(s),
+            Self::Link(l) => l.write_str(s),
         }
     }
 }
@@ -58,5 +62,11 @@ impl From<Paragraph> for MarkdownWriter<'_> {
 impl<'i> From<TableState<'i>> for MarkdownWriter<'i> {
     fn from(value: TableState<'i>) -> Self {
         Self::Table(value)
+    }
+}
+
+impl From<LinkWriter> for MarkdownWriter<'_> {
+    fn from(value: LinkWriter) -> Self {
+        Self::Link(value)
     }
 }
