@@ -143,5 +143,9 @@ mod tester {
 
         let result = rewrite_markdown("[`\r``]").unwrap();
         assert_eq!(result, "[` ``]");
+
+        let input = ">z\\\rS[\nz\\\rS#`~\\\r33~[\n#";
+        let result = rewrite_markdown(input).unwrap();
+        assert_eq!(result, "> z\\\rS[\n> z\\\rS#`~\\\r33~[\n#");
     }
 }
