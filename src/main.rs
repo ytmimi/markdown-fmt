@@ -2,7 +2,6 @@
 
 use clap::Parser;
 use markdown_fmt::{FormatBuilder, rewrite_markdown_with_builder};
-use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
@@ -41,19 +40,11 @@ fn main() -> Result<(), anyhow::Error> {
 
     let cli = Cli::parse();
 
-    match cli.input.extension().and_then(OsStr::to_str) {
-        Some("md") => {
-            let input = fs::read_to_string(&cli.input)?;
-            let mut builder = FormatBuilder::default();
-            builder
-                .max_width(cli.max_width)
-                .reflow_text(cli.reflow_text);
-            let result = rewrite_markdown_with_builder(&input, builder)?;
-            output_result(&cli.input, &result, cli.stdout)
-        }
-        _ => Err(anyhow::anyhow!(
-            "{} is not a markdown (.md) or rust (.rs) file.",
-            cli.input.display()
-        )),
-    }
+    let input = fs::read_to_string(&cli.input)?;
+    let mut builder = FormatBuilder::default();
+    builder
+        .max_width(cli.max_width)
+        .reflow_text(cli.reflow_text);
+    let result = rewrite_markdown_with_builder(&input, builder)?;
+    output_result(&cli.input, &result, cli.stdout)
 }
