@@ -82,7 +82,7 @@ fn markdown_tabs_10() {
 #[test]
 fn markdown_tabs_11() {
     // https://spec.commonmark.org/0.30/#example-11
-    test_identical_markdown_events!("*\t*\t*\t");
+    test_identical_markdown_events!("*\t*\t*\t",r##"*	*	*"##);
 }
 
 #[test]
@@ -390,7 +390,7 @@ fn markdown_thematic_breaks_53() {
 #[test]
 fn markdown_thematic_breaks_54() {
     // https://spec.commonmark.org/0.30/#example-54
-    test_identical_markdown_events!("- - - -    ");
+    test_identical_markdown_events!("- - - -    ",r##"- - - -"##);
 }
 
 #[test]
