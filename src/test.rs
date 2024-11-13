@@ -157,5 +157,9 @@ mod tester {
 
         let result = rewrite_markdown("text  \rmore text  \r\neven more text  \n").unwrap();
         assert_eq!(result, "text  \nmore text  \neven more text\n");
+
+        // Strange input where the parser starts the blockquote and list at the same position
+        let result = rewrite_markdown("XX\u{14}:\n>\t*\r").unwrap();
+        assert_eq!(result, "XX\u{14}:\n> *\n");
     }
 }

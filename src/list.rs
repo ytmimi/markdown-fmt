@@ -173,7 +173,7 @@ impl std::str::FromStr for ListMarker {
     type Err = ParseListMarkerError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
+        let s = s.trim_matches(|c: char| c.is_whitespace() || c == '>');
         if s.is_empty() {
             return Err(ParseListMarkerError::NoMarkers);
         }
