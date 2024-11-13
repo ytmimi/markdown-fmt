@@ -14,7 +14,7 @@ use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
-use crate::links::{LinkReferenceDefinition, parse_link_reference_definitions};
+use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_definitions};
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
@@ -144,8 +144,6 @@ where
     /// next Start event should push indentation
     needs_indent: bool,
     last_position: usize,
-    trim_link_or_image_start: bool,
-    escape_link_or_image_start: Option<()>,
     formatter: &'m MarkdownFormatter,
 }
 
@@ -458,8 +456,6 @@ where
             writers: vec![],
             needs_indent: false,
             last_position: 0,
-            trim_link_or_image_start: false,
-            escape_link_or_image_start: None,
             formatter,
         }
     }
@@ -557,7 +553,7 @@ where
                     let starts_with_escape = self.input[..range.start].ends_with('\\');
                     let newlines = self.count_newlines(&range);
                     let text_from_source = &self.input[range];
-                    let mut text = if text_from_source.is_empty() || self.in_html_block() {
+                    let text = if text_from_source.is_empty() || self.in_html_block() {
                         // This seems to happen when the parsed text is whitespace only.
                         // To preserve leading whitespace use the parsed text instead.
                         parsed_text.as_ref()
@@ -565,26 +561,12 @@ where
                         text_from_source
                     };
 
-                    if self.in_link_or_image() && self.trim_link_or_image_start {
-                        // Trim leading whitespace from reference links or images
-                        text = text.trim_start();
-                        // Make sure we only trim leading whitespace once
-                        self.trim_link_or_image_start = false
-                    }
-
-                    if matches!(self.peek(), Some(Event::End(TagEnd::Link | TagEnd::Image))) {
-                        text = text.trim_end();
-                    }
-
                     if self.needs_indent {
                         self.write_newlines(newlines)?;
                         self.needs_indent = false;
                     }
 
-                    let escape_link_text =
-                        self.escape_link_or_image_start.take().is_some() && text.starts_with('^');
-
-                    if starts_with_escape || self.needs_escape(text) || escape_link_text {
+                    if starts_with_escape || self.needs_escape(text) {
                         // recover escape characters
                         write!(self, "\\{text}")?;
                     } else {
@@ -605,14 +587,9 @@ where
                 }
                 Event::SoftBreak => {
                     last_position = range.end;
+
                     if self.in_link_or_image() {
-                        let next_is_end =
-                            matches!(self.peek(), Some(Event::End(TagEnd::Link | TagEnd::Image)));
-                        if self.trim_link_or_image_start || next_is_end {
-                            self.trim_link_or_image_start = false
-                        } else {
-                            write!(self, " ")?;
-                        }
+                        write!(self, " ")?;
                     } else {
                         write!(self, "{}", &self.input[range])?;
 
@@ -1017,37 +994,18 @@ where
             Tag::Strikethrough => {
                 rewrite_marker(self.input, &range, self)?;
             }
-            Tag::Link { link_type, .. } => {
+            Tag::Link { .. } | Tag::Image { .. } => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
 
-                let email_or_auto = matches!(link_type, LinkType::Email | LinkType::Autolink);
-                let opener = if email_or_auto { "<" } else { "[" };
-                self.write_str(opener)?;
+                let capacity = (range.end - range.start) * 2;
+                let link_writer = LinkWriter::new(capacity);
+
+                self.writers.push(link_writer.into());
                 self.nested_context.push(tag);
-
-                if matches!(self.peek(), Some(Event::Text(_) | Event::SoftBreak)) {
-                    self.trim_link_or_image_start = true
-                }
-
-                self.escape_link_or_image_start = Some(());
-            }
-            Tag::Image { .. } => {
-                let newlines = self.count_newlines(&range);
-                if self.needs_indent && newlines > 0 {
-                    self.write_newlines(newlines)?;
-                    self.needs_indent = false;
-                }
-
-                write!(self, "![")?;
-                self.nested_context.push(tag);
-
-                if matches!(self.peek(), Some(Event::Text(_) | Event::SoftBreak)) {
-                    self.trim_link_or_image_start = true
-                }
             }
             Tag::Table(ref alignment) => {
                 if self.needs_indent {
@@ -1351,28 +1309,43 @@ where
                 rewrite_marker(self.input, &range, self)?;
             }
             TagEnd::Link | TagEnd::Image => {
+                debug_assert!(matches!(self.writers.last(), Some(MarkdownWriter::Link(_))));
+
+                let Some(MarkdownWriter::Link(link_writer)) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::Link")
+                };
+
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
 
-                let text = &self.input[range.clone()];
-
-                let Some(
-                    Tag::Link {
+                let (link_type, url, title) = match popped_tag {
+                    Some(Tag::Link {
                         link_type,
-                        dest_url: url,
+                        dest_url,
                         title,
                         ..
+                    }) => {
+                        let email_or_auto =
+                            matches!(link_type, LinkType::Email | LinkType::Autolink);
+                        let opener = if email_or_auto { "<" } else { "[" };
+                        self.write_str(opener)?;
+                        (link_type, dest_url, title)
                     }
-                    | Tag::Image {
+                    Some(Tag::Image {
                         link_type,
-                        dest_url: url,
+                        dest_url,
                         title,
                         ..
-                    },
-                ) = popped_tag
-                else {
-                    panic!("Expect")
+                    }) => {
+                        write!(self, "![")?;
+                        (link_type, dest_url, title)
+                    }
+                    _ => {
+                        panic!("Expected a Tag::Link or Tag::Image")
+                    }
                 };
+                self.write_str(&link_writer.into_buffer())?;
+                let text = &self.input[range.clone()];
 
                 match link_type {
                     LinkType::Inline => {
