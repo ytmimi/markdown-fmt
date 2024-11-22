@@ -192,6 +192,13 @@ where
         };
     }
 
+    /// check if we're in a blockquote
+    pub(crate) fn in_blockquote(&self) -> bool {
+        self.nested_context
+            .iter()
+            .any(|t| matches!(t, Tag::BlockQuote(_)))
+    }
+
     /// Check if we're formatting a link
     fn in_link_or_image(&self) -> bool {
         matches!(
@@ -553,7 +560,28 @@ where
                         self.needs_indent = false;
                     }
 
-                    if starts_with_escape || self.needs_escape(text) {
+                    let needs_escape = self.needs_escape(text);
+
+                    let could_be_interpreted_as_html =
+                        |t: &str, state: &FormatState<'i, 'm, I>| -> bool {
+                            if !state.in_blockquote() {
+                                return false;
+                            }
+
+                            // IF we're in a blockquote it means that a softbreak could lead to
+                            // a scenario where we add a `>`, which causes `<!` + `>` to get
+                            // interpreted as an inline html element.
+                            let last_was_lt = matches!(
+                                &state.last_event, Some((Event::Text(t), _)) if t.ends_with('<')
+                            );
+
+                            last_was_lt && t.starts_with('!')
+                        };
+
+                    if starts_with_escape
+                        || needs_escape
+                        || could_be_interpreted_as_html(text, &self)
+                    {
                         // recover escape characters
                         write!(self, "\\{text}")?;
                     } else {
