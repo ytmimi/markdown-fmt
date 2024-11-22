@@ -29,6 +29,11 @@ impl Write for Paragraph {
             // then push a space so we can reflow text
             self.buffer.push(' ');
         } else {
+            // Prevent the next pass of the parser from accidentaly interpreting a table
+            // without a leading |
+            if s.starts_with("-|") && self.buffer.trim_end().ends_with('|') {
+                self.buffer.push('\\');
+            }
             self.buffer.push_str(s);
         }
 
