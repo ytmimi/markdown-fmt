@@ -516,13 +516,13 @@ bar]
 second]
 [^third
 fourth]"##,r##"[\^foo\
-bar]: not a footnote definition
+bar]\: not a footnote definition
 
 [baz\ quux]: https://rust-lang.org
 
 [first second]: https://rust-lang.org
 
-[\^third fourth]: not a footnote definition
+[\^third fourth]\: not a footnote definition
 
 [baz\
 quux]

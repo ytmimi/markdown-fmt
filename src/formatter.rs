@@ -18,7 +18,7 @@ use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_def
 use crate::list::ListMarker;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
-use crate::utils::{count_newlines, split_lines};
+use crate::utils::{count_newlines, sequence_ends_on_escape, split_lines};
 use crate::writer::MarkdownWriter;
 
 static DEFINITION_LIST_INDENTATION: &str = "  ";
@@ -1386,7 +1386,17 @@ where
                         write!(self, "][{label}]")?;
                     }
                     LinkType::Collapsed | LinkType::CollapsedUnknown => write!(self, "][]")?,
-                    LinkType::Shortcut | LinkType::ShortcutUnknown => write!(self, "]")?,
+                    LinkType::Shortcut | LinkType::ShortcutUnknown => {
+                        write!(self, "]")?;
+
+                        if let Some((Event::Text(text), next_range)) = self.events.peek() {
+                            let between_snippet = &self.input[range.end..next_range.start];
+                            let needs_escape = !sequence_ends_on_escape(between_snippet);
+                            if text.starts_with(':') && needs_escape {
+                                write!(self, "\\")?;
+                            }
+                        }
+                    }
                     LinkType::Autolink | LinkType::Email => write!(self, ">")?,
                 }
             }

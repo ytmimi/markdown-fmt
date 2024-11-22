@@ -54,6 +54,7 @@
 
 # duplicate reference definitions
 [nine]
+
 [nine]: /nine-first-url "nine-first-title"
 [nine]: /nine-second-url "nine-second-title"
 
