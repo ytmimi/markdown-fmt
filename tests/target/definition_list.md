@@ -206,3 +206,12 @@ new paragraph
 <!-- Looks like a definition list but it's not -->
 start of a paragraph
 \:next line of a paragraph
+
+<!-- Initially parsed as definition list because of the trailing form-feed (found when fuzzing)
+     After formatting this gets parsed as two empty list items and a paragraph with a single `:`
+-->
+*
+
+*
+
+:

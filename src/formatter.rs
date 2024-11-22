@@ -1144,7 +1144,7 @@ where
                             .map(|l| l.range().start)
                             .unwrap_or(range.end);
                         let snippet = &self.input[range.start..end];
-                        (is_empty_list(snippet), 0, link_defs)
+                        (is_empty_list(snippet) || link_defs.is_empty(), 0, link_defs)
                     }
                     Some((next_event, next_range)) => {
                         let snippet = &self.input[range.start..next_range.start];
