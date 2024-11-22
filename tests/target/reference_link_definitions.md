@@ -97,3 +97,6 @@
 [7️⃣-teen]
 
 [7️⃣-teen]: 7️⃣-teen-url '7️⃣-teen-title'
+
+<!-- Odd Cases found when fuzzing -->
+[.]: []:[]
