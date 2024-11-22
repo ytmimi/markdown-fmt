@@ -646,6 +646,7 @@ fn parse_link_reference_definition(
                 if is_last {
                     let url = Cow::from(&input[idx..=idx]);
                     builder.set_url(LinkDestination::Regular(url), idx..idx, offset);
+                    parsed_until = idx;
                     break;
                 }
 
@@ -678,6 +679,7 @@ fn parse_link_reference_definition(
                             if is_last {
                                 let url = Cow::from(&input[start..=idx]);
                                 builder.set_url(LinkDestination::Regular(url), start..idx, offset);
+                                parsed_until = idx;
                                 break;
                             }
                             continue;
@@ -916,6 +918,12 @@ mod test {
             definition: "[.]: [",
             label: ".",
             url: LinkDestination::Regular("[".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: "[.]:[]:[]",
+            label: ".",
+            url: LinkDestination::Regular("[]:[]".into()),
         }
     }
 
