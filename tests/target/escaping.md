@@ -8,3 +8,8 @@
 
 > 6|
 > \-|
+
+
+<!-- Don't interpret this as a link reference definition  -->
+
+[.]\:[:]
