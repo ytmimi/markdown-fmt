@@ -1189,6 +1189,23 @@ where
                         *indentation = popped_indentation
                     }
                 }
+
+                // FIXME(ytmimi) let chains would make this much nicer to write.
+                //
+                // If there's another event...
+                if let Some((event, _)) = self.events.peek() {
+                    // and it's not a TagEnd::BlockQuote...
+                    if !matches!(event, Event::End(TagEnd::BlockQuote(_))) {
+                        // and we still have indentation on the stack...
+                        if let Some(last) = self.indentation.last_mut() {
+                            // and the indentaion is ">"...
+                            if last == ">" {
+                                // update the indentation
+                                *last = "> ".into()
+                            }
+                        }
+                    }
+                }
             }
             TagEnd::CodeBlock => {
                 debug_assert!(matches!(
