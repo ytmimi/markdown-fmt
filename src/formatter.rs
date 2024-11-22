@@ -144,6 +144,8 @@ where
     /// next Start event should push indentation
     needs_indent: bool,
     last_position: usize,
+    // Last event emitted from the inner iterator
+    last_event: Option<I::Item>,
     formatter: &'m MarkdownFormatter,
 }
 
@@ -456,6 +458,7 @@ where
             writers: vec![],
             needs_indent: false,
             last_position: 0,
+            last_event: None,
             formatter,
         }
     }
@@ -536,9 +539,9 @@ where
                     )
                     .unwrap_or(0)
             };
-
+            let last_range = range.clone();
             match event {
-                Event::Start(tag) => {
+                Event::Start(ref tag) => {
                     last_position = range.start;
                     self.start_tag(tag.clone(), range)?;
                     // self.last_position might be modified in `start_tag` if we need to recover
@@ -548,8 +551,8 @@ where
                         last_position = self.last_position;
                     }
                 }
-                Event::End(tag) => {
-                    self.end_tag(tag, range)?;
+                Event::End(ref tag) => {
+                    self.end_tag(*tag, range.clone())?;
                     self.check_needs_indent(&event);
                 }
                 Event::Text(ref parsed_text) => {
@@ -630,7 +633,7 @@ where
                     write!(self, "{}", &self.input[range].trim_end())?;
                     self.check_needs_indent(&event)
                 }
-                Event::FootnoteReference(text) => {
+                Event::FootnoteReference(ref text) => {
                     write!(self, "[^{text}]")?;
                 }
                 Event::TaskListMarker(done) => {
@@ -644,7 +647,8 @@ where
                     unreachable!("pulldown_cmark::Options::ENABLE_MATH is not configured")
                 }
             }
-            self.last_position = last_position
+            self.last_position = last_position;
+            self.last_event = Some((event, last_range));
         }
         debug_assert!(self.nested_context.is_empty());
 
