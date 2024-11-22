@@ -641,6 +641,14 @@ fn parse_link_reference_definition(
                     continue;
                 }
 
+                // It's possible that the link is a single character
+                let is_last = iter.peek().is_none();
+                if is_last {
+                    let url = Cow::from(&input[idx..=idx]);
+                    builder.set_url(LinkDestination::Regular(url), idx..idx, offset);
+                    break;
+                }
+
                 // We're at the start of the URL
                 start = idx;
                 tracing::trace!("Transition to LinkParserPhase::Url(c)");
@@ -896,6 +904,18 @@ mod test {
             definition: "[empty-url]: <> 'single-quote-title' <- not a title bc of this extra text",
             label: "empty-url",
             url: LinkDestination::Bracketed("".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: "[.]:[ ",
+            label: ".",
+            url: LinkDestination::Regular("[".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: "[.]: [",
+            label: ".",
+            url: LinkDestination::Regular("[".into()),
         }
     }
 
