@@ -15,7 +15,7 @@ use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
 use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_definitions};
-use crate::list::ListMarker;
+use crate::list::{LIST_START_CHARS, ListMarker};
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
 use crate::utils::{count_newlines, split_lines};
@@ -845,7 +845,36 @@ where
             }
             Tag::List(_) => {
                 if self.needs_indent {
-                    let newlines = self.count_newlines(&range);
+                    // FIXME(ytmimi) The parser sometimes gets the ranges for a nested list
+                    // wrong if it's preceded by a tab (\t) character
+                    // See https://github.com/pulldown-cmark/pulldown-cmark/issues/983
+                    let snippet = &self.input[range.clone()];
+                    let special_case_list_start = snippet.starts_with(char::is_whitespace);
+
+                    // Extra check to keep the output idempotent when we've got a nested list.
+                    // Depending on how things get formated we might accidentally parse the
+                    // paragraph and list start as a Setext header
+                    let needs_extra_newline = |mut newlines: usize, range: Range<usize>| -> usize {
+                        let last_was_paragraph =
+                            matches!(self.last_event, Some((Event::End(TagEnd::Paragraph), _)));
+                        let starts_with_dash = self.input[range].starts_with('-');
+                        if newlines < 2 && last_was_paragraph && starts_with_dash {
+                            newlines += 1;
+                        }
+
+                        newlines
+                    };
+
+                    let newlines = if special_case_list_start {
+                        let start_offset = snippet.find(LIST_START_CHARS).unwrap_or(0);
+                        let marker_start = range.start + start_offset;
+                        let list_start_range = self.last_position..marker_start;
+                        let newlines = self.count_newlines_in_range(&list_start_range);
+                        needs_extra_newline(newlines, marker_start..range.end)
+                    } else {
+                        self.count_newlines(&range)
+                    };
+
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
