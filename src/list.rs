@@ -187,10 +187,12 @@ impl std::str::FromStr for ListMarker {
         };
 
         let number: usize = s[..offset].parse()?;
-        let zero_padding = if number != 0 {
-            s[..offset].bytes().take_while(|b| *b == b'0').count()
+        let total_leading_zeros = s[..offset].bytes().take_while(|b| *b == b'0').count();
+        let zero_padding = if number == 0 {
+            // Don't count one of the zeros as padding
+            total_leading_zeros.saturating_sub(1)
         } else {
-            0
+            total_leading_zeros
         };
 
         Ok(ListMarker::Ordered {
