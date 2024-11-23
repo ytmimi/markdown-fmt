@@ -49,6 +49,7 @@ pub(crate) fn needs_escape(input: &str) -> bool {
     let is_setext_heading = |value: u8| input.trim_end().bytes().all(|b| b == value);
     let is_unordered_list_marker = |value: &str| input.starts_with(value);
     let is_thematic_break = |value: u8| input.bytes().all(|b| b == value || b == b' ');
+    let is_fenced_code_block = |value: &str| input.starts_with(value);
 
     match first_char {
         '#' => ATX_HEADER_ESCAPES
@@ -59,6 +60,8 @@ pub(crate) fn needs_escape(input: &str) -> bool {
         '_' => is_thematic_break(b'_'),
         '*' => is_unordered_list_marker("* ") || is_thematic_break(b'*'),
         '+' => is_unordered_list_marker("+ "),
+        '`' => is_fenced_code_block("```"),
+        '~' => is_fenced_code_block("~~~"),
         '>' | ':' => true,
         _ => false,
     }
