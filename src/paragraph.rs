@@ -42,6 +42,14 @@ impl Write for Paragraph {
             if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape(s) {
                 self.buffer.push('\\');
             }
+
+            let all_chars_eq =
+                |input: &str, marker: char| -> bool { input.chars().all(|c| c == marker) };
+
+            // Prevent the next pass from interpreting this as a header
+            if self.buffer.ends_with('\n') && (all_chars_eq(s, '-') || all_chars_eq(s, '=')) {
+                self.buffer.push('\\');
+            }
             self.buffer.push_str(s);
         }
 

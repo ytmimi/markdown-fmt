@@ -20,3 +20,13 @@ TT
 <!-- Don't interpret the '```' as the start of a fenced code block -->
 --
     ~~~>
+
+<!-- Don't interpret the `--` as a setext header -->
+* -+
+--
+*-*>
+
+<!-- Don't interpret the `==` as a setext header -->
+* -+
+==
+*-*>
