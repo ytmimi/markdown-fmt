@@ -30,3 +30,15 @@ TT
 * -+
 ==
 *-*>
+
+<!-- Don't interpret `* ` as a list, which prevents (```) from being interpreted as a fenced code block-->
+&
+    * ```
+
+<!-- Don't interpret `- ` as a list, which prevents (```) from being interpreted as a fenced code block-->
+&
+    - ```
+
+<!-- Don't interpret `+ ` as a list, which prevents (```) from being interpreted as a fenced code block-->
+&
+    + ```
