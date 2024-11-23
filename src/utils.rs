@@ -1,5 +1,29 @@
+use std::borrow::Cow;
+
 use std::iter::Iterator;
 use unicode_width::UnicodeWidthStr;
+
+static SPACES: &str = "                                                                           ";
+const NON_BREAKING_SPACE: char = '\u{a0}';
+const SPACE: char = ' ';
+
+/// Count the number of trailing spaces at the end of input
+pub(crate) fn count_trailing_spaces(s: &str) -> usize {
+    s.chars()
+        .rev()
+        .take_while(|c| c.is_whitespace())
+        .filter(|c| matches!(*c, NON_BREAKING_SPACE | SPACE))
+        .count()
+}
+
+/// Get the number of trailing spaces that you need.
+pub(crate) fn get_spaces(n: usize) -> Cow<'static, str> {
+    if n <= SPACES.len() {
+        SPACES[..n].into()
+    } else {
+        " ".repeat(n).into()
+    }
+}
 
 // Duplicated from the rustfmt::util module
 pub(crate) fn unicode_str_width(s: &str) -> usize {
