@@ -6,29 +6,35 @@ impl<I> FormatState<'_, '_, I>
 where
     I: Iterator,
 {
-    pub(super) fn needs_escape(&mut self, input: &str) -> bool {
-        if !self.last_was_softbreak {
-            // We _should_ only need to escape after a softbreak since the markdown formatter will
-            // adjust the indentation. Depending on the context we'll either remove leading spaces
-            // or add indentation (spaces or '>') depending on if we're in a list or blockquote.
-            // See <https://spec.commonmark.org/0.30/#example-70> as an example where the semantics
-            // would change without an escape after removing indentation.
-            return false;
-        }
-
-        self.last_was_softbreak = false;
-
+    pub(super) fn needs_escape(&mut self, input: &str, is_inline_element: bool) -> bool {
         let Some(first_char) = input.chars().next() else {
             return false;
         };
 
-        // Don't interpret the `:` as a definition list
-        if first_char == ':' {
-            return true;
-        }
+        if !is_inline_element {
+            if !self.last_was_softbreak {
+                // Normally, we only need to escape after a softbreak since the markdown
+                // formatter will adjust indentation, and the semantics of the formatted markdown
+                // could change if we don't escape values. Because different markdown constructs
+                // have higher or lower precedence there are cases where we want to aggresively
+                // escape characters to avoid the formatted code from being parsed differently
+                // on future formatting runs.
+                //
+                // As an example, see <https://spec.commonmark.org/0.30/#example-70> as a case
+                // where the semantics would change without an escape after removing indentation.
+                return false;
+            }
 
-        if input.len() <= 2 {
-            return false;
+            self.last_was_softbreak = false;
+
+            // Don't interpret the `:` as a definition list definition
+            if first_char == ':' {
+                return true;
+            }
+
+            if input.len() <= 2 {
+                return false;
+            }
         }
 
         needs_escape(input)

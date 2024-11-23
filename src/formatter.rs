@@ -5,7 +5,6 @@ use std::iter::Peekable;
 use std::ops::Range;
 use std::str::FromStr;
 
-use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
@@ -18,7 +17,9 @@ use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_def
 use crate::list::{LIST_START_CHARS, ListMarker};
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
-use crate::utils::{count_newlines, sequence_ends_on_escape, split_lines};
+use crate::utils::{
+    count_newlines, count_trailing_spaces, get_spaces, sequence_ends_on_escape, split_lines,
+};
 use crate::writer::MarkdownWriter;
 
 static DEFINITION_LIST_INDENTATION: &str = "  ";
@@ -609,13 +610,29 @@ where
                     }
                     self.check_needs_indent(&event);
                 }
-                Event::Code(_code) => {
+                Event::Code(_) => {
                     let snippet = &self.input[range.clone()];
                     if count_newlines(snippet) > 0 {
-                        let code = split_lines(snippet)
-                            .map(|s| self.trim_leading_indentation(s))
-                            .join("\n");
-                        write!(self, "{}", code)?;
+                        let mut iter = split_lines(snippet).peekable();
+                        while let Some(s) = iter.next() {
+                            let is_last = iter.peek().is_none();
+
+                            // We want to trim leading indentation characters
+                            // and any non-space whitespace characters.
+                            let line = self.trim_leading_indentation(s);
+                            let trailing_space_count = count_trailing_spaces(line);
+                            let trailing_spaces = get_spaces(trailing_space_count);
+
+                            if self.needs_escape(line, true) {
+                                write!(self, "\\")?;
+                            }
+
+                            if is_last {
+                                write!(self, "{}{trailing_spaces}", line.trim_end())?;
+                            } else {
+                                writeln!(self, "{}{trailing_spaces}", line.trim_end())?;
+                            }
+                        }
                     } else {
                         write!(self, "{}", snippet)?;
                     }

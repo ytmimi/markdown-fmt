@@ -161,5 +161,8 @@ mod tester {
         // Strange input where the parser starts the blockquote and list at the same position
         let result = rewrite_markdown("XX\u{14}:\n>\t*\r").unwrap();
         assert_eq!(result, "XX\u{14}:\n> *\n");
+
+        let result = rewrite_markdown("`\u{2}\u{2}[\n\\\\\n\u{b}>* @`").unwrap();
+        assert_eq!(result, "`\u{2}\u{2}[\n\\\\\n\\>* @`");
     }
 }
