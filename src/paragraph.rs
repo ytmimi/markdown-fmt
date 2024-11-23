@@ -1,3 +1,5 @@
+use crate::escape::needs_escape;
+
 use std::fmt::Write;
 use textwrap::Options as TextWrapOptions;
 
@@ -32,6 +34,12 @@ impl Write for Paragraph {
             // Prevent the next pass of the parser from accidentaly interpreting a table
             // without a leading |
             if s.starts_with("-|") && self.buffer.trim_end().ends_with('|') {
+                self.buffer.push('\\');
+            }
+
+            // Prevent the next pass from ignoring the hard break or misinterpreting `s`
+            // as something other than text in a paragraph
+            if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape(s) {
                 self.buffer.push('\\');
             }
             self.buffer.push_str(s);

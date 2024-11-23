@@ -13,3 +13,7 @@
 <!-- Don't interpret this as a link reference definition  -->
 
 [.]\:[:]
+
+<!-- space hard break followed by paragraph with single `-` -->
+<  
+\-
