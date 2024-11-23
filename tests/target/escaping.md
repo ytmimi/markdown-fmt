@@ -8,3 +8,7 @@
 
 > 6|
 > \-|
+
+<!-- space hard break followed by paragraph with single `-` -->
+<  
+\-
