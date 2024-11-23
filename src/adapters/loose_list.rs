@@ -123,6 +123,7 @@ where
     fn is_tight_list(event: &Event<'_>) -> bool {
         match event {
             Event::Text(_)
+            | Event::HardBreak
             | Event::Code(_)
             | Event::FootnoteReference(_)
             | Event::TaskListMarker(_)
