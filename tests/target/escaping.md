@@ -57,3 +57,14 @@
 <!-- This is already escaped. Don't add any more escapes -->
 [
 \\[]
+
+
+<!-- Don't interpret the `>` as part of the blockquote -->
+
+> 2
+> \>
+
+<!-- Don't start a new blockquote -->
+
+--
+\>-
