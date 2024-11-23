@@ -12,3 +12,11 @@ TT
 <!-- space hard break followed by paragraph with single `-` -->
 <  
     -
+
+<!-- Don't interpret the '```' as the start of a fenced code block -->
+--
+    ```>
+
+<!-- Don't interpret the '```' as the start of a fenced code block -->
+--
+    ~~~>
