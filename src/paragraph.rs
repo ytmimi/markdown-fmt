@@ -31,6 +31,10 @@ impl Write for Paragraph {
             // then push a space so we can reflow text
             self.buffer.push(' ');
         } else {
+            // FIXME(ytmimi) I'm adding alot of checks here. They mostly duplicate what's defined
+            // in `needs_escape`, but only apply in certain scenarios. There's probably a much
+            // better wasy to handle this.
+
             // Prevent the next pass of the parser from accidentaly interpreting a table
             // without a leading |
             if s.starts_with("-|") && self.buffer.trim_end().ends_with('|') {
@@ -50,6 +54,12 @@ impl Write for Paragraph {
             if self.buffer.ends_with('\n') && (all_chars_eq(s, '-') || all_chars_eq(s, '=')) {
                 self.buffer.push('\\');
             }
+
+            // Prevent the next pass from interpreting this as a list
+            if self.buffer.ends_with('\n') && matches!(s, "* " | "+ " | "- ") {
+                self.buffer.push('\\');
+            }
+
             self.buffer.push_str(s);
         }
 
