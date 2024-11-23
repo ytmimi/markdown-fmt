@@ -565,9 +565,19 @@ where
                 }
                 Event::Text(ref parsed_text) => {
                     last_position = range.end;
-                    let starts_with_escape = self.input[..range.start].ends_with('\\');
+                    let current_input_snippet = &self.input[..range.start];
+                    let starts_with_escape = if current_input_snippet.ends_with('\n') {
+                        // Can't start with an esacpe if it ends on a newline
+                        false
+                    } else {
+                        //
+                        current_input_snippet
+                            .lines()
+                            .last()
+                            .map_or(false, sequence_ends_on_escape)
+                    };
                     let newlines = self.count_newlines(&range);
-                    let text_from_source = &self.input[range];
+                    let text_from_source = &self.input[range.clone()];
                     let text = if text_from_source.is_empty() || self.in_html_block() {
                         // This seems to happen when the parsed text is whitespace only.
                         // To preserve leading whitespace use the parsed text instead.
@@ -599,9 +609,31 @@ where
                             last_was_lt && t.starts_with('!')
                         };
 
+                    // Prevent the next pass from interpreting this as a hard break
+                    let should_escape_an_escape =
+                        |t: &str, state: &mut FormatState<'i, 'm, I>, r: Range<usize>| -> bool {
+                            let not_empty_paragraph =
+                                !state.in_paragraph() && !state.is_current_buffer_empty();
+                            if not_empty_paragraph || !t.chars().all(|c| c == '\\') {
+                                return false;
+                            }
+
+                            // If the next is a soft break then we want to escape this `\\`
+                            let Some(Event::SoftBreak) = state.peek() else {
+                                return false;
+                            };
+
+                            let Some(last_line) = &self.input[..r.end].lines().last() else {
+                                return false;
+                            };
+
+                            sequence_ends_on_escape(last_line)
+                        };
+
                     if starts_with_escape
                         || needs_escape
                         || could_be_interpreted_as_html(text, &self)
+                        || should_escape_an_escape(text, &mut self, range)
                     {
                         // recover escape characters
                         write!(self, "\\{text}")?;
