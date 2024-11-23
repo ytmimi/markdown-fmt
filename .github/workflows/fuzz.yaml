@@ -1,0 +1,37 @@
+name: Fuzz Test
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'How many seconds to run the fuzzer'
+        required: true
+        default: 30
+        type: number
+      max_length:
+        description: 'Max length of the generated fuzz input'
+        required: true
+        default: 30
+        type: number
+
+jobs:
+  fuzz_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+
+    - name: Install Nightly Rust Toolchain
+      run: |
+        rustup install --no-self-update --profile minimal nightly
+
+    - name: Install cargo-fuzz
+      run: |
+        cargo install cargo-fuzz
+
+    - name: check diff
+      run: |
+        cargo fuzz run idempotent -- \
+          -only_ascii=1 \
+          -max_total_time=${{ github.event.inputs.duration }} \
+          -max_len=${{ github.event.inputs.max_length }}
