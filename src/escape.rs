@@ -7,7 +7,7 @@ where
     I: Iterator,
 {
     pub(super) fn needs_escape(&mut self, input: &str, is_inline_element: bool) -> bool {
-        let Some(_first_char) = input.chars().next() else {
+        let Some(first_char) = input.chars().next() else {
             return false;
         };
 
@@ -26,6 +26,11 @@ where
             }
 
             self.last_was_softbreak = false;
+
+            // Don't interpret the `>` as a blockquote
+            if first_char == '>' {
+                return true;
+            }
 
             if input.len() <= 2 {
                 return false;
