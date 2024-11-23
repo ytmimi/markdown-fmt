@@ -588,7 +588,7 @@ where
                     }
                     self.check_needs_indent(&event);
                 }
-                Event::Code(_) => {
+                Event::Code(_) | Event::InlineHtml(_) => {
                     let snippet = &self.input[range.clone()];
                     if count_newlines(snippet) > 0 {
                         let mut iter = split_lines(snippet).peekable();
@@ -646,9 +646,6 @@ where
                     }
                     write!(self, "{}", &self.input[range].trim_end())?;
                     self.check_needs_indent(&event);
-                }
-                Event::InlineHtml(_) => {
-                    write!(self, "{}", &self.input[range])?;
                 }
                 Event::Rule => {
                     let newlines = self.count_newlines(&range);
