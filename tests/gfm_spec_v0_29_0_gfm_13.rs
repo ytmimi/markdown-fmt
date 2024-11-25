@@ -1794,6 +1794,8 @@ fn gfm_markdown_tables_extension_203() {
     // https://github.github.com/gfm/#example-203
     test_identical_markdown_events!(r##"| abc | def |
 | --- |
+| bar |"##,r##"| abc | def |
+\| --- |
 | bar |"##);
 }
 

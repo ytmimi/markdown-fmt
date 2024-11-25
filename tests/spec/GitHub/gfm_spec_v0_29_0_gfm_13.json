@@ -1911,6 +1911,7 @@
   },
   {
     "markdown": "| abc | def |\n| --- |\n| bar |\n",
+    "formattedMarkdown":  "| abc | def |\n\\| --- |\n| bar |",
     "html": "<p>| abc | def |\n| --- |\n| bar |</p>\n",
     "example": 203,
     "start_line": 3457,

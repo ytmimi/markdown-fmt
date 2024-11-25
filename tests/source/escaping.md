@@ -9,6 +9,14 @@ TT
 >6|
 -|
 
+<!-- Escape `|-|` so it's not interpreted as a table -->
+- |\!
+|-|
+
+<!-- Escape the `|-` so it's not interpreted as a table -->
+- -|
+|-
+
 
 <!-- Don't interpret this as a link reference definition  -->
 
