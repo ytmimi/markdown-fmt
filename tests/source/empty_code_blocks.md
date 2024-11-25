@@ -75,3 +75,17 @@
 >>           >
 >>           >
 >>           >       ```
+
+<!-- Don't remove ` from the info string of a ~ code block -->
+~~~`
+~~~
+
+~~~ `
+~~~
+
+<!-- Don't remove ~ from the info string of a ` code block -->
+```~
+```
+
+``` ~
+```

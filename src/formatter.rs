@@ -905,15 +905,20 @@ where
                             return Ok(());
                         }
 
+                        let marker_char = self.input[range.start..]
+                            .chars()
+                            .next()
+                            .expect("should have found a ` or ~");
+
                         let starts_with_space = self.input[range.clone()]
-                            .trim_start_matches(['`', '~'])
+                            .trim_start_matches(marker_char)
                             .starts_with(char::is_whitespace);
 
                         let info_string = self.input[range]
                             .lines()
                             .next()
                             .unwrap_or_else(|| info_string.as_ref())
-                            .trim_start_matches(['`', '~'])
+                            .trim_start_matches(marker_char)
                             .trim();
 
                         if starts_with_space {
