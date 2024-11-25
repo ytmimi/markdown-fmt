@@ -1166,9 +1166,13 @@ where
                 }
             }
             Tag::HtmlBlock => {
-                let newlines = self.count_newlines(&range);
-                self.write_newlines(newlines)?;
+                if self.needs_indent {
+                    let newlines = self.count_newlines(&range);
+                    self.write_newlines(newlines)?;
+                }
+
                 self.nested_context.push(tag);
+                self.last_position = range.start;
             }
             Tag::MetadataBlock(_meta) => {
                 let newlines = self.count_newlines(&range);
