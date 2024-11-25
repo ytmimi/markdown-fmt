@@ -85,3 +85,6 @@ TT
 <
     <p  
 ! 
+
+<!-- Escape the escape so that we don't escape the closing `]`on the next formatting run -->
+[\ ]:]
