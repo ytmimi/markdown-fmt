@@ -37,7 +37,13 @@ impl Write for Paragraph {
 
             // Prevent the next pass of the parser from accidentaly interpreting a table
             // without a leading |
-            if s.starts_with("-|") && self.buffer.trim_end().ends_with('|') {
+            if self
+                .buffer
+                .lines()
+                .last()
+                .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
+                && could_be_table(s)
+            {
                 self.buffer.push('\\');
             }
 
@@ -122,4 +128,19 @@ impl Paragraph {
 
         output_buffer
     }
+}
+
+fn could_be_table(text: &str) -> bool {
+    // 1. checks for -|
+    // 2. checks for |-
+    // 3. check for | - |
+    text.strip_suffix('|')
+        .is_some_and(|s| s.chars().all(|c| c.is_whitespace() || c == '-'))
+        || text
+            .strip_prefix('|')
+            .is_some_and(|s| s.chars().all(|c| c.is_whitespace() || c == '-'))
+        || text.strip_prefix('|').is_some_and(|s| {
+            s.strip_suffix('|')
+                .is_some_and(|s| s.chars().all(|c| c.is_whitespace() || c == '-'))
+        })
 }

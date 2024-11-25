@@ -9,6 +9,14 @@ TT
 >6|
 -|
 
+<!-- Escape `|-|` so it's not interpreted as a table -->
+- |\!
+|-|
+
+<!-- Escape the `|-` so it's not interpreted as a table -->
+- -|
+|-
+
 <!-- space hard break followed by paragraph with single `-` -->
 <  
     -
