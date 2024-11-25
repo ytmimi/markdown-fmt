@@ -17,6 +17,11 @@ TT
 - -|
 |-
 
+<!-- Escape any `|` chars inside a table -->
+`6|
+-|
+[\\|
+
 <!-- space hard break followed by paragraph with single `-` -->
 <  
     -
