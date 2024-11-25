@@ -1,5 +1,5 @@
 use super::formatter::FormatState;
-use crate::utils::is_char_esacped;
+use crate::utils::{is_char_esacped, sequence_ends_on_escape};
 use pulldown_cmark::Event;
 use std::borrow::Cow;
 use std::fmt::Write;
@@ -481,6 +481,10 @@ impl<'a> LinkLines<'a> {
             let is_last = iter.peek().is_none();
             if !is_last {
                 write!(buffer, "{text} ")?;
+            } else if sequence_ends_on_escape(text) {
+                // Escape this so that the next formatting run doesn't
+                // interpret the closing `]` as `\]`.
+                write!(buffer, "{text}\\")?;
             } else {
                 write!(buffer, "{text}")?;
             }
@@ -924,6 +928,12 @@ mod test {
             definition: "[.]:[]:[]",
             label: ".",
             url: LinkDestination::Regular("[]:[]".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: "[\\ ]:]",
+            label: "\\ ",
+            url: LinkDestination::Regular("]".into()),
         }
     }
 
