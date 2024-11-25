@@ -5,6 +5,7 @@ use std::iter::Peekable;
 use std::ops::Range;
 use std::str::FromStr;
 
+use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
@@ -1527,7 +1528,16 @@ where
                     }
                     LinkType::Reference | LinkType::ReferenceUnknown => {
                         let label = crate::links::find_reference_link_label(text);
-                        write!(self, "][{label}]")?;
+                        if count_newlines(label) > 0 {
+                            write!(self, "][")?;
+                            let label = split_lines(label)
+                                .map(|l| self.trim_leading_indentation(l))
+                                .join("\n");
+                            self.write_str(&label)?;
+                            write!(self, "]")?;
+                        } else {
+                            write!(self, "][{label}]")?;
+                        }
                     }
                     LinkType::Collapsed | LinkType::CollapsedUnknown => write!(self, "][]")?,
                     LinkType::Shortcut | LinkType::ShortcutUnknown => {
