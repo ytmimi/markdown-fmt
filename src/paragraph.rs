@@ -42,6 +42,7 @@ impl Write for Paragraph {
                     .buffer
                     .lines()
                     .last()
+                    .map(str::trim)
                     .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
                 && could_be_table(s)
             {

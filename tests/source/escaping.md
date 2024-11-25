@@ -22,6 +22,10 @@ TT
 -|
 [\\|
 
+<!-- Escape '-|' even when there are a lot of trailing spaces -->
+[|        
+        -|
+
 <!-- space hard break followed by paragraph with single `-` -->
 <  
     -
