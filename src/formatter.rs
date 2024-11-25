@@ -222,6 +222,13 @@ where
             .is_some_and(|w| matches!(w, MarkdownWriter::Paragraph(_)))
     }
 
+    /// Check if we're in a Table
+    fn in_table(&self) -> bool {
+        self.writers
+            .last()
+            .is_some_and(|w| matches!(w, MarkdownWriter::Table(_)))
+    }
+
     /// Check if we're formatting in a nested context
     fn is_nested(&self) -> bool {
         !self.nested_context.is_empty()
@@ -627,6 +634,7 @@ where
                         || needs_escape
                         || could_be_interpreted_as_html(text, &mut self)
                         || should_escape_an_escape(text, &mut self, range)
+                        || (self.in_table() && text.starts_with('|'))
                     {
                         // recover escape characters
                         write!(self, "\\{text}")?;
