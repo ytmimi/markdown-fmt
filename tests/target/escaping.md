@@ -68,3 +68,8 @@
 
 --
 \>-
+
+<!-- escape the '<p' so it's not interpreted as an HTML block -->
+<
+\<p  
+!

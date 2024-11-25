@@ -25,8 +25,6 @@ where
                 return false;
             }
 
-            self.last_was_softbreak = false;
-
             // Don't interpret the `:` as a definition list definition or blockquote
             if first_char == ':' || first_char == '>' {
                 return true;
