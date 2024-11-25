@@ -59,3 +59,17 @@
 >>     0004. > 0004)
 >>           >       ```super_nested_next_line_list_with_newlines
 >>           >       ```
+
+<!-- Don't remove ` from the info string of a ~ code block -->
+~~~`
+~~~
+
+~~~ `
+~~~
+
+<!-- Don't remove ~ from the info string of a ` code block -->
+```~
+```
+
+``` ~
+```
