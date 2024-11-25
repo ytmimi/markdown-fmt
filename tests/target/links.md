@@ -39,3 +39,7 @@
 
 [reference definition]: /some/url
 [another reference definition]: /some/url
+
+<!-- multi-line reference link label -->
+- [][p
+  ^]X
