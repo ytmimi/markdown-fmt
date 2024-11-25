@@ -13,6 +13,7 @@ use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
+use crate::html::HTML_BLOCK_TAG;
 use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_definitions};
 use crate::list::{LIST_START_CHARS, ListMarker};
 use crate::paragraph::Paragraph;
@@ -574,7 +575,19 @@ where
                     let needs_escape = self.needs_escape(text, false);
 
                     let could_be_interpreted_as_html =
-                        |t: &str, state: &FormatState<'i, 'm, I>| -> bool {
+                        |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
+                            if state.last_was_softbreak
+                                && t == "<"
+                                && matches!(
+                                    state.peek(),
+                                    Some(Event::Text(t))
+                                        if HTML_BLOCK_TAG.iter()
+                                            .any(|tag| tag.eq_ignore_ascii_case(t))
+                                )
+                            {
+                                return true;
+                            }
+
                             if !state.in_blockquote() {
                                 return false;
                             }
@@ -612,7 +625,7 @@ where
 
                     if starts_with_escape
                         || needs_escape
-                        || could_be_interpreted_as_html(text, &self)
+                        || could_be_interpreted_as_html(text, &mut self)
                         || should_escape_an_escape(text, &mut self, range)
                     {
                         // recover escape characters
@@ -661,8 +674,6 @@ where
                         if !self.in_paragraph() {
                             self.write_indentation(false)?;
                         }
-
-                        self.last_was_softbreak = true;
                     }
                 }
                 Event::HardBreak => {
@@ -701,6 +712,7 @@ where
                     unreachable!("pulldown_cmark::Options::ENABLE_MATH is not configured")
                 }
             }
+            self.last_was_softbreak = matches!(event, Event::SoftBreak);
             self.last_position = last_position;
             self.last_event = Some((event, last_range));
         }
