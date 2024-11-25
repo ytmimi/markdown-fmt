@@ -17,6 +17,11 @@ TT
 - -|
 |-
 
+<!-- Escape any `|` chars inside a table -->
+`6|
+-|
+[\\|
+
 
 <!-- Don't interpret this as a link reference definition  -->
 

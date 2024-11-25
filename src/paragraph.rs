@@ -37,11 +37,12 @@ impl Write for Paragraph {
 
             // Prevent the next pass of the parser from accidentaly interpreting a table
             // without a leading |
-            if self
-                .buffer
-                .lines()
-                .last()
-                .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
+            if self.buffer.ends_with('\n')
+                && self
+                    .buffer
+                    .lines()
+                    .last()
+                    .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
                 && could_be_table(s)
             {
                 self.buffer.push('\\');
