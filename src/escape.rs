@@ -25,8 +25,6 @@ where
                 return false;
             }
 
-            self.last_was_softbreak = false;
-
             // Don't interpret the `>` as a blockquote
             if first_char == '>' {
                 return true;
