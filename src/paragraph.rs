@@ -68,6 +68,19 @@ impl Write for Paragraph {
                 self.buffer.push('\\');
             }
 
+            let is_thematic_break = |input: &str, marker: char| -> bool {
+                input
+                    .chars()
+                    .all(|c| matches!(c, ' ' | '\t') || c == marker)
+                    && input.chars().filter(|c| *c == marker).count() >= 3
+            };
+
+            if (self.buffer.ends_with('\n') || self.buffer.is_empty())
+                && ['-', '_', '*'].iter().any(|c| is_thematic_break(s, *c))
+            {
+                self.buffer.push('\\');
+            }
+
             self.buffer.push_str(s);
         }
 
