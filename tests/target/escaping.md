@@ -18,9 +18,9 @@
   \|-
 
 <!-- Escape any `|` chars inside a table -->
-| `6   |
-| ---- |
-| [\|  |
+| `6  |
+| --- |
+| [\| |
 
 <!-- Escape '-|' even when there are a lot of trailing spaces -->
 [|        

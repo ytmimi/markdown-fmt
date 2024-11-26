@@ -149,3 +149,8 @@ Name | Description | Default?
 `ws` | Enables WebSockets support via [`extract::ws`] | No
 `form` | Enables the `Form` extractor | Yes
 `query` | Enables the `Query` extractor | Yes
+
+
+<!-- test case found when fuzzing -->
+__|
+-|
