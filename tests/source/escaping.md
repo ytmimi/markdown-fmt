@@ -103,3 +103,14 @@ TT
 *
 
 :
+
+
+<!-- escape what looks like rule -->
+[.]:a
+    ***
+
+[.]:b
+    ---
+
+[.]:c
+    ___
