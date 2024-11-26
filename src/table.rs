@@ -48,7 +48,7 @@ impl<'a> TableState<'a> {
         Self {
             alignment,
             headers: Vec::with_capacity(capacity),
-            max_column_width: vec![3; capacity],
+            max_column_width: vec![0; capacity],
             body: vec![],
             write_to_body: false,
             col_index: 0,
@@ -100,6 +100,13 @@ impl<'a> TableState<'a> {
         }
     }
 
+    fn update_column_width_for_alignment(&mut self) {
+        for width in self.max_column_width.iter_mut() {
+            // 3 = `---` or `:--` or `--:` or `:-:`
+            *width = std::cmp::max(*width, 3);
+        }
+    }
+
     fn write_cell(&mut self, text: Cow<'a, str>) {
         let row = self
             .body
@@ -125,7 +132,10 @@ impl<'a> TableState<'a> {
         }
     }
 
-    pub(super) fn format(self) -> Result<String, std::fmt::Error> {
+    pub(super) fn format(mut self) -> Result<String, std::fmt::Error> {
+        // Just in case adjust the column widths for the allignemnt before formatting.
+        self.update_column_width_for_alignment();
+
         let mut result = String::new();
         self.rewrite_header(&mut result)?;
         self.rewrite_alignment(&mut result)?;
