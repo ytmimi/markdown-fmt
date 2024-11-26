@@ -88,3 +88,14 @@ TT
 
 <!-- Escape the escape so that we don't escape the closing `]`on the next formatting run -->
 [\ ]:]
+
+
+<!-- escape what looks like rule -->
+[.]:a
+    ***
+
+[.]:b
+    ---
+
+[.]:c
+    ___
