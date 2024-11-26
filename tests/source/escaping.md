@@ -93,3 +93,13 @@ TT
 
 <!-- Escape the escape so that we don't escape the closing `]`on the next formatting run -->
 [\ ]:]
+
+
+<!-- Escape the `*` so that we continue to parse this as a definition list.
+     This is initially parsed as a definition list because of the trailing form-feed
+-->
+*
+
+*
+
+:

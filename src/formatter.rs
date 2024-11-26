@@ -234,6 +234,11 @@ where
         )
     }
 
+    /// Check if we're currently formatting a definition list title
+    fn in_definition_list_title(&self) -> bool {
+        matches!(self.nested_context.last(), Some(Tag::DefinitionListTitle))
+    }
+
     /// Check if we're in a Table
     fn in_table(&self) -> bool {
         self.writers
@@ -600,7 +605,8 @@ where
                         self.needs_indent = false;
                     }
 
-                    let needs_escape = self.needs_escape(text, false);
+                    // aggressively escape if we're in a definition list
+                    let needs_escape = self.needs_escape(text, self.in_definition_list_title());
 
                     let could_be_interpreted_as_html =
                         |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
@@ -1226,6 +1232,7 @@ where
             Tag::DefinitionListTitle => {
                 let newlines = self.count_newlines(&range);
                 self.write_newlines(newlines)?;
+                self.nested_context.push(tag);
             }
             Tag::DefinitionListDefinition => {
                 let newlines = self.count_newlines(&range);
@@ -1603,11 +1610,10 @@ where
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
             }
-            TagEnd::DefinitionList => {
+            TagEnd::DefinitionList | TagEnd::DefinitionListTitle => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
             }
-            TagEnd::DefinitionListTitle => {}
             TagEnd::DefinitionListDefinition => {
                 let ref_def_range = self.last_position..range.end;
                 self.rewrite_reference_link_definitions(&ref_def_range)?;
