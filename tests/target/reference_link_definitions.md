@@ -99,3 +99,12 @@
 
 <!-- Odd Cases found when fuzzing -->
 [.]: []:[]
+
+<!-- recover link reference defintions before a rule -->
+
+[.]: a
+***
+
+[.]: b
+
+***
