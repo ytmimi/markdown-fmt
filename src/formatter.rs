@@ -722,6 +722,8 @@ where
                     self.check_needs_indent(&event);
                 }
                 Event::Rule => {
+                    let reference_definition_range = self.last_position..range.start;
+                    self.rewrite_reference_link_definitions(&reference_definition_range)?;
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
                     write!(self, "{}", &self.input[range].trim_end())?;
