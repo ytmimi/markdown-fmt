@@ -1226,7 +1226,14 @@ where
                 self.needs_indent = true;
             }
             Tag::DefinitionList => {
-                let newlines = self.count_newlines(&range);
+                let mut newlines = self.count_newlines(&range);
+
+                if matches!(self.last_event, Some((Event::End(TagEnd::List(..)), _))) {
+                    // At least two lines between the end of a list and the start of a
+                    // definition list. This ensures that the output is idempotent.
+                    newlines = std::cmp::max(newlines, 2);
+                }
+
                 self.write_newlines(newlines)?;
                 self.nested_context.push(tag);
             }

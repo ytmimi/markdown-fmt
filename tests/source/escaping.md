@@ -118,3 +118,15 @@ TT
 
 <!-- Escape the `^` in the link and the unescaped escape in the label -->
 [\ ][^]
+
+
+<!--
+  Place an extra space between the end of the list and the start of the definition list.
+  That helps to keep the output idempotent and won't change the semantics.
+  input found when fuzzing.
+-->
+
+[
+* (
+:
+:
