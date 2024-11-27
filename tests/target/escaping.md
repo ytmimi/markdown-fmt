@@ -114,3 +114,7 @@
 
 [.]: c
 \___
+
+
+<!-- Escape the `^` in the link and the unescaped escape in the label -->
+[\\][\^]

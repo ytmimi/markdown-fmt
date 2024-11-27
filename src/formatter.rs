@@ -1154,7 +1154,7 @@ where
             Tag::Strikethrough => {
                 rewrite_marker(self.input, &range, self)?;
             }
-            Tag::Link { .. } | Tag::Image { .. } => {
+            Tag::Link { link_type, .. } | Tag::Image { link_type, .. } => {
                 let newlines = self.count_newlines(&range);
                 if self.needs_indent && newlines > 0 {
                     self.write_newlines(newlines)?;
@@ -1162,7 +1162,8 @@ where
                 }
 
                 let capacity = (range.end - range.start) * 2;
-                let link_writer = LinkWriter::new(capacity);
+                let is_auto_link = matches!(link_type, LinkType::Autolink | LinkType::Email);
+                let link_writer = LinkWriter::new(capacity, is_auto_link);
 
                 self.writers.push(link_writer.into());
                 self.nested_context.push(tag);
@@ -1551,8 +1552,15 @@ where
                             let label = split_lines(label)
                                 .map(|l| self.trim_leading_indentation(l))
                                 .join("\n");
+
+                            if label.starts_with('^') {
+                                write!(self, "\\")?;
+                            }
+
                             self.write_str(&label)?;
                             write!(self, "]")?;
+                        } else if label.starts_with('^') {
+                            write!(self, "][\\{label}]")?;
                         } else {
                             write!(self, "][{label}]")?;
                         }

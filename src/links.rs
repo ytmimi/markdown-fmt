@@ -8,6 +8,7 @@ use std::fmt::Write;
 #[derive(Debug, PartialEq)]
 pub(crate) struct LinkWriter {
     buffer: String,
+    is_auto_link: bool,
 }
 
 impl Write for LinkWriter {
@@ -28,9 +29,10 @@ impl Write for LinkWriter {
 }
 
 impl LinkWriter {
-    pub(crate) fn new(capacity: usize) -> Self {
+    pub(crate) fn new(capacity: usize, is_auto_link: bool) -> Self {
         Self {
             buffer: String::with_capacity(capacity),
+            is_auto_link,
         }
     }
 
@@ -42,6 +44,12 @@ impl LinkWriter {
         // Remove any trailing whitespace from the buffer
         while self.buffer.ends_with(char::is_whitespace) {
             self.buffer.pop();
+        }
+
+        // backslach escapes don't work in autolinks.
+        // See: https://spec.commonmark.org/0.30/#example-602
+        if !self.is_auto_link && sequence_ends_on_escape(&self.buffer) {
+            self.buffer.push('\\');
         }
 
         self.buffer
