@@ -446,6 +446,42 @@ where
         }
         output
     }
+
+    /// Rewrite a single [`Event`] that spans over multiple lines
+    fn rewrite_multiline_event(&mut self, event: &Event<'i>, snippet: &'i str) -> std::fmt::Result {
+        // check if the input snippet ends with a newline so we can preserve it.
+        let ends_with_newline = snippet.ends_with('\n');
+
+        let mut iter = split_lines(snippet).peekable();
+
+        while let Some(s) = iter.next() {
+            let is_last = iter.peek().is_none();
+
+            // We want to trim leading indentation characters like `>`
+            // and any non-space whitespace characters.
+            let line = self.trim_leading_indentation(s);
+
+            let trailing_space_count = count_trailing_spaces(line);
+            let trailing_spaces = get_spaces(trailing_space_count);
+
+            let needs_escape = self.needs_escape(line, true);
+
+            let line = line.trim_end();
+
+            if is_last && !ends_with_newline {
+                if needs_escape {
+                    write_event!(self, &event, "\\{line}{trailing_spaces}")?;
+                } else {
+                    write_event!(self, &event, "{line}{trailing_spaces}")?;
+                }
+            } else if needs_escape {
+                writeln_event!(self, &event, "\\{line}{trailing_spaces}")?;
+            } else {
+                writeln_event!(self, &event, "{line}{trailing_spaces}")?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<'i, 'm, I> FormatState<'i, 'm, I>
@@ -655,37 +691,21 @@ where
                     }
                     self.check_needs_indent(&event);
                 }
-                Event::Code(_) | Event::InlineHtml(_) => {
+                Event::Code(_) => {
                     let snippet = &self.input[range.clone()];
                     if count_newlines(snippet) > 0 {
-                        let mut iter = split_lines(snippet).enumerate().peekable();
-                        while let Some((idx, s)) = iter.next() {
-                            let is_last = iter.peek().is_none();
-
-                            // We want to trim leading indentation characters
-                            // and any non-space whitespace characters.
-                            let line = self.trim_leading_indentation(s);
-                            let trailing_space_count = count_trailing_spaces(line);
-                            let trailing_spaces = get_spaces(trailing_space_count);
-
-                            if idx != 0 && self.needs_escape(line, true) {
-                                write_event!(self, &event, "\\")?;
-                            }
-
-                            if is_last {
-                                write_event!(self, &event, "{}{trailing_spaces}", line.trim_end())?;
-                            } else {
-                                writeln_event!(
-                                    self,
-                                    &event,
-                                    "{}{trailing_spaces}",
-                                    line.trim_end()
-                                )?;
-                            }
-                        }
+                        let snippet = snippet.trim_matches('`');
+                        // write the opening and closing markers separately so they aren't escaped.
+                        rewrite_marker(self.input, &range, &mut self)?;
+                        self.rewrite_multiline_event(&event, snippet)?;
+                        rewrite_marker(self.input, &range, &mut self)?;
                     } else {
                         write!(self, "{snippet}")?;
                     }
+                }
+                Event::InlineHtml(_) => {
+                    let snippet = &self.input[range.clone()];
+                    self.rewrite_multiline_event(&event, snippet)?;
                 }
                 Event::SoftBreak => {
                     last_position = range.end;
