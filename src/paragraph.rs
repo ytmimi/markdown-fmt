@@ -1,7 +1,9 @@
 use crate::escape::needs_escape;
 use crate::writer::WriteEvent;
 
+use regex::Regex;
 use std::fmt::Write;
+use std::sync::OnceLock;
 use textwrap::Options as TextWrapOptions;
 
 const MARKDOWN_HARD_BREAK: &str = "  \n";
@@ -158,17 +160,54 @@ impl Paragraph {
     }
 }
 
+/// Determine if this is the delimiter row of a markdown table.
+///
+/// For example, the second row of the table is the delimiter row.
+///
+/// |  a  |  b  |  c  |
+/// | --- | --- | --- | <-- This is the alignment row
+/// |     |     |     |
 fn could_be_table(text: &str) -> bool {
-    // 1. checks for -|
-    // 2. checks for |-
-    // 3. check for | - |
-    text.strip_suffix('|')
-        .is_some_and(|s| s.chars().all(|c| c.is_whitespace() || c == '-'))
-        || text
-            .strip_prefix('|')
-            .is_some_and(|s| s.chars().all(|c| c.is_whitespace() || c == '-'))
-        || text.strip_prefix('|').is_some_and(|s| {
-            s.strip_suffix('|')
-                .is_some_and(|s| s.chars().all(|c| c.is_whitespace() || c == '-'))
+    // I don't know why, but the regex still matches if there are escaped characters.
+    // so I'm adding this check to prevent that.
+    if text.contains('\\') {
+        return false;
+    }
+    static TABLE_ALIGNMENT_ROW_REGEX: OnceLock<Regex> = OnceLock::new();
+    TABLE_ALIGNMENT_ROW_REGEX
+        .get_or_init(|| {
+            Regex::new(r"^((\|(\s?-+\s?)+)+\|?)+|((\s?-+\s?)+\|)+((\s?-+\s?))?$")
+                .expect("valid regex")
         })
+        .is_match_at(text, 0)
+}
+
+#[test]
+fn test_could_be_table() {
+    let expected_matches = &[
+        "|-- - --- - |- -|- - -|  -",
+        "-|--|---|-",
+        "-|-",
+        "|-|",
+        "|-",
+        "-|",
+    ];
+
+    for line in expected_matches {
+        assert!(could_be_table(line))
+    }
+
+    let expected_rejections = &[
+        r"|\-|",
+        "|",
+        "-",
+        "- - - - - -",
+        "|    ",
+        " -  ",
+        "some text",
+    ];
+
+    for line in expected_rejections {
+        assert!(!could_be_table(line))
+    }
 }
