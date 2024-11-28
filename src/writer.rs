@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use crate::footnote::FootnoteDefinition;
 use crate::header::Header;
 use crate::links::LinkWriter;
@@ -41,6 +43,17 @@ impl std::fmt::Write for MarkdownWriter<'_> {
     }
 }
 
+impl WriteEvent<'_> for MarkdownWriter<'_> {
+    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'_>, s: &str) -> std::fmt::Result {
+        match self {
+            // Only need to implement this for `Self::Paragraph` right now to
+            // give more context about when to escape text.
+            Self::Paragraph(p) => p.write_event_str(e, s),
+            _ => self.write_str(s),
+        }
+    }
+}
+
 impl<'i> From<Header<'i>> for MarkdownWriter<'i> {
     fn from(value: Header<'i>) -> Self {
         Self::Header(value)
@@ -70,3 +83,56 @@ impl From<LinkWriter> for MarkdownWriter<'_> {
         Self::Link(value)
     }
 }
+
+/// An extension to [std::fmt::Write], which passes context about the [pulldown_cmark::Event]
+/// to the underlying writer.
+pub(crate) trait WriteEvent<'i>: std::fmt::Write {
+    /// Write a &str with additional context about which event is being written.
+    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'i>, s: &str) -> std::fmt::Result;
+
+    /// Write a [`std::fmt::Arguments`] with additional context about which event is being written.
+    fn write_event_fmt(
+        &mut self,
+        e: &pulldown_cmark::Event<'i>,
+        args: std::fmt::Arguments<'_>,
+    ) -> std::fmt::Result {
+        if let Some(s) = args.as_str() {
+            self.write_event_str(e, s)
+        } else {
+            self.write_event_str(e, &args.to_string())
+        }
+    }
+}
+
+impl WriteEvent<'_> for std::string::String {
+    fn write_event_str(&mut self, _e: &pulldown_cmark::Event<'_>, s: &str) -> std::fmt::Result {
+        self.write_str(s)
+    }
+}
+
+/// Like the [write!] macro from the standard library, but also passes along context
+/// about which [Event](pulldown_cmark::Event) is being written to the underlying writer.
+///
+/// **Note**, writers must implement [WriteEvent].
+macro_rules! write_event {
+    ($writer:expr, $event:expr, $($arg:tt)*) => {
+        $writer.write_event_fmt($event, format_args!($($arg)*))
+    };
+}
+
+pub(crate) use write_event;
+
+/// Like the [writeln!] macro from the standard library, but also passes along context
+/// about which [Event](pulldown_cmark::Event) is being written to the underlying writer.
+///
+/// **Note**, writers must implement [WriteEvent].
+macro_rules! writeln_event {
+    ($writer:expr, $event:expr $(,)?) => {
+        write_event!($writer, $event, "\n")
+    };
+    ($writer:expr, $event:expr, $($arg:tt)*) => {
+        write_event!($writer, $event, $($arg)*).and_then(|_| write_event!($writer, $event, "\n"))
+    }
+}
+
+pub(crate) use writeln_event;
