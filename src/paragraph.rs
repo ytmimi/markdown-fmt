@@ -1,6 +1,7 @@
 use crate::escape::needs_escape;
 use crate::writer::WriteEvent;
 
+use pulldown_cmark::Event;
 use regex::Regex;
 use std::fmt::Write;
 use std::sync::OnceLock;
@@ -17,12 +18,13 @@ pub(super) struct Paragraph {
 }
 
 impl WriteEvent<'_> for Paragraph {
-    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'_>, s: &str) -> std::fmt::Result {
-        // We should only need to escape `Event::Text`, since it might contain
-        // characters that look like other Markdown constructs, but they're really just text.
-        let pulldown_cmark::Event::Text(_) = e else {
+    fn write_event_str(&mut self, e: &Event<'_>, s: &str) -> std::fmt::Result {
+        // We should only need to escape `Event::Text`, and multi-line `Event::InlineHtml` and
+        // `Event::Code` since they might contain characters that look like other Markdown
+        // constructs, but they're really just text.
+        if !matches!(e, Event::Text(_) | Event::InlineHtml(_) | Event::Code(_)) || s.is_empty() {
             return self.write_str(s);
-        };
+        }
 
         let is_hard_break = |s: &str| -> bool {
             // Hard breaks can have any amount of leading whitesace followed by a newline
@@ -42,12 +44,7 @@ impl WriteEvent<'_> for Paragraph {
         // Prevent the next pass of the parser from accidentaly interpreting a table
         // without a leading |
         if self.buffer.ends_with('\n')
-            && self
-                .buffer
-                .lines()
-                .last()
-                .map(str::trim)
-                .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
+            && self.buffer.lines().last().is_some_and(|l| l.contains('|'))
             && could_be_table(s)
         {
             self.buffer.push('\\');
