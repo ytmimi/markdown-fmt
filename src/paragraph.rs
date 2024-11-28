@@ -26,17 +26,6 @@ impl WriteEvent<'_> for Paragraph {
             return self.write_str(s);
         }
 
-        let is_hard_break = |s: &str| -> bool {
-            // Hard breaks can have any amount of leading whitesace followed by a newline
-            s.strip_prefix("  ")
-                .is_some_and(|maybe_hard_break| maybe_hard_break.trim_start_matches(' ').eq("\n"))
-        };
-
-        if self.max_width.is_some() && is_hard_break(s) {
-            self.buffer.push_str(MARKDOWN_HARD_BREAK);
-            return Ok(());
-        }
-
         // FIXME(ytmimi) I'm adding alot of checks here. They mostly duplicate what's defined
         // in `needs_escape`, but only apply in certain scenarios. There's probably a much
         // better way to handle this.
