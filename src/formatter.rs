@@ -1718,9 +1718,9 @@ fn rewrite_marker_with_limit<W: std::fmt::Write>(
     let marker_char = input[range.start..].chars().next().unwrap();
     let marker = find_marker(input, range, |c| c != marker_char);
     if let Some(mark_max_width) = size_limit {
-        write!(writer, "{}", &marker[..mark_max_width])
+        writer.write_str(&marker[..mark_max_width])
     } else {
-        write!(writer, "{marker}")
+        writer.write_str(marker)
     }
 }
 
