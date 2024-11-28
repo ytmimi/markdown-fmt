@@ -26,6 +26,15 @@ TT
 [|        
         -|
 
+<!--
+    Escape the multi-line code text that looks like the delimter rows of a
+    GitHub Flavored Markdown Table, so it won't be interpreted as one on future formatting runs.
+-->
+ >*  `qy|?-
+-|-
+|-
+|-   ` -`
+`
 
 <!-- Don't interpret this as a link reference definition  -->
 
