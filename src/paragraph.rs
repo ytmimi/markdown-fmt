@@ -1,4 +1,5 @@
 use crate::escape::needs_escape;
+use crate::writer::WriteEvent;
 
 use std::fmt::Write;
 use textwrap::Options as TextWrapOptions;
@@ -13,8 +14,14 @@ pub(super) struct Paragraph {
     should_reflow_text: bool,
 }
 
-impl Write for Paragraph {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+impl WriteEvent<'_> for Paragraph {
+    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'_>, s: &str) -> std::fmt::Result {
+        // We should only need to escape `Event::Text`, since it might contain
+        // characters that look like other Markdown constructs, but they're really just text.
+        let pulldown_cmark::Event::Text(_) = e else {
+            return self.write_str(s);
+        };
+
         let is_hard_break = |s: &str| -> bool {
             // Hard breaks can have any amount of leading whitesace followed by a newline
             s.strip_prefix("  ")
@@ -26,61 +33,67 @@ impl Write for Paragraph {
             return Ok(());
         }
 
+        // FIXME(ytmimi) I'm adding alot of checks here. They mostly duplicate what's defined
+        // in `needs_escape`, but only apply in certain scenarios. There's probably a much
+        // better way to handle this.
+
+        // Prevent the next pass of the parser from accidentaly interpreting a table
+        // without a leading |
+        if self.buffer.ends_with('\n')
+            && self
+                .buffer
+                .lines()
+                .last()
+                .map(str::trim)
+                .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
+            && could_be_table(s)
+        {
+            self.buffer.push('\\');
+        }
+
+        // Prevent the next pass from ignoring the hard break or misinterpreting `s`
+        // as something other than text in a paragraph
+        if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape(s) {
+            self.buffer.push('\\');
+        }
+
+        let all_chars_eq =
+            |input: &str, marker: char| -> bool { input.chars().all(|c| c == marker) };
+
+        // Prevent the next pass from interpreting this as a header
+        if self.buffer.ends_with('\n') && (all_chars_eq(s, '-') || all_chars_eq(s, '=')) {
+            self.buffer.push('\\');
+        }
+
+        // Prevent the next pass from interpreting this as a list
+        if self.buffer.ends_with('\n') && matches!(s, "* " | "+ " | "- ") {
+            self.buffer.push('\\');
+        }
+
+        let is_thematic_break = |input: &str, marker: char| -> bool {
+            input
+                .chars()
+                .all(|c| matches!(c, ' ' | '\t') || c == marker)
+                && input.chars().filter(|c| *c == marker).count() >= 3
+        };
+
+        if (self.buffer.ends_with('\n') || self.buffer.is_empty())
+            && ['-', '_', '*'].iter().any(|c| is_thematic_break(s, *c))
+        {
+            self.buffer.push('\\');
+        }
+
+        self.write_str(s)
+    }
+}
+
+impl Write for Paragraph {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
         if self.max_width.is_some() && self.should_reflow_text && s.trim().is_empty() {
             // If the user configured the max_width and the reflow text option
             // then push a space so we can reflow text
             self.buffer.push(' ');
         } else {
-            // FIXME(ytmimi) I'm adding alot of checks here. They mostly duplicate what's defined
-            // in `needs_escape`, but only apply in certain scenarios. There's probably a much
-            // better wasy to handle this.
-
-            // Prevent the next pass of the parser from accidentaly interpreting a table
-            // without a leading |
-            if self.buffer.ends_with('\n')
-                && self
-                    .buffer
-                    .lines()
-                    .last()
-                    .map(str::trim)
-                    .is_some_and(|l| l.starts_with('|') || l.ends_with('|'))
-                && could_be_table(s)
-            {
-                self.buffer.push('\\');
-            }
-
-            // Prevent the next pass from ignoring the hard break or misinterpreting `s`
-            // as something other than text in a paragraph
-            if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape(s) {
-                self.buffer.push('\\');
-            }
-
-            let all_chars_eq =
-                |input: &str, marker: char| -> bool { input.chars().all(|c| c == marker) };
-
-            // Prevent the next pass from interpreting this as a header
-            if self.buffer.ends_with('\n') && (all_chars_eq(s, '-') || all_chars_eq(s, '=')) {
-                self.buffer.push('\\');
-            }
-
-            // Prevent the next pass from interpreting this as a list
-            if self.buffer.ends_with('\n') && matches!(s, "* " | "+ " | "- ") {
-                self.buffer.push('\\');
-            }
-
-            let is_thematic_break = |input: &str, marker: char| -> bool {
-                input
-                    .chars()
-                    .all(|c| matches!(c, ' ' | '\t') || c == marker)
-                    && input.chars().filter(|c| *c == marker).count() >= 3
-            };
-
-            if (self.buffer.ends_with('\n') || self.buffer.is_empty())
-                && ['-', '_', '*'].iter().any(|c| is_thematic_break(s, *c))
-            {
-                self.buffer.push('\\');
-            }
-
             self.buffer.push_str(s);
         }
 
