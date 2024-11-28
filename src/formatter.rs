@@ -22,7 +22,7 @@ use crate::table::TableState;
 use crate::utils::{
     count_newlines, count_trailing_spaces, get_spaces, sequence_ends_on_escape, split_lines,
 };
-use crate::writer::MarkdownWriter;
+use crate::writer::{MarkdownWriter, WriteEvent, write_event, writeln_event};
 
 static DEFINITION_LIST_INDENTATION: &str = "  ";
 
@@ -169,6 +169,17 @@ where
     }
 }
 
+/// Pass along context about the current [Event] that's being rewritten
+impl<'i, I> WriteEvent<'i> for FormatState<'i, '_, I>
+where
+    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+{
+    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'i>, s: &str) -> std::fmt::Result {
+        let writer = self.current_buffer();
+        writer.write_event_str(e, s)
+    }
+}
+
 impl<'i, I> FormatState<'i, '_, I>
 where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
@@ -268,9 +279,9 @@ where
     /// Get an exclusive reference to the current buffer we're writing to. That could be the main
     /// rewrite buffer, the code block buffer, the internal table state, or anything else we're
     /// writing to while reformatting
-    fn current_buffer(&mut self) -> &mut dyn std::fmt::Write {
+    fn current_buffer(&mut self) -> &mut dyn WriteEvent {
         if let Some(writer) = self.writers.last_mut() {
-            writer as &mut dyn std::fmt::Write
+            writer as &mut dyn WriteEvent
         } else {
             &mut self.rewrite_buffer
         }
@@ -664,17 +675,17 @@ where
                         || (self.in_table() && text.starts_with('|'))
                     {
                         // recover escape characters
-                        write!(self, "\\{text}")?;
+                        write_event!(self, &event, "\\{text}")?;
                     } else {
-                        write!(self, "{text}")?;
+                        write_event!(self, &event, "{text}")?;
                     }
                     self.check_needs_indent(&event);
                 }
                 Event::Code(_) | Event::InlineHtml(_) => {
                     let snippet = &self.input[range.clone()];
                     if count_newlines(snippet) > 0 {
-                        let mut iter = split_lines(snippet).peekable();
-                        while let Some(s) = iter.next() {
+                        let mut iter = split_lines(snippet).enumerate().peekable();
+                        while let Some((idx, s)) = iter.next() {
                             let is_last = iter.peek().is_none();
 
                             // We want to trim leading indentation characters
@@ -683,14 +694,19 @@ where
                             let trailing_space_count = count_trailing_spaces(line);
                             let trailing_spaces = get_spaces(trailing_space_count);
 
-                            if self.needs_escape(line, true) {
-                                write!(self, "\\")?;
+                            if idx != 0 && self.needs_escape(line, true) {
+                                write_event!(self, &event, "\\")?;
                             }
 
                             if is_last {
-                                write!(self, "{}{trailing_spaces}", line.trim_end())?;
+                                write_event!(self, &event, "{}{trailing_spaces}", line.trim_end())?;
                             } else {
-                                writeln!(self, "{}{trailing_spaces}", line.trim_end())?;
+                                writeln_event!(
+                                    self,
+                                    &event,
+                                    "{}{trailing_spaces}",
+                                    line.trim_end()
+                                )?;
                             }
                         }
                     } else {
@@ -701,9 +717,9 @@ where
                     last_position = range.end;
 
                     if self.in_link_or_image() {
-                        write!(self, " ")?;
+                        write_event!(self, &event, " ")?;
                     } else {
-                        writeln!(self)?;
+                        writeln_event!(self, &event)?;
 
                         // paraphraphs write their indentation after reformatting the text
                         if !self.in_paragraph() {
@@ -717,14 +733,16 @@ where
                         "  \r" | "  \r\n" | "  \n" => "  \n",
                         h => h,
                     };
-                    self.write_str(hard_break)?;
+
+                    self.write_event_str(&event, hard_break)?;
                 }
                 Event::Html(_) => {
                     let newlines = self.count_newlines(&range);
                     if self.needs_indent {
                         self.write_newlines(newlines)?;
                     }
-                    write!(self, "{}", &self.input[range].trim_end())?;
+                    let snippet = &self.input[range].trim_end();
+                    self.write_event_str(&event, snippet)?;
                     self.check_needs_indent(&event);
                 }
                 Event::Rule => {
@@ -732,17 +750,17 @@ where
                     self.rewrite_reference_link_definitions(&reference_definition_range)?;
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
-                    write!(self, "{}", &self.input[range].trim_end())?;
+                    self.write_event_str(&event, self.input[range].trim_end())?;
                     self.check_needs_indent(&event)
                 }
                 Event::FootnoteReference(ref text) => {
-                    write!(self, "[^{text}]")?;
+                    write_event!(self, &event, "[^{text}]")?;
                 }
                 Event::TaskListMarker(done) => {
                     if done {
-                        write!(self, "[x] ")?;
+                        write_event!(self, &event, "[x] ")?;
                     } else {
-                        write!(self, "[ ] ")?;
+                        write_event!(self, &event, "[ ] ")?;
                     }
                 }
                 Event::DisplayMath(..) | Event::InlineMath(..) => {
