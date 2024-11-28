@@ -26,6 +26,16 @@ TT
 [|        
         -|
 
+<!--
+    Escape the multi-line code text that looks like the delimter rows of a
+    GitHub Flavored Markdown Table, so it won't be interpreted as one on future formatting runs.
+-->
+ >*  `qy|?-
+-|-
+|-
+|-   ` -`
+`
+
 <!-- space hard break followed by paragraph with single `-` -->
 <  
     -
