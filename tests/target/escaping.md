@@ -140,3 +140,34 @@
 
 \:
 :
+
+
+<!-- escape `#` so that we don't treat it as a header -->
+<!
+\# *<!  
+``
+
+<!
+\## *<!  
+``
+
+<!
+\### *<!  
+``
+
+<!
+\#### *<!  
+``
+
+<!
+\##### *<!  
+``
+
+<!
+\###### *<!  
+``
+
+<!-- doesn't need an escape because a header can only be up to h6 -->
+<!
+####### *<!  
+``

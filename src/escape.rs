@@ -1,7 +1,5 @@
 use super::formatter::FormatState;
 
-const ATX_HEADER_ESCAPES: [&str; 6] = ["# ", "## ", "### ", "#### ", "##### ", "###### "];
-
 impl<I> FormatState<'_, '_, I>
 where
     I: Iterator,
@@ -44,15 +42,31 @@ pub(crate) fn needs_escape(input: &str) -> bool {
         return false;
     };
 
+    let is_atx_heading = || -> bool {
+        let mut leading_marker_count = 0;
+        let mut whitespace_after_header_marker = false;
+        for c in input.chars() {
+            if c == '#' {
+                leading_marker_count += 1;
+                continue;
+            }
+
+            if c.is_whitespace() {
+                whitespace_after_header_marker = true;
+            }
+
+            break;
+        }
+
+        leading_marker_count <= 6 && whitespace_after_header_marker
+    };
     let is_setext_heading = |value: u8| input.trim_end().bytes().all(|b| b == value);
     let is_unordered_list_marker = |value: &str| input.starts_with(value);
     let is_thematic_break = |value: u8| input.bytes().all(|b| b == value || b == b' ');
     let is_fenced_code_block = |value: &str| input.starts_with(value);
 
     match first_char {
-        '#' => ATX_HEADER_ESCAPES
-            .iter()
-            .any(|header| input.starts_with(header)),
+        '#' => is_atx_heading(),
         '=' => is_setext_heading(b'='),
         '-' => is_unordered_list_marker("- ") || is_setext_heading(b'-') || is_thematic_break(b'-'),
         '_' => is_thematic_break(b'_'),
