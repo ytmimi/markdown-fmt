@@ -22,7 +22,9 @@ use crate::table::TableState;
 use crate::utils::{
     count_newlines, count_trailing_spaces, get_spaces, sequence_ends_on_escape, split_lines,
 };
-use crate::writer::{MarkdownWriter, WriteEvent, write_event, writeln_event};
+use crate::writer::{
+    MarkdownContext, MarkdownWriter, WriteContext, write_context, writeln_context,
+};
 
 // Defined using a macro so that the parsing options can be shared with tests for consistency.
 #[doc(hidden)]
@@ -167,13 +169,13 @@ where
 }
 
 /// Pass along context about the current [Event] that's being rewritten
-impl<'i, I> WriteEvent<'i> for FormatState<'i, '_, I>
+impl<'i, I> WriteContext<'i> for FormatState<'i, '_, I>
 where
     I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
-    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'i>, s: &str) -> std::fmt::Result {
+    fn write_context_str(&mut self, ctx: MarkdownContext<'_, 'i>, s: &str) -> std::fmt::Result {
         let writer = self.current_buffer();
-        writer.write_event_str(e, s)
+        writer.write_context_str(ctx, s)
     }
 }
 
@@ -254,9 +256,9 @@ where
     /// Get an exclusive reference to the current buffer we're writing to. That could be the main
     /// rewrite buffer, the code block buffer, the internal table state, or anything else we're
     /// writing to while reformatting
-    fn current_buffer(&mut self) -> &mut dyn WriteEvent<'_> {
+    fn current_buffer(&mut self) -> &mut dyn WriteContext<'_> {
         if let Some(writer) = self.writers.last_mut() {
-            writer as &mut dyn WriteEvent
+            writer as &mut dyn WriteContext
         } else {
             &mut self.rewrite_buffer
         }
@@ -470,14 +472,14 @@ where
 
             if is_last && !ends_with_newline {
                 if needs_escape {
-                    write_event!(self, &event, "\\{line}{trailing_spaces}")?;
+                    write_context!(self, event, "\\{line}{trailing_spaces}")?;
                 } else {
-                    write_event!(self, &event, "{line}{trailing_spaces}")?;
+                    write_context!(self, event, "{line}{trailing_spaces}")?;
                 }
             } else if needs_escape {
-                writeln_event!(self, &event, "\\{line}{trailing_spaces}")?;
+                writeln_context!(self, event, "\\{line}{trailing_spaces}")?;
             } else {
-                writeln_event!(self, &event, "{line}{trailing_spaces}")?;
+                writeln_context!(self, event, "{line}{trailing_spaces}")?;
             }
         }
         Ok(())
@@ -685,9 +687,9 @@ where
                         || (self.in_table() && text.starts_with('|'))
                     {
                         // recover escape characters
-                        write_event!(self, &event, "\\{text}")?;
+                        write_context!(self, &event, "\\{text}")?;
                     } else {
-                        write_event!(self, &event, "{text}")?;
+                        write_context!(self, &event, "{text}")?;
                     }
                     self.check_needs_indent(&event);
                 }
@@ -711,9 +713,9 @@ where
                     last_position = range.end;
 
                     if self.in_link_or_image() {
-                        write_event!(self, &event, " ")?;
+                        write_context!(self, &event, " ")?;
                     } else {
-                        writeln_event!(self, &event)?;
+                        writeln_context!(self, &event)?;
 
                         // paraphraphs write their indentation after reformatting the text
                         if !self.in_paragraph() {
@@ -748,13 +750,13 @@ where
                     self.check_needs_indent(&event)
                 }
                 Event::FootnoteReference(ref text) => {
-                    write_event!(self, &event, "[^{text}]")?;
+                    write_context!(self, &event, "[^{text}]")?;
                 }
                 Event::TaskListMarker(done) => {
                     if done {
-                        write_event!(self, &event, "[x] ")?;
+                        write_context!(self, &event, "[x] ")?;
                     } else {
-                        write_event!(self, &event, "[ ] ")?;
+                        write_context!(self, &event, "[ ] ")?;
                     }
                 }
                 Event::DisplayMath(..) | Event::InlineMath(..) => {

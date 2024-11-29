@@ -1,5 +1,5 @@
 use crate::escape::needs_escape;
-use crate::writer::WriteEvent;
+use crate::writer::{MarkdownContext, WriteContext};
 
 use pulldown_cmark::Event;
 use regex::Regex;
@@ -17,12 +17,17 @@ pub(super) struct Paragraph {
     should_reflow_text: bool,
 }
 
-impl WriteEvent<'_> for Paragraph {
-    fn write_event_str(&mut self, e: &Event<'_>, s: &str) -> std::fmt::Result {
+impl WriteContext<'_> for Paragraph {
+    fn write_context_str(&mut self, ctx: MarkdownContext, s: &str) -> std::fmt::Result {
         // We should only need to escape `Event::Text`, and multi-line `Event::InlineHtml` and
         // `Event::Code` since they might contain characters that look like other Markdown
         // constructs, but they're really just text.
-        if !matches!(e, Event::Text(_) | Event::InlineHtml(_) | Event::Code(_)) || s.is_empty() {
+        let doesnt_need_escape = !matches!(
+            ctx,
+            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_) | Event::Code(_))
+        );
+
+        if doesnt_need_escape || s.is_empty() {
             return self.write_str(s);
         }
 
