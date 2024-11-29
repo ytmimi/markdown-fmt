@@ -1557,22 +1557,24 @@ where
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
 
                 let (link_type, url, title) = match popped_tag {
-                    Some(Tag::Link {
-                        link_type,
-                        dest_url,
-                        title,
-                        ..
-                    }) => {
+                    Some(
+                        ref tag @ Tag::Link {
+                            ref link_type,
+                            ref dest_url,
+                            ref title,
+                            ..
+                        },
+                    ) => {
                         let email_or_auto =
                             matches!(link_type, LinkType::Email | LinkType::Autolink);
                         let opener = if email_or_auto { "<" } else { "[" };
-                        self.write_str(opener)?;
+                        self.write_tag_str(&tag, opener)?;
                         (link_type, dest_url, title)
                     }
                     Some(Tag::Image {
-                        link_type,
-                        dest_url,
-                        title,
+                        ref link_type,
+                        ref dest_url,
+                        ref title,
                         ..
                     }) => {
                         write!(self, "![")?;

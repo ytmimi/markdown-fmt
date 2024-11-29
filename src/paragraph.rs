@@ -1,7 +1,9 @@
 use crate::escape::needs_escape;
+use crate::links::is_balanced;
+use crate::utils::sequence_ends_on_escape;
 use crate::writer::{MarkdownContext, WriteContext};
 
-use pulldown_cmark::Event;
+use pulldown_cmark::{Event, LinkType, Tag};
 use regex::Regex;
 use std::fmt::Write;
 use std::sync::OnceLock;
@@ -22,13 +24,55 @@ impl WriteContext<'_> for Paragraph {
         // We should only need to escape `Event::Text`, and multi-line `Event::InlineHtml` and
         // `Event::Code` since they might contain characters that look like other Markdown
         // constructs, but they're really just text.
-        let doesnt_need_escape = !matches!(
-            ctx,
-            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_) | Event::Code(_))
-        );
+        match ctx {
+            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_) | Event::Code(_)) => {
+                if s.is_empty() {
+                    return self.write_str(s);
+                }
+            }
+            MarkdownContext::Tag(Tag::Link { link_type, .. }) => {
+                let closing_brace_needs_escape = || {
+                    if !self.buffer.ends_with(']')
+                        || matches!(link_type, LinkType::Autolink | LinkType::Email)
+                    {
+                        return false;
+                    }
 
-        if doesnt_need_escape || s.is_empty() {
-            return self.write_str(s);
+                    let Some(last_line) = self.buffer.lines().last() else {
+                        return false;
+                    };
+
+                    for (opener_idx, _) in last_line.match_indices('[') {
+                        if sequence_ends_on_escape(&last_line[..opener_idx]) {
+                            continue;
+                        }
+
+                        let bracket_snippet = &last_line[opener_idx..];
+                        if is_balanced(bracket_snippet, '[', ']') {
+                            let trimmed_bracket_snippet = bracket_snippet
+                                .trim_end_matches(['\n', ']'])
+                                .trim_start_matches('[');
+                            if !trimmed_bracket_snippet.is_empty()
+                                && trimmed_bracket_snippet.chars().all(char::is_whitespace)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    false
+                };
+
+                if closing_brace_needs_escape() {
+                    // pop off the `]` and push it back escaped.
+                    self.buffer.pop();
+                    self.buffer.push_str("\\]");
+                }
+
+                return self.write_str(s);
+            }
+            _ => {
+                return self.write_str(s);
+            }
         }
 
         // FIXME(ytmimi) I'm adding alot of checks here. They mostly duplicate what's defined

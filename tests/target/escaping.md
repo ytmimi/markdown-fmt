@@ -136,6 +136,18 @@
 
 
 <!--
+  escape the `]` in a and b so that we don't change the meaning of the markdown and
+  to keep the output idempotent.
+-->
+a[ \][\^Inline](^)
+b[ \][\^Reference][\^]
+c[ ][^Collapsed][] <!-- not parsed as a link -->
+d[ ][^Shortcut] <!-- not parsed as a link -->
+e[ ]<https://Autolink.com>
+f[ ]<Email@example.com>
+
+
+<!--
   Place an extra space between the end of the list and the start of the definition list.
   That helps to keep the output idempotent and won't change the semantics.
   input found when fuzzing.
