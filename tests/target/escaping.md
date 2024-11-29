@@ -114,6 +114,12 @@
 :
 
 
+<!-- Only escape the first `*` -->
+
+\**
+:
+
+
 <!-- escape what looks like rule -->
 [.]: a
 \***

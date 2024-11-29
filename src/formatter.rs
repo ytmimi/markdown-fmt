@@ -12,6 +12,8 @@ use pulldown_cmark::{LinkType, Parser, Tag};
 use crate::adapters::{ListEndAtLastItemExt, LooseListExt};
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
+use crate::definition_list::DefinitionListTitle;
+use crate::escape::needs_escape;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
 use crate::html::HTML_BLOCK_TAG;
@@ -247,7 +249,9 @@ where
 
     /// Check if we're currently formatting a definition list title
     fn in_definition_list_title(&self) -> bool {
-        matches!(self.nested_context.last(), Some(Tag::DefinitionListTitle))
+        self.writers
+            .last()
+            .is_some_and(|w| matches!(w, MarkdownWriter::DefinitionListTitle(_)))
     }
 
     /// Check if we're in a Table
@@ -655,7 +659,7 @@ where
                     }
 
                     // aggressively escape if we're in a definition list
-                    let needs_escape = self.needs_escape(text, self.in_definition_list_title());
+                    let needs_escape = self.needs_escape(text, false);
 
                     let could_be_interpreted_as_html =
                         |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
@@ -744,7 +748,7 @@ where
                         writeln_event!(self, &event)?;
 
                         // paraphraphs write their indentation after reformatting the text
-                        if !self.in_paragraph() {
+                        if !(self.in_paragraph() || self.in_definition_list_title()) {
                             self.write_indentation(false)?;
                         }
                     }
@@ -1280,7 +1284,9 @@ where
             Tag::DefinitionListTitle => {
                 let newlines = self.count_newlines(&range);
                 self.write_newlines(newlines)?;
-                self.nested_context.push(tag);
+                let capacity = (range.end - range.start) * 2;
+                let definition_list_title = DefinitionListTitle::new(capacity);
+                self.writers.push(definition_list_title.into());
             }
             Tag::DefinitionListDefinition => {
                 let newlines = self.count_newlines(&range);
@@ -1665,9 +1671,24 @@ where
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
             }
-            TagEnd::DefinitionList | TagEnd::DefinitionListTitle => {
+            TagEnd::DefinitionList => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+            }
+            TagEnd::DefinitionListTitle => {
+                debug_assert!(matches!(
+                    self.writers.last(),
+                    Some(MarkdownWriter::DefinitionListTitle(_))
+                ));
+                let Some(MarkdownWriter::DefinitionListTitle(d)) = self.writers.pop() else {
+                    unreachable!("Should have popped a MarkdownWriter::DefinitionListTitle")
+                };
+
+                let buffer = d.into_buffer();
+                if needs_escape(&buffer) {
+                    self.write_str("\\")?;
+                }
+                self.join_with_indentation(&buffer, false)?;
             }
             TagEnd::DefinitionListDefinition => {
                 let ref_def_range = self.last_position..range.end;

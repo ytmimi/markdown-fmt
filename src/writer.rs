@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use crate::definition_list::DefinitionListTitle;
 use crate::footnote::FootnoteDefinition;
 use crate::header::Header;
 use crate::links::LinkWriter;
@@ -15,6 +16,7 @@ pub(super) enum MarkdownWriter<'i> {
     Paragraph(Paragraph),
     Table(TableState<'i>),
     Link(LinkWriter),
+    DefinitionListTitle(DefinitionListTitle),
 }
 
 impl MarkdownWriter<'_> {
@@ -26,6 +28,7 @@ impl MarkdownWriter<'_> {
             Self::Paragraph(p) => p.is_empty(),
             Self::Table(t) => t.is_empty(),
             Self::Link(l) => l.is_empty(),
+            Self::DefinitionListTitle(d) => d.is_empty(),
         }
     }
 }
@@ -39,6 +42,7 @@ impl std::fmt::Write for MarkdownWriter<'_> {
             Self::Paragraph(p) => p.write_str(s),
             Self::Table(t) => t.write_str(s),
             Self::Link(l) => l.write_str(s),
+            Self::DefinitionListTitle(d) => d.write_str(s),
         }
     }
 }
@@ -81,6 +85,12 @@ impl<'i> From<TableState<'i>> for MarkdownWriter<'i> {
 impl From<LinkWriter> for MarkdownWriter<'_> {
     fn from(value: LinkWriter) -> Self {
         Self::Link(value)
+    }
+}
+
+impl From<DefinitionListTitle> for MarkdownWriter<'_> {
+    fn from(value: DefinitionListTitle) -> Self {
+        Self::DefinitionListTitle(value)
     }
 }
 
