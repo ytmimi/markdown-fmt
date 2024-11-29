@@ -90,18 +90,22 @@ pub(crate) fn format_link_url(url: &str, wrap_empty_urls: bool) -> Cow<'_, str> 
 
 /// Check if the parens are balanced
 fn balanced_parens(url: &str) -> bool {
+    is_balanced(url, '(', ')')
+}
+
+pub(crate) fn is_balanced(s: &str, opener: char, closer: char) -> bool {
     let mut stack = vec![];
     let mut was_last_escape = false;
 
-    for b in url.bytes() {
-        if !was_last_escape && b == b'(' {
-            stack.push(b);
+    for c in s.chars() {
+        if !was_last_escape && c == opener {
+            stack.push(c);
             continue;
         }
 
-        if !was_last_escape && b == b')' {
+        if !was_last_escape && c == closer {
             if let Some(top) = stack.last() {
-                if *top != b'(' {
+                if *top != opener {
                     return false;
                 }
                 stack.pop();
@@ -109,7 +113,7 @@ fn balanced_parens(url: &str) -> bool {
                 return false;
             }
         }
-        was_last_escape = b == b'\\';
+        was_last_escape = is_char_esacped(c, was_last_escape);
     }
     stack.is_empty()
 }
@@ -843,6 +847,26 @@ mod test {
                 assert!(result.title.is_none());
             }
         };
+    }
+
+    #[test]
+    fn test_is_balanced() {
+        assert!(!is_balanced("[\\]", '[', ']'));
+        assert!(!is_balanced("{\\}", '{', '}'));
+        assert!(!is_balanced("(\\)", '(', ')'));
+
+        // Should we continue to treat empty as balanced?
+        assert!(is_balanced("", '[', ']'));
+        assert!(is_balanced("", '{', '}'));
+        assert!(is_balanced("", '(', ')'));
+
+        assert!(is_balanced("[]", '[', ']'));
+        assert!(is_balanced("{}", '{', '}'));
+        assert!(is_balanced("()", '(', ')'));
+
+        assert!(is_balanced("[\\\\]", '[', ']'));
+        assert!(is_balanced("{\\\\}", '{', '}'));
+        assert!(is_balanced("(\\\\)", '(', ')'));
     }
 
     #[test]
