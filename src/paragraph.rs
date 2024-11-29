@@ -39,9 +39,15 @@ impl WriteEvent<'_> for Paragraph {
             self.buffer.push('\\');
         }
 
+        let needs_escape = needs_escape(s);
+
         // Prevent the next pass from ignoring the hard break or misinterpreting `s`
         // as something other than text in a paragraph
-        if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape(s) {
+        if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape {
+            self.buffer.push('\\');
+        }
+
+        if s.starts_with('#') && needs_escape {
             self.buffer.push('\\');
         }
 
