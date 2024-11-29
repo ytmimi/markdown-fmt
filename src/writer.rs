@@ -47,12 +47,12 @@ impl std::fmt::Write for MarkdownWriter<'_> {
     }
 }
 
-impl WriteEvent<'_> for MarkdownWriter<'_> {
-    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'_>, s: &str) -> std::fmt::Result {
+impl WriteContext<'_> for MarkdownWriter<'_> {
+    fn write_context_str(&mut self, ctx: MarkdownContext<'_, '_>, s: &str) -> std::fmt::Result {
         match self {
             // Only need to implement this for `Self::Paragraph` right now to
             // give more context about when to escape text.
-            Self::Paragraph(p) => p.write_event_str(e, s),
+            Self::Paragraph(p) => p.write_context_str(ctx, s),
             _ => self.write_str(s),
         }
     }
@@ -95,27 +95,81 @@ impl From<DefinitionListTitle> for MarkdownWriter<'_> {
 }
 
 /// An extension to [std::fmt::Write], which passes context about the [pulldown_cmark::Event]
-/// to the underlying writer.
-pub(crate) trait WriteEvent<'i>: std::fmt::Write {
-    /// Write a &str with additional context about which event is being written.
-    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'i>, s: &str) -> std::fmt::Result;
+/// or [pulldown_cmark::Tag] to the underlying writer.
+pub(crate) trait WriteContext<'i>: std::fmt::Write {
+    /// Write a &str with additional [context](WriteContext) about which
+    /// [pulldown_cmark::Event] or [pulldown_cmark::Tag].
+    fn write_context_str(&mut self, ctx: MarkdownContext<'_, 'i>, s: &str) -> std::fmt::Result;
 
-    /// Write a [`std::fmt::Arguments`] with additional context about which event is being written.
+    /// Write a &str with additional context about which [pulldown_cmark::Event] is being written.
+    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'i>, s: &str) -> std::fmt::Result {
+        self.write_context_str(e.into(), s)
+    }
+
+    /// Write a &str with additional context about which [pulldown_cmark::Tag] is being written.
+    #[allow(dead_code)]
+    fn write_tag_str(&mut self, t: &pulldown_cmark::Tag<'i>, s: &str) -> std::fmt::Result {
+        self.write_context_str(t.into(), s)
+    }
+
+    /// Write a [`std::fmt::Arguments`] with additional [context](WriteContext) about which event is
+    /// being written.
+    fn write_context_fmt(
+        &mut self,
+        ctx: MarkdownContext<'_, 'i>,
+        args: std::fmt::Arguments<'_>,
+    ) -> std::fmt::Result {
+        if let Some(s) = args.as_str() {
+            self.write_context_str(ctx, s)
+        } else {
+            self.write_context_str(ctx, &args.to_string())
+        }
+    }
+
+    /// Write a [`std::fmt::Arguments`] with additional context about which [pulldown_cmark::Event]
+    /// is being written.
+    #[allow(dead_code)]
     fn write_event_fmt(
         &mut self,
         e: &pulldown_cmark::Event<'i>,
         args: std::fmt::Arguments<'_>,
     ) -> std::fmt::Result {
-        if let Some(s) = args.as_str() {
-            self.write_event_str(e, s)
-        } else {
-            self.write_event_str(e, &args.to_string())
-        }
+        self.write_context_fmt(e.into(), args)
+    }
+
+    /// Write a [`std::fmt::Arguments`] with additional context about which [pulldown_cmark::Tag]
+    /// is being written.
+    #[allow(dead_code)]
+    fn write_tag_fmt(
+        &mut self,
+        t: &pulldown_cmark::Tag<'i>,
+        args: std::fmt::Arguments<'_>,
+    ) -> std::fmt::Result {
+        self.write_context_fmt(t.into(), args)
     }
 }
 
-impl WriteEvent<'_> for std::string::String {
-    fn write_event_str(&mut self, _e: &pulldown_cmark::Event<'_>, s: &str) -> std::fmt::Result {
+/// Context about the [pulldown_cmark::Evet] or [pulldown_cmark::Tag] that's being written.
+pub(crate) enum MarkdownContext<'a, 'i> {
+    Event(&'a pulldown_cmark::Event<'i>),
+    #[allow(dead_code)]
+    Tag(&'a pulldown_cmark::Tag<'i>),
+}
+
+impl<'a, 'i> From<&'a pulldown_cmark::Event<'i>> for MarkdownContext<'a, 'i> {
+    fn from(value: &'a pulldown_cmark::Event<'i>) -> Self {
+        Self::Event(value)
+    }
+}
+
+impl<'a, 'i> From<&'a pulldown_cmark::Tag<'i>> for MarkdownContext<'a, 'i> {
+    fn from(value: &'a pulldown_cmark::Tag<'i>) -> Self {
+        Self::Tag(value)
+    }
+}
+
+impl WriteContext<'_> for std::string::String {
+    fn write_context_str(&mut self, _ctx: MarkdownContext<'_, '_>, s: &str) -> std::fmt::Result {
         self.write_str(s)
     }
 }
@@ -124,25 +178,25 @@ impl WriteEvent<'_> for std::string::String {
 /// about which [Event](pulldown_cmark::Event) is being written to the underlying writer.
 ///
 /// **Note**, writers must implement [WriteEvent].
-macro_rules! write_event {
-    ($writer:expr, $event:expr, $($arg:tt)*) => {
-        $writer.write_event_fmt($event, format_args!($($arg)*))
+macro_rules! write_context {
+    ($writer:expr, $ctx:expr, $($arg:tt)*) => {
+        $writer.write_context_fmt($ctx.into(), format_args!($($arg)*))
     };
 }
 
-pub(crate) use write_event;
+pub(crate) use write_context;
 
 /// Like the [writeln!] macro from the standard library, but also passes along context
 /// about which [Event](pulldown_cmark::Event) is being written to the underlying writer.
 ///
 /// **Note**, writers must implement [WriteEvent].
-macro_rules! writeln_event {
-    ($writer:expr, $event:expr $(,)?) => {
-        write_event!($writer, $event, "\n")
+macro_rules! writeln_context {
+    ($writer:expr, $ctx:expr $(,)?) => {
+        write_context!($writer, $ctx, "\n")
     };
-    ($writer:expr, $event:expr, $($arg:tt)*) => {
-        write_event!($writer, $event, $($arg)*).and_then(|_| write_event!($writer, $event, "\n"))
+    ($writer:expr, $ctx:expr, $($arg:tt)*) => {
+        write_context!($writer, $ctx, $($arg)*).and_then(|_| write_context!($writer, $ctx, "\n"))
     }
 }
 
-pub(crate) use writeln_event;
+pub(crate) use writeln_context;
