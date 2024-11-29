@@ -190,7 +190,7 @@ fn link_title_start(link: &[u8]) -> usize {
     let opener = if last == b')' { b'(' } else { last };
 
     // offset by 2 to skip triling quote
-    let mut index = link.len() - 2;
+    let mut index = link.len().saturating_sub(2);
     while index.saturating_sub(1) != 0 {
         if link[index] == opener && link[index - 1] != b'\\' {
             return index;

@@ -115,6 +115,18 @@
 [\\][\^]
 
 
+<!--
+  escape the `]` in a and b so that we don't change the meaning of the markdown and
+  to keep the output idempotent.
+-->
+a[ \][\^Inline](^)
+b[ \][\^Reference][\^]
+c[ ][^Collapsed][] <!-- not parsed as a link -->
+d[ ][^Shortcut] <!-- not parsed as a link -->
+e[ ]<https://Autolink.com>
+f[ ]<Email@example.com>
+
+
 <!-- escape `#` so that we don't treat it as a header -->
 <!
 \# *<!  
