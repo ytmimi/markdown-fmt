@@ -176,3 +176,26 @@ TT
 <!
     ####### *<!  
 ``
+
+<!-- escape '#' so that it's not treated as an empty header -->
+A  
+    #
+
+B  
+    ##
+
+C  
+    ###
+
+D  
+    ####
+
+E  
+    #####
+
+F  
+    ######
+
+<!-- doesn't need an escape because a header can only be up to h6 -->
+G  
+    #######
