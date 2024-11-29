@@ -97,7 +97,6 @@ pub(crate) trait WriteContext<'i>: std::fmt::Write {
     }
 
     /// Write a &str with additional context about which [pulldown_cmark::Tag] is being written.
-    #[allow(dead_code)]
     fn write_tag_str(&mut self, t: &pulldown_cmark::Tag<'i>, s: &str) -> std::fmt::Result {
         self.write_context_str(t.into(), s)
     }
@@ -142,7 +141,6 @@ pub(crate) trait WriteContext<'i>: std::fmt::Write {
 /// Context about the [pulldown_cmark::Evet] or [pulldown_cmark::Tag] that's being written.
 pub(crate) enum MarkdownContext<'a, 'i> {
     Event(&'a pulldown_cmark::Event<'i>),
-    #[allow(dead_code)]
     Tag(&'a pulldown_cmark::Tag<'i>),
 }
 
