@@ -47,7 +47,7 @@ impl WriteEvent<'_> for Paragraph {
             self.buffer.push('\\');
         }
 
-        if s.starts_with('#') && needs_escape {
+        if self.buffer.ends_with('\n') && s.starts_with('#') && needs_escape {
             self.buffer.push('\\');
         }
 

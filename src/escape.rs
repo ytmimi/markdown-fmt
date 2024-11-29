@@ -58,7 +58,9 @@ pub(crate) fn needs_escape(input: &str) -> bool {
             break;
         }
 
-        leading_marker_count <= 6 && whitespace_after_header_marker
+        let empty_header = || input.chars().all(|c| c == '#');
+
+        leading_marker_count <= 6 && (whitespace_after_header_marker || empty_header())
     };
     let is_setext_heading = |value: u8| input.trim_end().bytes().all(|b| b == value);
     let is_unordered_list_marker = |value: &str| input.starts_with(value);
