@@ -499,7 +499,7 @@ where
             let trailing_space_count = count_trailing_spaces(line);
             let trailing_spaces = get_spaces(trailing_space_count);
 
-            let needs_escape = self.needs_escape(line, true);
+            let needs_escape = self.needs_escape(line, true).is_some();
 
             let line = line.trim_end();
 
@@ -666,7 +666,7 @@ where
                     }
 
                     // aggressively escape if we're in a definition list
-                    let needs_escape = self.needs_escape(text, false);
+                    let needs_escape = self.needs_escape(text, false).is_some();
 
                     let could_be_interpreted_as_html =
                         |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
@@ -1696,7 +1696,7 @@ where
                 };
 
                 let buffer = d.into_buffer();
-                if needs_escape(&buffer) {
+                if needs_escape(&buffer).is_some() {
                     self.write_str("\\")?;
                 }
                 self.join_with_indentation(&buffer, false)?;

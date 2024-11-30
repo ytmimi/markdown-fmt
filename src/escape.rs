@@ -4,9 +4,13 @@ impl<I> FormatState<'_, '_, I>
 where
     I: Iterator,
 {
-    pub(super) fn needs_escape(&mut self, input: &str, is_inline_element: bool) -> bool {
+    pub(super) fn needs_escape(
+        &mut self,
+        input: &str,
+        is_inline_element: bool,
+    ) -> Option<EscapeKind> {
         let Some(first_char) = input.chars().next() else {
-            return false;
+            return None;
         };
 
         if !is_inline_element {
@@ -20,16 +24,20 @@ where
                 //
                 // As an example, see <https://spec.commonmark.org/0.30/#example-70> as a case
                 // where the semantics would change without an escape after removing indentation.
-                return false;
+                return None;
             }
 
             // Don't interpret the `:` as a definition list definition or blockquote
-            if first_char == ':' || first_char == '>' {
-                return true;
+            if first_char == ':' {
+                return Some(EscapeKind::SingleLine(
+                    SingleLineEscape::DefinitionListColon,
+                ));
+            } else if first_char == '>' {
+                return Some(EscapeKind::SingleLine(SingleLineEscape::BlockQuote));
             }
 
             if input.len() <= 2 {
-                return false;
+                return None;
             }
         }
 
@@ -37,9 +45,9 @@ where
     }
 }
 
-pub(crate) fn needs_escape(input: &str) -> bool {
+pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
     let Some(first_char) = input.chars().next() else {
-        return false;
+        return None;
     };
 
     let is_atx_heading = || -> bool {
@@ -68,15 +76,104 @@ pub(crate) fn needs_escape(input: &str) -> bool {
     let is_fenced_code_block = |value: &str| input.starts_with(value);
 
     match first_char {
-        '#' => is_atx_heading(),
-        '=' => is_setext_heading(b'='),
-        '-' => is_unordered_list_marker("- ") || is_setext_heading(b'-') || is_thematic_break(b'-'),
-        '_' => is_thematic_break(b'_'),
-        '*' => is_unordered_list_marker("* ") || is_thematic_break(b'*'),
-        '+' => is_unordered_list_marker("+ "),
-        '`' => is_fenced_code_block("```"),
-        '~' => is_fenced_code_block("~~~"),
-        '>' | ':' => true,
-        _ => false,
+        '#' if is_atx_heading() => Some(EscapeKind::SingleLine(SingleLineEscape::AtxHeader)),
+        '=' if is_setext_heading(b'=') => {
+            Some(EscapeKind::MultiLine(MultiLineEscape::SetextHeader))
+        }
+        '-' => {
+            if is_thematic_break(b'-') {
+                Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
+            } else if is_unordered_list_marker("- ") {
+                Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
+            } else if is_setext_heading(b'-') {
+                Some(EscapeKind::MultiLine(MultiLineEscape::SetextHeader))
+            } else {
+                None
+            }
+        }
+        '_' if is_thematic_break(b'_') => {
+            Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
+        }
+        '*' => {
+            if is_thematic_break(b'*') {
+                Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
+            } else if is_unordered_list_marker("* ") {
+                Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
+            } else {
+                None
+            }
+        }
+        '+' if is_unordered_list_marker("+ ") => {
+            Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
+        }
+        '`' if is_fenced_code_block("```") => {
+            Some(EscapeKind::SingleLine(SingleLineEscape::FencedCodeBlock))
+        }
+        '~' if is_fenced_code_block("~~~") => {
+            Some(EscapeKind::SingleLine(SingleLineEscape::FencedCodeBlock))
+        }
+        '>' => Some(EscapeKind::SingleLine(SingleLineEscape::BlockQuote)),
+        ':' => Some(EscapeKind::SingleLine(
+            SingleLineEscape::DefinitionListColon,
+        )),
+        _ => None,
     }
+}
+
+/// Represents text that looks like another Markdown construct that the formatter should escape
+/// in order to preserve the meaning of the input after formatting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum EscapeKind {
+    /// The formatter can be sure that this text needs to be escaped.
+    SingleLine(SingleLineEscape),
+    /// Context about preceding lines is required in order to know for sure that this text
+    /// should be escaped
+    MultiLine(MultiLineEscape),
+}
+
+/// Escapes for Markdown constructs that are defined on a single line
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SingleLineEscape {
+    /// Escape text that looks like an atx header `# `, `#`, `## `, `##`, ... `###### `, `######`.
+    AtxHeader,
+    /// Escape text that looks like a blockquote `>`.
+    BlockQuote,
+    /// Escape text that looks like an unordered list.
+    /// ```markdown
+    /// *
+    /// -
+    /// +
+    /// ```
+    UnorderedList,
+    /// Escape text that looks like a thematic break. The text might contain whitespace.
+    /// ```markdown
+    /// ***
+    /// * * *
+    /// ___
+    /// _ _ _
+    /// ---
+    /// - - -
+    /// ```
+    ThematicBreak,
+    /// Escape text that looks like the `:` in a definition list definition.
+    DefinitionListColon,
+    /// Escape ``` or ~~~ that might look like a fenced code block.
+    FencedCodeBlock,
+}
+
+/// Escapes for Markdown constructs that are defined over multiple lines.
+///
+/// These escapes need context about surrounding lines in order to know for sure that they should
+/// be applied.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MultiLineEscape {
+    /// Escape text that looks like a setext headers
+    /// ```markdown
+    /// h1
+    /// =
+    ///
+    /// h2
+    /// -
+    /// ```
+    SetextHeader,
 }

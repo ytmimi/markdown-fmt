@@ -88,7 +88,7 @@ impl WriteContext<'_> for Paragraph {
             self.buffer.push('\\');
         }
 
-        let needs_escape = needs_escape(s);
+        let needs_escape = needs_escape(s).is_some();
 
         // Prevent the next pass from ignoring the hard break or misinterpreting `s`
         // as something other than text in a paragraph
