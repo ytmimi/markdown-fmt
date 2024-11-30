@@ -221,3 +221,10 @@ with URL
 : [label]: url "title"
 
       fenced-code-block
+
+C
+:
+  D
+
+     fenced-code-block 
+     notice one less space of indentation than the cases above
