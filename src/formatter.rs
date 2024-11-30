@@ -154,6 +154,10 @@ where
     // Last event emitted from the inner iterator
     last_event: Option<I::Item>,
     formatter: &'m MarkdownFormatter,
+    /// For some reason the indentation of indented code blocks is dependeant on the relative
+    /// position of the first piece of content within the definition list, and not the starting
+    /// position of the `:`.
+    empty_definition_list_definition_marker: bool,
 }
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
@@ -275,7 +279,7 @@ where
 
     /// Dynamically determine how much indentation to use for indented code blocks
     fn indented_code_block_indentation(&self) -> &'static str {
-        if self.in_definition_list_definition() {
+        if self.empty_definition_list_definition_marker && self.in_definition_list_definition() {
             "   "
         } else {
             "    "
@@ -537,6 +541,7 @@ where
             last_position: 0,
             last_event: None,
             formatter,
+            empty_definition_list_definition_marker: false,
         }
     }
 
@@ -1342,6 +1347,8 @@ where
                         );
                     }
                 };
+
+                self.empty_definition_list_definition_marker = empty_definition_marker;
 
                 if empty_definition_marker {
                     write!(self, ":")?;

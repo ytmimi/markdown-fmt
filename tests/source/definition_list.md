@@ -194,3 +194,18 @@ new paragraph
 <!-- Looks like a definition list but it's not -->
 start of a paragraph
 		:next line of a paragraph
+
+<!--
+  The amount of indentation of a fenced code block seems to be dependent on the relative position
+  of the content. If the definition list contains text, then the amount of indentation needed to
+  define a fenced code block is relative to where that text starts.
+-->
+A
+:B
+
+     fenced-code-block 
+
+with URL
+:[label]: url "title"
+
+     fenced-code-block 
