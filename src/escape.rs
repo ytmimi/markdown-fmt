@@ -42,29 +42,33 @@ where
 pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
     let first_char = input.chars().next()?;
 
-    let is_atx_heading = || -> bool {
+    let marker_with_optional_trailing_space = |max_marker_count: usize, marker: char| -> bool {
         let mut leading_marker_count = 0;
-        let mut whitespace_after_header_marker = false;
+        let mut whitespace_after_marker = false;
         for c in input.chars() {
-            if c == '#' {
+            if c == marker {
                 leading_marker_count += 1;
                 continue;
             }
 
             if c.is_whitespace() {
-                whitespace_after_header_marker = true;
+                whitespace_after_marker = true;
             }
 
             break;
         }
 
-        let empty_header = || input.chars().all(|c| c == '#');
+        let empty_marker = || input.chars().all(|c| c == marker);
 
-        leading_marker_count <= 6 && (whitespace_after_header_marker || empty_header())
+        leading_marker_count <= max_marker_count && (whitespace_after_marker || empty_marker())
     };
+    let is_atx_heading = || marker_with_optional_trailing_space(6, '#');
     let is_setext_heading = |value: u8| input.trim_end().bytes().all(|b| b == value);
-    let is_unordered_list_marker = |value: &str| input.starts_with(value);
-    let is_thematic_break = |value: u8| input.bytes().all(|b| b == value || b == b' ');
+    let is_unordered_list_marker = |value: char| marker_with_optional_trailing_space(1, value);
+    let is_thematic_break = |value: u8| {
+        input.bytes().all(|b| b == value || b == b' ')
+            && input.bytes().filter(|b| *b == value).count() >= 3
+    };
     let is_fenced_code_block = |value: &str| input.starts_with(value);
 
     match first_char {
@@ -75,7 +79,7 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
         '-' => {
             if is_thematic_break(b'-') {
                 Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
-            } else if is_unordered_list_marker("- ") {
+            } else if is_unordered_list_marker('-') {
                 Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
             } else if is_setext_heading(b'-') {
                 Some(EscapeKind::MultiLine(MultiLineEscape::SetextHeader))
@@ -89,13 +93,13 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
         '*' => {
             if is_thematic_break(b'*') {
                 Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
-            } else if is_unordered_list_marker("* ") {
+            } else if is_unordered_list_marker('*') {
                 Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
             } else {
                 None
             }
         }
-        '+' if is_unordered_list_marker("+ ") => {
+        '+' if is_unordered_list_marker('+') => {
             Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
         }
         '`' if is_fenced_code_block("```") => {

@@ -100,6 +100,12 @@ TT
 [\ ]:]
 
 
+<!-- Don't need to escape the double **. It won't be interpreted as a list -->
+
+**
+:
+
+
 <!-- escape what looks like rule -->
 [.]:a
     ***
