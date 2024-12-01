@@ -114,9 +114,9 @@
 :
 
 
-<!-- Only escape the first `*` -->
+<!-- Don't need to escape the double **. It won't be interpreted as a list -->
 
-\**
+**
 :
 
 
