@@ -119,7 +119,7 @@ impl TryFrom<char> for OrderedListMarker {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(super) enum UnorderedListMarker {
     Asterisk,
     Plus,
