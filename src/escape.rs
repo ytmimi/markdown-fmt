@@ -1,4 +1,5 @@
 use super::formatter::FormatState;
+use crate::list::UnorderedListMarker;
 
 impl<I> FormatState<'_, '_, I>
 where
@@ -74,39 +75,49 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
     match first_char {
         '#' if is_atx_heading() => Some(EscapeKind::SingleLine(SingleLineEscape::AtxHeader)),
         '=' if is_setext_heading(b'=') => {
-            Some(EscapeKind::MultiLine(MultiLineEscape::SetextHeader))
+            let marker = SetextHeaderMarker::H1;
+            Some(EscapeKind::MultiLine(MultiLineEscape::SetextHeader(marker)))
         }
         '-' => {
             if is_thematic_break(b'-') {
-                Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
+                let escape = SingleLineEscape::ThematicBreak(ThematicBreakMarker::Hyphen);
+                Some(EscapeKind::SingleLine(escape))
             } else if is_unordered_list_marker('-') {
-                Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
+                let escape = SingleLineEscape::UnorderedList(UnorderedListMarker::Hyphen);
+                Some(EscapeKind::SingleLine(escape))
             } else if is_setext_heading(b'-') {
-                Some(EscapeKind::MultiLine(MultiLineEscape::SetextHeader))
+                let escape = MultiLineEscape::SetextHeader(SetextHeaderMarker::H2);
+                Some(EscapeKind::MultiLine(escape))
             } else {
                 None
             }
         }
         '_' if is_thematic_break(b'_') => {
-            Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
+            let escape = SingleLineEscape::ThematicBreak(ThematicBreakMarker::Underscore);
+            Some(EscapeKind::SingleLine(escape))
         }
         '*' => {
             if is_thematic_break(b'*') {
-                Some(EscapeKind::SingleLine(SingleLineEscape::ThematicBreak))
+                let escape = SingleLineEscape::ThematicBreak(ThematicBreakMarker::Asterisk);
+                Some(EscapeKind::SingleLine(escape))
             } else if is_unordered_list_marker('*') {
-                Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
+                let escape = SingleLineEscape::UnorderedList(UnorderedListMarker::Asterisk);
+                Some(EscapeKind::SingleLine(escape))
             } else {
                 None
             }
         }
         '+' if is_unordered_list_marker('+') => {
-            Some(EscapeKind::SingleLine(SingleLineEscape::UnorderedList))
+            let escape = SingleLineEscape::UnorderedList(UnorderedListMarker::Plus);
+            Some(EscapeKind::SingleLine(escape))
         }
         '`' if is_fenced_code_block("```") => {
-            Some(EscapeKind::SingleLine(SingleLineEscape::FencedCodeBlock))
+            let escape = SingleLineEscape::FencedCodeBlock(FencedCodeBlockMarker::Backtick);
+            Some(EscapeKind::SingleLine(escape))
         }
         '~' if is_fenced_code_block("~~~") => {
-            Some(EscapeKind::SingleLine(SingleLineEscape::FencedCodeBlock))
+            let escape = SingleLineEscape::FencedCodeBlock(FencedCodeBlockMarker::Tildes);
+            Some(EscapeKind::SingleLine(escape))
         }
         '>' => Some(EscapeKind::SingleLine(SingleLineEscape::BlockQuote)),
         _ => None,
@@ -124,6 +135,20 @@ pub(crate) enum EscapeKind {
     MultiLine(MultiLineEscape),
 }
 
+impl EscapeKind {
+    #[allow(dead_code)]
+    pub(crate) fn marker(&self) -> char {
+        match self {
+            Self::SingleLine(SingleLineEscape::AtxHeader) => '#',
+            Self::SingleLine(SingleLineEscape::BlockQuote) => '>',
+            Self::SingleLine(SingleLineEscape::FencedCodeBlock(marker)) => (*marker).into(),
+            Self::SingleLine(SingleLineEscape::ThematicBreak(marker)) => (*marker).into(),
+            Self::SingleLine(SingleLineEscape::UnorderedList(marker)) => marker.into(),
+            Self::MultiLine(MultiLineEscape::SetextHeader(marker)) => (*marker).into(),
+        }
+    }
+}
+
 /// Escapes for Markdown constructs that are defined on a single line
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SingleLineEscape {
@@ -137,7 +162,7 @@ pub(crate) enum SingleLineEscape {
     /// -
     /// +
     /// ```
-    UnorderedList,
+    UnorderedList(UnorderedListMarker),
     /// Escape text that looks like a thematic break. The text might contain whitespace.
     /// ```markdown
     /// ***
@@ -147,9 +172,9 @@ pub(crate) enum SingleLineEscape {
     /// ---
     /// - - -
     /// ```
-    ThematicBreak,
+    ThematicBreak(ThematicBreakMarker),
     /// Escape ``` or ~~~ that might look like a fenced code block.
-    FencedCodeBlock,
+    FencedCodeBlock(FencedCodeBlockMarker),
 }
 
 /// Escapes for Markdown constructs that are defined over multiple lines.
@@ -166,5 +191,62 @@ pub(crate) enum MultiLineEscape {
     /// h2
     /// -
     /// ```
-    SetextHeader,
+    SetextHeader(SetextHeaderMarker),
+}
+
+/// Types of fenced code block markers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FencedCodeBlockMarker {
+    /// A code fence that uses (`) character.
+    Backtick,
+    /// A code fence that uses (~) characters.
+    Tildes,
+}
+
+impl From<FencedCodeBlockMarker> for char {
+    fn from(value: FencedCodeBlockMarker) -> Self {
+        match value {
+            FencedCodeBlockMarker::Backtick => '`',
+            FencedCodeBlockMarker::Tildes => '~',
+        }
+    }
+}
+
+/// Types of thematic break markers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ThematicBreakMarker {
+    /// A thematic break that uses `*`.
+    Asterisk,
+    /// A thematic break that uses `-`.
+    Hyphen,
+    /// A thematic break that uses `_`.
+    Underscore,
+}
+
+impl From<ThematicBreakMarker> for char {
+    fn from(value: ThematicBreakMarker) -> Self {
+        match value {
+            ThematicBreakMarker::Asterisk => '*',
+            ThematicBreakMarker::Hyphen => '-',
+            ThematicBreakMarker::Underscore => '_',
+        }
+    }
+}
+
+/// Types of setext header markers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SetextHeaderMarker {
+    /// A setext header that uses `=`.
+    H1,
+    /// A setext header that usese `-`.
+    H2,
+}
+
+impl From<SetextHeaderMarker> for char {
+    fn from(value: SetextHeaderMarker) -> Self {
+        match value {
+            SetextHeaderMarker::H1 => '=',
+            SetextHeaderMarker::H2 => '-',
+        }
+    }
 }
