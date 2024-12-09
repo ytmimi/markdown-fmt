@@ -472,12 +472,12 @@ where
 
             if is_last && !ends_with_newline {
                 if needs_escape {
-                    write_context!(self, event, "\\{line}{trailing_spaces}")?;
+                    write_context!(self, Escape, "\\{line}{trailing_spaces}")?;
                 } else {
                     write_context!(self, event, "{line}{trailing_spaces}")?;
                 }
             } else if needs_escape {
-                writeln_context!(self, event, "\\{line}{trailing_spaces}")?;
+                writeln_context!(self, Escape, "\\{line}{trailing_spaces}")?;
             } else {
                 writeln_context!(self, event, "{line}{trailing_spaces}")?;
             }
@@ -687,7 +687,7 @@ where
                         || (self.in_table() && text.starts_with('|'))
                     {
                         // recover escape characters
-                        write_context!(self, &event, "\\{text}")?;
+                        write_context!(self, Escape, "\\{text}")?;
                     } else {
                         write_context!(self, &event, "{text}")?;
                     }

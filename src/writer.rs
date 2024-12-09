@@ -139,9 +139,11 @@ pub(crate) trait WriteContext<'i>: std::fmt::Write {
 }
 
 /// Context about the [pulldown_cmark::Evet] or [pulldown_cmark::Tag] that's being written.
+#[derive(Debug, Clone)]
 pub(crate) enum MarkdownContext<'a, 'i> {
     Event(&'a pulldown_cmark::Event<'i>),
     Tag(&'a pulldown_cmark::Tag<'i>),
+    Escape,
 }
 
 impl<'a, 'i> From<&'a pulldown_cmark::Event<'i>> for MarkdownContext<'a, 'i> {
@@ -167,6 +169,9 @@ impl WriteContext<'_> for std::string::String {
 ///
 /// **Note**, writers must implement [WriteEvent].
 macro_rules! write_context {
+    ($writer:expr, Escape, $($arg:tt)*) => {
+        $writer.write_context_fmt($crate::writer::MarkdownContext::Escape, format_args!($($arg)*))
+    };
     ($writer:expr, $ctx:expr, $($arg:tt)*) => {
         $writer.write_context_fmt($ctx.into(), format_args!($($arg)*))
     };
@@ -179,6 +184,11 @@ pub(crate) use write_context;
 ///
 /// **Note**, writers must implement [WriteEvent].
 macro_rules! writeln_context {
+    ($writer:expr, Escape, $($arg:tt)*) => {{
+        let ctx = $crate::writer::MarkdownContext::Escape;
+        $writer.write_context_fmt(ctx.clone(), format_args!($($arg)*))
+            .and_then(|_| $writer.write_context_str(ctx.clone(), "\n"))
+    }};
     ($writer:expr, $ctx:expr $(,)?) => {
         write_context!($writer, $ctx, "\n")
     };
