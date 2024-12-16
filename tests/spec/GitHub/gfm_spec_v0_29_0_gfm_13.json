@@ -174,14 +174,14 @@
   },
   {
     "markdown": "Foo\n    ***\n",
-    "formattedMarkdown": "Foo\n\\***",
+    "formattedMarkdown": "Foo\n\\*\\*\\*",
     "html": "<p>Foo\n***</p>\n",
     "example": 19,
     "start_line": 614,
     "end_line": 620,
     "section": "Thematic breaks",
     "testMacro": "test",
-    "comment": "Using the `test!` macro because the number of Text Events are different",
+    "comment": "Using the `test!` macro because the number of Text Events are different after escaping",
     "extensions": []
   },
   {
@@ -533,12 +533,14 @@
   },
   {
     "markdown": "Foo\n    ---\n",
-    "formattedMarkdown": "Foo\n\\---",
+    "formattedMarkdown": "Foo\n\\-\\-\\-",
     "html": "<p>Foo\n---</p>\n",
     "example": 57,
     "start_line": 1121,
     "end_line": 1127,
     "section": "Setext headings",
+    "testMacro": "test",
+    "comment": "Using the `test!` macro because the number of Text Events are different after escaping",
     "extensions": []
   },
   {
