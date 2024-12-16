@@ -46,9 +46,8 @@ impl std::fmt::Write for MarkdownWriter<'_> {
 impl WriteContext<'_> for MarkdownWriter<'_> {
     fn write_context_str(&mut self, ctx: MarkdownContext<'_, '_>, s: &str) -> std::fmt::Result {
         match self {
-            // Only need to implement this for `Self::Paragraph` right now to
-            // give more context about when to escape text.
             Self::Paragraph(p) => p.write_context_str(ctx, s),
+            Self::Header(h) => h.write_context_str(ctx, s),
             _ => self.write_str(s),
         }
     }

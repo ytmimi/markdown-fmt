@@ -1,5 +1,7 @@
+use crate::escape::needs_escape;
 use crate::utils::sequence_ends_on_escape;
-use pulldown_cmark::{CowStr, HeadingLevel, Tag};
+use crate::writer::{MarkdownContext, WriteContext};
+use pulldown_cmark::{CowStr, Event, HeadingLevel, Tag};
 use std::borrow::Cow;
 use std::fmt::Write;
 
@@ -13,6 +15,37 @@ pub(super) struct Header<'i> {
     id: Option<CowStr<'i>>,
     classes: Vec<CowStr<'i>>,
     attrs: Vec<(CowStr<'i>, Option<CowStr<'i>>)>,
+}
+
+impl<'i> WriteContext<'i> for Header<'_> {
+    fn write_context_str(&mut self, ctx: MarkdownContext<'_, 'i>, s: &str) -> std::fmt::Result {
+        let ctx_does_not_need_escape = !matches!(
+            ctx,
+            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_) | Event::Code(_))
+        );
+
+        if ctx_does_not_need_escape || !self.is_setext_header() || !self.buffer.ends_with('\n') {
+            return self.write_str(s);
+        }
+
+        match needs_escape(s) {
+            Some(escape_kind) if escape_kind.multi_character_escape() => {
+                let marker = escape_kind.marker();
+                for c in s.chars() {
+                    if marker == c {
+                        self.write_char('\\')?;
+                    }
+                    self.write_char(c)?;
+                }
+                Ok(())
+            }
+            Some(_) => {
+                self.write_char('\\')?;
+                self.write_str(s)
+            }
+            None => self.write_str(s),
+        }
+    }
 }
 
 impl Write for Header<'_> {
