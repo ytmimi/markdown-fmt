@@ -774,15 +774,14 @@ where
                 Event::SoftBreak => {
                     last_position = range.end;
 
-                    if self.in_link_or_image() {
-                        write_context!(self, &event, " ")?;
-                    } else {
-                        writeln_context!(self, &event)?;
+                    writeln_context!(self, &event)?;
 
-                        // paraphraphs write their indentation after reformatting the text
-                        if !(self.in_paragraph() || self.in_definition_list_title()) {
-                            self.write_indentation(false)?;
-                        }
+                    // paraphraphs write their indentation after reformatting the text
+                    if !(self.in_paragraph()
+                        || self.in_definition_list_title()
+                        || self.in_link_or_image())
+                    {
+                        self.write_indentation(false)?;
                     }
                 }
                 Event::HardBreak => {

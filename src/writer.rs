@@ -53,6 +53,7 @@ impl WriteContext<'_> for MarkdownWriter<'_> {
             Self::Paragraph(p) => p.write_context_str(ctx, s),
             Self::Header(h) => h.write_context_str(ctx, s),
             Self::DefinitionListTitle(d) => d.write_context_str(ctx, s),
+            Self::Link(l) => l.write_context_str(ctx, s),
             _ => self.write_str(s),
         }
     }

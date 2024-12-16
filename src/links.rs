@@ -1,5 +1,6 @@
 use super::formatter::FormatState;
-use crate::utils::{is_char_esacped, sequence_ends_on_escape};
+use crate::utils::{count_newlines, is_char_esacped, sequence_ends_on_escape, split_lines};
+use crate::writer::{MarkdownContext, WriteContext};
 use pulldown_cmark::Event;
 use std::borrow::Cow;
 use std::fmt::Write;
@@ -11,19 +12,44 @@ pub(crate) struct LinkWriter {
     is_auto_link: bool,
 }
 
+impl WriteContext<'_> for LinkWriter {
+    fn write_context_str(&mut self, ctx: MarkdownContext<'_, '_>, s: &str) -> std::fmt::Result {
+        if matches!(
+            ctx,
+            MarkdownContext::Event(Event::HardBreak | Event::SoftBreak)
+        ) {
+            self.write_str(" ")
+        } else {
+            self.write_str(s)
+        }
+    }
+}
+
 impl Write for LinkWriter {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        let mut input = s;
+        let ends_with_newline = input.ends_with('\n');
         if self.is_empty() {
             // While the buffer is empty trim leading whitespace
-            let s = s.trim_start();
-            if s.starts_with('^') {
+            input = s.trim_start();
+            if input.starts_with('^') {
                 self.buffer.push('\\');
             }
-            self.buffer.push_str(s.trim_start());
-            return Ok(());
         }
 
-        self.buffer.push_str(s);
+        if count_newlines(input) > 0 {
+            let mut iter = split_lines(s).peekable();
+            while let Some(line) = iter.next() {
+                let is_last = iter.peek().is_none();
+                self.buffer.push_str(line);
+                if !is_last || ends_with_newline {
+                    self.buffer.push(' ')
+                }
+            }
+        } else {
+            self.buffer.push_str(input);
+        }
+
         Ok(())
     }
 }

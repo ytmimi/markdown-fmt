@@ -61,3 +61,14 @@
 <!-- multi-line reference link label -->
 - [][p
 ^]X
+
+<!-- Multi-line code in link is removed -->
+[`foo
+` bar]
+
+<!-- Hard break in link is removed -->
+[some text  
+<]
+
+[some text2\
+<]
