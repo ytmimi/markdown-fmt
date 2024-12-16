@@ -58,6 +58,132 @@ TT
 ==
 *-*>
 
+
+<!-- Setext Heading with Hardbreak -->
+
+A  
+    -
+-
+
+B  
+    -
+=
+
+C  
+    +
+-
+
+D  
+    +
+=
+
+E  
+    >
+-
+
+F  
+    >
+=
+
+G  
+    ```
+-
+
+H  
+    ~~~
+=
+
+I  
+    ---
+-
+
+J  
+    #
+=
+
+K\
+    -
+-
+
+L\
+    -
+=
+
+M\
+    +
+-
+
+N\
+    +
+=
+
+O\
+    >
+-
+
+P\
+    >
+=
+
+Q\
+    ```
+-
+
+R\
+    ~~~
+=
+
+S\
+    ---
+-
+
+T\
+    #
+=
+
+<!-- Setext Heading with Softbreak -->
+
+AA
+    -
+-
+
+BB
+    -
+=
+
+CC
+    +
+-
+
+DD
+    +
+=
+
+EE
+    >
+-
+
+FF
+    >
+=
+
+GG
+    ```
+-
+
+HH
+    ~~~
+=
+
+II
+    ---
+-
+
+JJ
+    #
+=
+
+
 <!-- Don't interpret `* ` as a list, which prevents (```) from being interpreted as a fenced code block-->
 &
     * ```
