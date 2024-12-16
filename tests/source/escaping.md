@@ -379,3 +379,108 @@ end of clode`
 `start of code
     ***
 end of clode`
+
+
+<!-- Definition list title escapes Hard break -->
+
+definition-list-A  
+    -
+:
+
+definition-list-B  
+    +
+:
+
+definition-list-C  
+    >
+:
+
+definition-list-D  
+    ```
+:
+
+definition-list-E  
+    ~~~
+:
+
+definition-list-F  
+    ---
+:
+
+definition-list-G  
+    #
+:
+
+definition-list-H  
+    :
+:
+
+definition-list-I\
+    -
+:
+
+definition-list-J\
+    -
+:
+
+definition-list-K\
+    +
+:
+
+definition-list-L\
+    >
+:
+
+definition-list-M\
+    ```
+:
+
+definition-list-N\
+    ~~~
+:
+
+definition-list-O\
+    ---
+:
+
+definition-list-P\
+    #
+:
+
+definition-list-Q\
+    :
+:
+
+<!-- Definition list title with Softbreak -->
+
+definition-list-R
+    -
+:
+
+definition-list-S
+    +
+:
+
+definition-list-T
+    >
+:
+
+definition-list-U
+    ```
+:
+
+definition-list-V
+    ~~~
+:
+
+definition-list-W
+    ---
+:
+
+definition-list-X
+    #
+:
+
+definition-list-Y
+    :
+:
