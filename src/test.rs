@@ -77,6 +77,19 @@ pub(crate) fn get_test_files<P: AsRef<Path>>(
         .map(PathBuf::from)
 }
 
+fn display_diff(old_filename: &str, new_filename: &str, old_text: &str, new_text: &str) {
+    let output_context = prettydiff::text::ContextConfig {
+        context_size: 5,
+        skipping_marker: "",
+    };
+    let diff = prettydiff::diff_lines(&old_text, &new_text)
+        .names(old_filename, new_filename)
+        .set_diff_only(true)
+        .set_show_lines(true)
+        .format_with_context(Some(output_context), true);
+    eprintln!("{diff}");
+}
+
 #[test]
 fn check_markdown_formatting() {
     let mut errors = 0;
@@ -92,7 +105,7 @@ fn check_markdown_formatting() {
             .strip_prefix("tests/source")
             .map(|p| PathBuf::from("tests/target").join(p))
             .unwrap();
-        let expected_output = std::fs::read_to_string(target_file).unwrap();
+        let expected_output = std::fs::read_to_string(&target_file).unwrap();
 
         let Ok(formatted_output) = rewrite else {
             panic!("Paniced when formatting {}", file.display())
@@ -101,6 +114,12 @@ fn check_markdown_formatting() {
         if formatted_output != expected_output {
             errors += 1;
             eprintln!("error formatting {}", file.display());
+            display_diff(
+                &file.to_string_lossy(),
+                &target_file.to_string_lossy(),
+                &expected_output,
+                &formatted_output,
+            )
         }
     }
 
@@ -119,6 +138,8 @@ fn idempotence_test() {
         if formatted_input != input {
             errors += 1;
             eprintln!("error formatting {}", file.display());
+            let filenmae = file.to_string_lossy();
+            display_diff(&filenmae, &filenmae, &input, &formatted_input)
         }
     }
 
