@@ -136,13 +136,13 @@ fn gfm_markdown_thematic_breaks_18() {
     test_identical_markdown_events!(r##"    ***"##);
 }
 
-// Using the `test!` macro because the number of Text Events are different
+// Using the `test!` macro because the number of Text Events are different after escaping
 #[test]
 fn gfm_markdown_thematic_breaks_19() {
     // https://github.github.com/gfm/#example-19
     test!(r##"Foo
     ***"##,r##"Foo
-\***"##);
+\*\*\*"##);
 }
 
 #[test]
@@ -436,12 +436,13 @@ fn gfm_markdown_setext_headings_56() {
 ----"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different after escaping
 #[test]
 fn gfm_markdown_setext_headings_57() {
     // https://github.github.com/gfm/#example-57
-    test_identical_markdown_events!(r##"Foo
+    test!(r##"Foo
     ---"##,r##"Foo
-\---"##);
+\-\-\-"##);
 }
 
 #[test]
