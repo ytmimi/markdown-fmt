@@ -354,13 +354,13 @@ fn markdown_thematic_breaks_48() {
     test_identical_markdown_events!(r##"    ***"##);
 }
 
-// Using the `test!` macro because the number of Text Events are different
+// Using the `test!` macro because the number of Text Events are different after escaping
 #[test]
 fn markdown_thematic_breaks_49() {
     // https://spec.commonmark.org/0.30/#example-49
     test!(r##"Foo
     ***"##,r##"Foo
-\***"##);
+\*\*\*"##);
 }
 
 #[test]
@@ -654,12 +654,13 @@ fn markdown_setext_headings_86() {
 ----"##);
 }
 
+// Using the `test!` macro because the number of Text Events are different after escaping
 #[test]
 fn markdown_setext_headings_87() {
     // https://spec.commonmark.org/0.30/#example-87
-    test_identical_markdown_events!(r##"Foo
+    test!(r##"Foo
     ---"##,r##"Foo
-\---"##);
+\-\-\-"##);
 }
 
 #[test]

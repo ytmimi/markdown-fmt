@@ -158,6 +158,16 @@ impl EscapeKind {
             Self::MultiLine(MultiLineEscape::SetextHeader(marker)) => (*marker).into(),
         }
     }
+
+    /// Check if we need to escape multiple characters
+    pub(crate) fn multi_character_escape(&self) -> bool {
+        matches!(
+            self,
+            EscapeKind::SingleLine(
+                SingleLineEscape::FencedCodeBlock(_) | SingleLineEscape::ThematicBreak(_)
+            )
+        )
+    }
 }
 
 /// Escapes for Markdown constructs that are defined on a single line

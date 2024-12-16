@@ -499,22 +499,31 @@ where
             let trailing_space_count = count_trailing_spaces(line);
             let trailing_spaces = get_spaces(trailing_space_count);
 
-            let needs_escape = self.needs_escape(line, true).is_some();
-
             let line = line.trim_end();
+            let needs_escape = self.needs_escape(line, true);
 
-            if is_last && !ends_with_newline {
-                if needs_escape {
+            match needs_escape {
+                Some(escape_kind) if escape_kind.multi_character_escape() => {
+                    let marker = escape_kind.marker();
+                    for c in line.chars() {
+                        if marker == c {
+                            write_context!(self, Escape, "\\{c}")?;
+                        } else {
+                            self.write_char(c)?;
+                        }
+                    }
+                    self.write_event_str(event, &trailing_spaces)?;
+                }
+                Some(_) => {
                     write_context!(self, Escape, "\\{line}{trailing_spaces}")?;
-                } else {
+                }
+                None => {
                     write_context!(self, event, "{line}{trailing_spaces}")?;
                 }
-            } else {
-                if needs_escape {
-                    writeln_context!(self, Escape, "\\{line}{trailing_spaces}")?;
-                } else {
-                    writeln_context!(self, event, "{line}{trailing_spaces}")?;
-                }
+            }
+
+            if !is_last || ends_with_newline {
+                writeln_context!(self, event)?;
             }
         }
         Ok(())
@@ -666,7 +675,7 @@ where
                     }
 
                     // aggressively escape if we're in a definition list
-                    let needs_escape = self.needs_escape(text, false).is_some();
+                    let needs_escape = self.needs_escape(text, false);
 
                     let could_be_interpreted_as_html =
                         |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
@@ -717,16 +726,32 @@ where
                             sequence_ends_on_escape(last_line)
                         };
 
-                    if starts_with_escape
-                        || needs_escape
-                        || could_be_interpreted_as_html(text, &mut self)
-                        || should_escape_an_escape(text, &mut self, range)
-                        || (self.in_table() && text.starts_with('|'))
-                    {
-                        // recover escape characters
-                        write_context!(self, Escape, "\\{text}")?;
-                    } else {
-                        write_context!(self, &event, "{text}")?;
+                    match needs_escape {
+                        Some(escape_kind)
+                            if escape_kind.multi_character_escape() && !starts_with_escape =>
+                        {
+                            let marker = escape_kind.marker();
+                            for c in text.chars() {
+                                if marker == c {
+                                    write_context!(self, Escape, "\\{c}")?;
+                                } else {
+                                    self.write_char(c)?;
+                                }
+                            }
+                        }
+                        _ => {
+                            if starts_with_escape
+                                || needs_escape.is_some()
+                                || could_be_interpreted_as_html(text, &mut self)
+                                || should_escape_an_escape(text, &mut self, range)
+                                || (self.in_table() && text.starts_with('|'))
+                            {
+                                // recover escape characters
+                                write_context!(self, Escape, "\\{text}")?;
+                            } else {
+                                write_context!(self, &event, "{text}")?;
+                            }
+                        }
                     }
                     self.check_needs_indent(&event);
                 }

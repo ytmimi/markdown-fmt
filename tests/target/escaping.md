@@ -46,11 +46,11 @@
 
 <!-- Don't interpret the '```' as the start of a fenced code block -->
 --
-\```>
+\`\`\`>
 
 <!-- Don't interpret the '```' as the start of a fenced code block -->
 --
-\~~~>
+\~\~\~>
 
 <!-- Don't interpret the `--` as a setext header -->
 * -+
@@ -212,3 +212,21 @@ F
 <!-- doesn't need an escape because a header can only be up to h6 -->
 G  
 #######
+
+<!-- multi-line-code escape -->
+
+> `start of code
+> \~\~\~ not a code fence
+> end of clode`
+
+> `start of code
+> \`\`\` not a code fence
+> end of clode`
+
+`start of code
+\-\-\-
+end of clode`
+
+`start of code
+\*\*\*
+end of clode`
