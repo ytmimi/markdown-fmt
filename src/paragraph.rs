@@ -52,9 +52,13 @@ impl WriteContext<'_> for Paragraph {
                             let trimmed_bracket_snippet = bracket_snippet
                                 .trim_end_matches(['\n', ']'])
                                 .trim_start_matches('[');
-                            if !trimmed_bracket_snippet.is_empty()
-                                && trimmed_bracket_snippet.chars().all(char::is_whitespace)
-                            {
+
+                            let only_whitespace_brace = !trimmed_bracket_snippet.is_empty()
+                                && trimmed_bracket_snippet.chars().all(char::is_whitespace);
+
+                            let starts_with_caret = trimmed_bracket_snippet.starts_with('^');
+
+                            if only_whitespace_brace || starts_with_caret {
                                 return true;
                             }
                         }

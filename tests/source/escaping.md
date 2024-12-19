@@ -296,6 +296,12 @@ LL
  e[ ]<https://Autolink.com>
  f[ ]<Email@example.com>
 
+<!--
+  Make sure we escape the `]` so that we don't interpret the first `[^k]` as a link on future runs.
+  It's originally parsed as text
+-->
+][^k][^k][Z]
+
 
 <!--
   Place an extra space between the end of the list and the start of the definition list.
