@@ -258,6 +258,12 @@ d[ ][^Shortcut] <!-- not parsed as a link -->
 e[ ]<https://Autolink.com>
 f[ ]<Email@example.com>
 
+<!--
+  Make sure we escape the `]` so that we don't interpret the first `[^k]` as a link on future runs.
+  It's originally parsed as text
+-->
+][^k\][\^k][Z]
+
 
 <!-- escape `#` so that we don't treat it as a header -->
 <!
