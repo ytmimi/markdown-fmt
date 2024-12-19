@@ -16,7 +16,7 @@ use crate::definition_list::DefinitionListTitle;
 use crate::escape::needs_escape;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
-use crate::html::HTML_BLOCK_TAG;
+use crate::html::starts_with_html_block_identifier;
 use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_definitions};
 use crate::list::{LIST_START_CHARS, ListMarker};
 use crate::paragraph::Paragraph;
@@ -684,8 +684,7 @@ where
                                 && matches!(
                                     state.peek(),
                                     Some(Event::Text(t))
-                                        if HTML_BLOCK_TAG.iter()
-                                            .any(|tag| tag.eq_ignore_ascii_case(t))
+                                        if starts_with_html_block_identifier(t)
                                 )
                             {
                                 return true;
