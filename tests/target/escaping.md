@@ -373,6 +373,16 @@ F
 G  
 #######
 
+<!-- Don't need to escape because "```@``" can't be a code fence because backticks aren't allowed in the info string -->
+
+`
+```@`` 
+`
+
+<!-- We don't need to worry about escaping when the code is on a single line -->
+` ```@``  `
+
+
 <!-- multi-line-code escape -->
 
 > `start of code

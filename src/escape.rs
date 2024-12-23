@@ -78,7 +78,25 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
         input.bytes().all(|b| b == value || b == b' ')
             && input.bytes().filter(|b| *b == value).count() >= 3
     };
-    let is_fenced_code_block = |value: &str| input.starts_with(value);
+    let is_fenced_code_block = |value: &str| {
+        let marker = value
+            .chars()
+            .next()
+            .expect("value hast at least one character");
+
+        if !input.starts_with(value) {
+            return false;
+        }
+
+        let info_string = input.trim_start_matches(marker).trim_start();
+
+        if info_string.is_empty() {
+            return true;
+        }
+
+        // opening code fences can't contain backtick (`) or tilde (~) in the info string.
+        !info_string.contains(['`', '~'])
+    };
 
     match first_char {
         '#' if is_atx_heading() => Some(EscapeKind::SingleLine(SingleLineEscape::AtxHeader)),
