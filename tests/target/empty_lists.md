@@ -110,3 +110,94 @@
 <!-- Tight list that starts with a hard break should be idempotent -->
 * \
   ~
+
+<!-- list with emphasis -->
+*
+  *A*
+  A
+
+
++
+  _B_
+  B
+
+
+-
+  *C*
+  C
+
+
+*
+  _D_
+  D
+
+
++
+  *E*
+  E
+
+
+-
+  _F_
+  F
+
+<!-- list with strong emphasis -->
+
+*
+  **G**
+  G
+
+
++
+  __H__
+  H
+
+
+-
+  **I**
+  I
+
+
+*
+  __J__
+  J
+
+
++
+  **K**
+  K
+
+
+-
+  __L__
+  L
+
+<!-- list with strikethrough -->
+*
+  ~M~
+  M
+
+
++
+  ~~N~~
+  N
+
+
+-
+  ~~O~~
+  O
+
+
+*
+  ~~P~~
+  P
+
+
++
+  ~~Q~~
+  Q
+
+
+-
+  ~~R~~
+  R

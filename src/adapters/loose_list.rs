@@ -128,7 +128,13 @@ where
             | Event::FootnoteReference(_)
             | Event::TaskListMarker(_)
             | Event::InlineHtml(_)
-            | Event::Start(Tag::Link { .. } | Tag::Image { .. }) => true,
+            | Event::Start(
+                Tag::Link { .. }
+                | Tag::Image { .. }
+                | Tag::Emphasis
+                | Tag::Strong
+                | Tag::Strikethrough,
+            ) => true,
             Event::Html(text) => is_single_html_tag(text),
             _ => false,
         }
