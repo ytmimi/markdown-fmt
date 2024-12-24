@@ -184,6 +184,6 @@ mod tester {
         assert_eq!(result, "XX\u{14}:\n> *\n");
 
         let result = rewrite_markdown("`\u{2}\u{2}[\n\\\\\n\u{b}>* @`").unwrap();
-        assert_eq!(result, "`\u{2}\u{2}[\n\\\\\n\\>* @`");
+        assert_eq!(result, "`\u{2}\u{2}[\n\\\\\n\u{b}>* @`");
     }
 }

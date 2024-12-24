@@ -382,7 +382,7 @@ G
 ` ```@``  `
 
 
-<!-- multi-line-code escape -->
+<!-- Don't escape multi-line-code if we can help it. Instead preserve leading spaces -->
 
 > `start of code
 >     ~~~ not a code fence
@@ -398,6 +398,18 @@ end of clode`
 
 `start of code
     ***
+end of clode`
+
+* `` start of code
+      ***
+end of clode ``
+
++ `start of code
+      >
+end of clode `
+
+- ` start of code
+      ~~~
 end of clode`
 
 
