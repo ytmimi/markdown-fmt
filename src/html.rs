@@ -57,11 +57,15 @@ pub(crate) fn starts_with_html_block_identifier(s: &str) -> bool {
         return false;
     }
 
+    // Combines HTML block condition 1 and 6
     let is_html_block_identifier = |value: &str| {
         HTML_BLOCK_TAG
             .iter()
             .any(|tag| tag.eq_ignore_ascii_case(value))
     };
+
+    // line begins with the string <!--
+    let html_block_condition_2 = |value: &str| value.starts_with("!--");
 
     // line begins with the string <! followed by an ASCII letter.
     let html_block_condition_4 = |value: &str| {
@@ -71,5 +75,7 @@ pub(crate) fn starts_with_html_block_identifier(s: &str) -> bool {
     };
 
     let maybe_html = s.split_whitespace().next().unwrap_or(s);
-    is_html_block_identifier(maybe_html) || html_block_condition_4(maybe_html)
+    is_html_block_identifier(maybe_html)
+        || html_block_condition_2(maybe_html)
+        || html_block_condition_4(maybe_html)
 }
