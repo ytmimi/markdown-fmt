@@ -14,8 +14,8 @@ where
         let first_char = input.chars().next()?;
 
         if !is_inline_element {
-            if !self.last_was_softbreak() {
-                // Normally, we only need to escape after a softbreak since the markdown
+            if !self.last_was_line_break() {
+                // Normally, we only need to escape after a line break since the markdown
                 // formatter will adjust indentation, and the semantics of the formatted markdown
                 // could change if we don't escape values. Because different markdown constructs
                 // have higher or lower precedence there are cases where we want to aggresively
