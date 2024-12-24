@@ -109,3 +109,10 @@
 [.]: b
 
 ***
+
+<!-- link reference definitions that contain a `>` that isn't a blockquote -->
+[.]: ><
+
+[label]: >< 'title'
+
+[label]: <\>\<> 'title'

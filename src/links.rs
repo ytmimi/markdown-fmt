@@ -675,11 +675,19 @@ fn parse_link_reference_definition(
                 }
             }
             LinkParserPhase::UrlStart => {
-                // TODO(ytmimi) handle newlines in label. If we're in a nested context like
-                // a block quote, then we need to potentially ignore leading `>` chars.
-                //
-                // For now, just assume we can eat all chars until we reach the start of the URL
-                if c.is_whitespace() || c == '>' {
+                if c == '\n' {
+                    newline_count += 1;
+                    // Encountered a second newline before we found the start of the URL
+                    // The URL can only be separated from the `:` by at most one newline.
+                    if newline_count > 1 {
+                        break;
+                    }
+                }
+
+                // TODO(ytmimi) handle `>` on newlines in url start. If we're in a nested context
+                // like a block quote, then we need to potentially ignore leading `>` chars, but if
+                // we're still on the same line then we can assume that the `>` is part of the URL.
+                if c.is_whitespace() || (newline_count > 0 && c == '>') {
                     continue;
                 }
 
@@ -697,6 +705,7 @@ fn parse_link_reference_definition(
                 tracing::trace!("Transition to LinkParserPhase::Url(c)");
                 phase = LinkParserPhase::Url(c);
                 parsed_until = idx;
+                newline_count = 0;
             }
             LinkParserPhase::Url(start_char) => {
                 // Taking a look at the [link destination spec], I don't think we can have newlines
@@ -993,6 +1002,33 @@ mod test {
             label: "\\ ",
             url: LinkDestination::Regular("]".into()),
         }
+
+        check_parsed_link_reference_definition! {
+            definition: "[.]:><",
+            label: ".",
+            url: LinkDestination::Regular("><".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: r"[label]: >< 'title'",
+            label: "label",
+            url: LinkDestination::Regular("><".into()),
+            title: "title",
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: r"[label]: <\>\<> 'title'",
+            label: "label",
+            url: LinkDestination::Bracketed(r"\>\<".into()),
+            title: "title",
+        }
+
+        // TODO(ytmimi) handle url with `>` on next line
+        // check_parsed_link_reference_definition! {
+        //     definition: "[.]:\n    ><",
+        //     label: ".",
+        //     url: LinkDestination::Regular("><".into()),
+        // }
     }
 
     #[test]
