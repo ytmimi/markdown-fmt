@@ -254,6 +254,15 @@ LL
 \<p ~  
 1
 
+
+<!--
+    escape HTML block condition 4
+    "line begins with the string <! followed by an ASCII letter"
+-->
+~  
+\<!Tz
+
+
 <!-- Escape the escape so that we don't escape the closing `]`on the next formatting run -->
 [\\]: ]
 
