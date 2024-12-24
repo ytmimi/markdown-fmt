@@ -67,6 +67,9 @@ pub(crate) fn starts_with_html_block_identifier(s: &str) -> bool {
     // line begins with the string <!--
     let html_block_condition_2 = |value: &str| value.starts_with("!--");
 
+    // line begins with the string <?.
+    let html_block_condition_3 = |value: &str| value.starts_with('?');
+
     // line begins with the string <! followed by an ASCII letter.
     let html_block_condition_4 = |value: &str| {
         value
@@ -76,6 +79,7 @@ pub(crate) fn starts_with_html_block_identifier(s: &str) -> bool {
 
     let maybe_html = s.split_whitespace().next().unwrap_or(s);
     is_html_block_identifier(maybe_html)
+        || html_block_condition_3(maybe_html)
         || html_block_condition_2(maybe_html)
         || html_block_condition_4(maybe_html)
 }

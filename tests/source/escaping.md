@@ -264,6 +264,15 @@ LL
 
 
 <!--
+    escape HTML block condition 3
+    "line begins with the string <?"
+ -->
+
+?  
+    <?a
+
+
+<!--
     escape HTML block condition 4
     "line begins with the string <! followed by an ASCII letter"
 -->
