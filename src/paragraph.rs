@@ -25,8 +25,13 @@ impl WriteContext<'_> for Paragraph {
         // `Event::Code` since they might contain characters that look like other Markdown
         // constructs, but they're really just text.
         match ctx {
-            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_) | Event::Code(_)) => {
+            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_)) => {
                 if s.is_empty() {
+                    return self.write_str(s);
+                }
+            }
+            MarkdownContext::Event(Event::Code(_)) => {
+                if s.starts_with(char::is_whitespace) || s.is_empty() {
                     return self.write_str(s);
                 }
             }

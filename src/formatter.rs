@@ -438,12 +438,18 @@ where
     }
 
     fn trim_leading_indentation<'a>(&self, s: &'a str) -> &'a str {
-        let mut output = s.trim_start();
+        let mut output = s;
         for indent in self.indentation.iter() {
             if indent.starts_with('>') {
-                output = output.strip_prefix('>').unwrap_or(output).trim_start();
-            } else {
                 output = output.trim_start();
+                output = output
+                    .strip_prefix('>')
+                    .map(|o| o.strip_prefix(char::is_whitespace).unwrap_or(o))
+                    .unwrap_or(output);
+            } else {
+                for _ in 0..indent.len() {
+                    output = output.strip_prefix(char::is_whitespace).unwrap_or(output);
+                }
             }
         }
         output
@@ -454,14 +460,20 @@ where
         // check if the input snippet ends with a newline so we can preserve it.
         let ends_with_newline = snippet.ends_with('\n');
 
-        let mut iter = split_lines(snippet).peekable();
+        let mut iter = split_lines(snippet).enumerate().peekable();
 
-        while let Some(s) = iter.next() {
+        while let Some((i, s)) = iter.next() {
             let is_last = iter.peek().is_none();
 
             // We want to trim leading indentation characters like `>`
             // and any non-space whitespace characters.
-            let line = self.trim_leading_indentation(s);
+            let line = if i == 0 {
+                // Don't need to trim leading space from the first line. The assumption is
+                // that the event would start after any leading indentation.
+                s
+            } else {
+                self.trim_leading_indentation(s)
+            };
 
             let trailing_space_count = count_trailing_spaces(line);
             let trailing_spaces = get_spaces(trailing_space_count);
