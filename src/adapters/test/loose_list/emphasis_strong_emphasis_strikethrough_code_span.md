@@ -27,6 +27,21 @@
   ~~F~~
   F
 
+
+*
+  `G`
+  G
+
+
++
+  ``H``
+  H
+
+
+-
+  `` I ``
+  I
+
 ==========
 
 event=Start(List(None)) range=0..14
@@ -84,8 +99,8 @@ event=Text(Borrowed("E")) range=70..71
 event=End(Paragraph) range=64..71
 event=End(Item) range=60..74
 event=End(List(false)) range=60..74
-event=Start(List(None)) range=74..89
-event=Start(Item) range=74..89
+event=Start(List(None)) range=74..90
+event=Start(Item) range=74..90
 event=Start(Paragraph) range=78..87
 event=Start(Strikethrough) range=78..83
 event=Text(Borrowed("F")) range=80..81
@@ -93,5 +108,32 @@ event=End(Strikethrough) range=78..83
 event=SoftBreak range=83..84
 event=Text(Borrowed("F")) range=86..87
 event=End(Paragraph) range=78..87
-event=End(Item) range=74..89
-event=End(List(false)) range=74..89
+event=End(Item) range=74..90
+event=End(List(false)) range=74..90
+event=Start(List(None)) range=90..104
+event=Start(Item) range=90..104
+event=Start(Paragraph) range=94..101
+event=Code(Borrowed("G")) range=94..97
+event=SoftBreak range=97..98
+event=Text(Borrowed("G")) range=100..101
+event=End(Paragraph) range=94..101
+event=End(Item) range=90..104
+event=End(List(false)) range=90..104
+event=Start(List(None)) range=104..120
+event=Start(Item) range=104..120
+event=Start(Paragraph) range=108..117
+event=Code(Borrowed("H")) range=108..113
+event=SoftBreak range=113..114
+event=Text(Borrowed("H")) range=116..117
+event=End(Paragraph) range=108..117
+event=End(Item) range=104..120
+event=End(List(false)) range=104..120
+event=Start(List(None)) range=120..137
+event=Start(Item) range=120..137
+event=Start(Paragraph) range=124..135
+event=Code(Borrowed("I")) range=124..131
+event=SoftBreak range=131..132
+event=Text(Borrowed("I")) range=134..135
+event=End(Paragraph) range=124..135
+event=End(Item) range=120..137
+event=End(List(false)) range=120..137
