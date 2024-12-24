@@ -216,11 +216,11 @@ where
         };
     }
 
-    /// Check if the last event was a `Event::SoftBreak`
-    pub(crate) fn last_was_softbreak(&self) -> bool {
+    /// Check if the last event was a `Event::SoftBreak` or `Event::HardBreak`
+    pub(crate) fn last_was_line_break(&self) -> bool {
         self.last_event
             .as_ref()
-            .is_some_and(|(e, _)| matches!(e, Event::SoftBreak))
+            .is_some_and(|(e, _)| matches!(e, Event::SoftBreak | Event::HardBreak))
     }
 
     /// check if we're in a blockquote
@@ -696,7 +696,7 @@ where
 
                     let could_be_interpreted_as_html =
                         |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
-                            if state.last_was_softbreak()
+                            if state.last_was_line_break()
                                 && t == "<"
                                 && matches!(
                                     state.peek(),
