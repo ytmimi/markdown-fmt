@@ -115,7 +115,6 @@ where
 {
     /// Raw markdown input
     input: &'i str,
-    pub(crate) last_was_softbreak: bool,
     /// Iterator Supplying Markdown Events
     events: Peekable<I>,
     rewrite_buffer: String,
@@ -206,6 +205,13 @@ where
             Some(Event::Text(_)) => matches!(event, Event::End(_) | Event::Start(Tag::Item)),
             _ => matches!(event, Event::Rule),
         };
+    }
+
+    /// Check if the last event was a `Event::SoftBreak`
+    pub(crate) fn last_was_softbreak(&self) -> bool {
+        self.last_event
+            .as_ref()
+            .is_some_and(|(e, _)| matches!(e, Event::SoftBreak))
     }
 
     /// check if we're in a blockquote
@@ -516,7 +522,6 @@ where
     pub(crate) fn new(input: &'i str, formatter: &'m MarkdownFormatter, iter: I) -> Self {
         Self {
             input,
-            last_was_softbreak: false,
             events: iter.peekable(),
             rewrite_buffer: String::with_capacity(input.len() * 2),
             // TODO(ytmimi) Add a configuration to allow incrementing ordered lists
@@ -656,7 +661,7 @@ where
 
                     let could_be_interpreted_as_html =
                         |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
-                            if state.last_was_softbreak
+                            if state.last_was_softbreak()
                                 && t == "<"
                                 && matches!(
                                     state.peek(),
@@ -797,7 +802,6 @@ where
                     unreachable!("pulldown_cmark::Options::ENABLE_MATH is not configured")
                 }
             }
-            self.last_was_softbreak = matches!(event, Event::SoftBreak);
             self.last_position = last_position;
             self.last_event = Some((event, last_range));
         }
