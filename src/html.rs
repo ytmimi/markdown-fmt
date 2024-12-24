@@ -77,9 +77,20 @@ pub(crate) fn starts_with_html_block_identifier(s: &str) -> bool {
             .is_some_and(|t| t.starts_with(|c: char| c.is_ascii_alphabetic()))
     };
 
+    // line begins with the string <![CDATA[.
+    let html_block_condition_5 = |value: &str| {
+        // FIXME(ytmimi) because of the parser `![CDATA[` is broken into the following events:
+        // * Text("![")
+        // * Text("CDATA")
+        // * Text("[")
+        // which means that we'll be overly aggresive with escaping for now.
+        value.starts_with("![")
+    };
+
     let maybe_html = s.split_whitespace().next().unwrap_or(s);
     is_html_block_identifier(maybe_html)
         || html_block_condition_3(maybe_html)
         || html_block_condition_2(maybe_html)
         || html_block_condition_4(maybe_html)
+        || html_block_condition_5(maybe_html)
 }

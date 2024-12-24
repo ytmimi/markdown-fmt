@@ -252,6 +252,14 @@ JJ
     <!Tz  
 
 
+<!--
+    escape HTML block condition 5
+    "line begins with the string <![CDATA["
+-->
+5  
+    <![CDATA[
+
+
 <!-- Escape the escape so that we don't escape the closing `]`on the next formatting run -->
 [\ ]:]
 
