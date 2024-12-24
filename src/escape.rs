@@ -1,9 +1,10 @@
 use super::formatter::FormatState;
 use crate::list::UnorderedListMarker;
+use pulldown_cmark::Event;
 
-impl<I> FormatState<'_, '_, I>
+impl<'i, I> FormatState<'i, '_, I>
 where
-    I: Iterator,
+    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
 {
     pub(super) fn needs_escape(
         &mut self,
@@ -15,7 +16,7 @@ where
         };
 
         if !is_inline_element {
-            if !self.last_was_softbreak {
+            if !self.last_was_softbreak() {
                 // Normally, we only need to escape after a softbreak since the markdown
                 // formatter will adjust indentation, and the semantics of the formatted markdown
                 // could change if we don't escape values. Because different markdown constructs
