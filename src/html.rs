@@ -63,8 +63,13 @@ pub(crate) fn starts_with_html_block_identifier(s: &str) -> bool {
             .any(|tag| tag.eq_ignore_ascii_case(value))
     };
 
-    match s.split_whitespace().next() {
-        Some(t) => is_html_block_identifier(t),
-        None => is_html_block_identifier(s),
-    }
+    // line begins with the string <! followed by an ASCII letter.
+    let html_block_condition_4 = |value: &str| {
+        value
+            .strip_prefix('!')
+            .is_some_and(|t| t.starts_with(|c: char| c.is_ascii_alphabetic()))
+    };
+
+    let maybe_html = s.split_whitespace().next().unwrap_or(s);
+    is_html_block_identifier(maybe_html) || html_block_condition_4(maybe_html)
 }
