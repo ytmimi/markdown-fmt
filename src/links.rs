@@ -677,12 +677,16 @@ fn parse_link_reference_definition(
             }
             LinkParserPhase::UrlStart => {
                 if c == '\n' {
+                    tracing::trace!("Found a newline when searching for the start of a URL");
                     newline_count += 1;
                     whitespace_count = 0;
                     parsed_until = idx;
                     // Encountered a second newline before we found the start of the URL
                     // The URL can only be separated from the `:` by at most one newline.
                     if newline_count > 1 {
+                        tracing::trace!(
+                            "More than one newline found before the start of the URL. Stop parsing!"
+                        );
                         break;
                     }
                     continue;
@@ -714,14 +718,15 @@ fn parse_link_reference_definition(
                 let is_last = iter.peek().is_none();
                 if is_last {
                     let url = Cow::from(&input[idx..=idx]);
+                    tracing::trace!("Found a URL containing a single character {url:?}");
                     builder.set_url(LinkDestination::Regular(url), idx..idx, offset);
-                    parsed_until = idx;
+                    parsed_until = input.len();
                     break;
                 }
 
                 // We're at the start of the URL
                 start = idx;
-                tracing::trace!("Transition to LinkParserPhase::Url(c)");
+                tracing::trace!("Transition to LinkParserPhase::Url({c:?})");
                 phase = LinkParserPhase::Url(c);
                 parsed_until = idx;
                 newline_count = 0;
@@ -738,19 +743,28 @@ fn parse_link_reference_definition(
                             continue;
                         }
 
-                        let url = Cow::from(&input[start + 1..idx]);
+                        let url_str = &input[start + 1..idx];
+                        let url = Cow::from(url_str);
                         builder.set_url(LinkDestination::Bracketed(url), start..idx, offset);
-                        tracing::trace!("Transition to LinkParserPhase::TitleStart");
-                        phase = LinkParserPhase::TitleStart;
-                        parsed_until = idx;
+                        let is_last = iter.peek().is_none();
+                        if is_last {
+                            tracing::trace!("Found URL at the end of the input: <{url_str}>");
+                            parsed_until = input.len();
+                            break;
+                        } else {
+                            parsed_until = idx;
+                            phase = LinkParserPhase::TitleStart;
+                            tracing::trace!("Transition to LinkParserPhase::TitleStart");
+                        }
                     }
                     _ => {
                         if !c.is_whitespace() {
                             let is_last = iter.peek().is_none();
                             if is_last {
                                 let url = Cow::from(&input[start..=idx]);
+                                tracing::trace!("Found URL at the end of the input: {url:?}");
                                 builder.set_url(LinkDestination::Regular(url), start..idx, offset);
-                                parsed_until = idx;
+                                parsed_until = input.len();
                                 break;
                             }
                             continue;
