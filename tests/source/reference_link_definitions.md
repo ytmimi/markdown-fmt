@@ -118,11 +118,16 @@
 [label]: <\>\<> 'title'
 
 <!-- link reference definitions where the url starts with `>` on a newline, but it's not a blockquote -->
-[A]: ><
+[A]:  
+    ><
 
-> [B]: >< (title)
+> [B]:
+    ><
+    (title)
 
-> [C]: >< "title"
+> [C]:
+>     >< "title"
 
 
->>> [D]: >< "title"
+>>> [D]:
+>   >  >     >< "title"

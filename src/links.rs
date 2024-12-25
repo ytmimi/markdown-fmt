@@ -601,6 +601,7 @@ fn parse_link_reference_definition(
     let mut start = 0;
     let mut parsed_until = 0;
     let mut newline_count = 0;
+    let mut whitespace_count = 0;
     let mut is_escaped: bool = false;
 
     let mut iter = input.char_indices().peekable();
@@ -677,17 +678,35 @@ fn parse_link_reference_definition(
             LinkParserPhase::UrlStart => {
                 if c == '\n' {
                     newline_count += 1;
+                    whitespace_count = 0;
+                    parsed_until = idx;
                     // Encountered a second newline before we found the start of the URL
                     // The URL can only be separated from the `:` by at most one newline.
                     if newline_count > 1 {
                         break;
                     }
+                    continue;
                 }
 
-                // TODO(ytmimi) handle `>` on newlines in url start. If we're in a nested context
-                // like a block quote, then we need to potentially ignore leading `>` chars, but if
-                // we're still on the same line then we can assume that the `>` is part of the URL.
-                if c.is_whitespace() || (newline_count > 0 && c == '>') {
+                if c.is_whitespace() {
+                    whitespace_count += 1;
+                    continue;
+                } else if newline_count > 0 && c == '>' && whitespace_count < 4 {
+                    tracing::trace!("Found a `>` that's likely part of a blockquote");
+                    // This `>` is likely part of a block quote.
+                    //
+                    // The following markdown should parse as a referecne link definition with the
+                    // label `label` and the url `>`:
+                    //
+                    // Note that there are 4 spaces before the `>`.
+                    //
+                    // ```markdown
+                    // [label]:
+                    //     >
+                    // ```
+                    // Less than 4 spaces means that this `>` could start a blockquote.
+                    // 4 or more spaces and this `>` is unambiguously part of the url.
+                    whitespace_count = 0;
                     continue;
                 }
 
@@ -706,6 +725,7 @@ fn parse_link_reference_definition(
                 phase = LinkParserPhase::Url(c);
                 parsed_until = idx;
                 newline_count = 0;
+                whitespace_count = 0;
             }
             LinkParserPhase::Url(start_char) => {
                 // Taking a look at the [link destination spec], I don't think we can have newlines
@@ -1023,12 +1043,23 @@ mod test {
             title: "title",
         }
 
-        // TODO(ytmimi) handle url with `>` on next line
-        // check_parsed_link_reference_definition! {
-        //     definition: "[.]:\n    ><",
-        //     label: ".",
-        //     url: LinkDestination::Regular("><".into()),
-        // }
+        check_parsed_link_reference_definition! {
+            definition: "[.]:\n    ><",
+            label: ".",
+            url: LinkDestination::Regular("><".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: "> [.]:\n    ><",
+            label: ".",
+            url: LinkDestination::Regular("><".into()),
+        }
+
+        check_parsed_link_reference_definition! {
+            definition: "> [.]:\n>     ><",
+            label: ".",
+            url: LinkDestination::Regular("><".into()),
+        }
     }
 
     #[test]
