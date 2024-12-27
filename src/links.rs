@@ -360,7 +360,9 @@ impl LinkReferenceDefinition<'_> {
     pub(super) fn range(&self) -> std::ops::Range<usize> {
         let start = self.label.range().expect("we have a label").start;
         let end = if let Some(title) = self.title.as_ref() {
-            title.range().expect("we have a title").end
+            // Add the length of the closing marker (`"`, `'`, `)`) to the range if there's a title.
+            // The closing marker is ascii so it should be fine to just + 1
+            title.range().expect("we have a title").end + 1
         } else {
             self.destination.1.end
         };
