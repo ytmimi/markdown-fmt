@@ -525,6 +525,10 @@ where
             let needs_escape = self.needs_escape(line, true);
 
             match needs_escape {
+                _ if matches!(event, Event::Code(_)) => {
+                    // Don't escape any text within code
+                    write_context!(self, event, "{line}{trailing_spaces}")?;
+                }
                 Some(escape_kind) if escape_kind.multi_character_escape() => {
                     let marker = escape_kind.marker();
                     for c in line.chars() {

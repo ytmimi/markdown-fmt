@@ -436,6 +436,9 @@ end of clode`
       ~~~
   end of clode`
 
+<!-- More code spans that don't need to be escaped. -->
+`
+```z`
 
 <!-- Definition list title escapes Hard break -->
 

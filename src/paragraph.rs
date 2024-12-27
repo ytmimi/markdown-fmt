@@ -86,6 +86,17 @@ impl WriteContext<'_> for Paragraph {
             }
         }
 
+        let needs_escape = needs_escape(s);
+
+        if needs_escape.is_some() && matches!(ctx, MarkdownContext::Event(Event::Code(_))) {
+            // FIXME(ytmimi) backslash escapes don't work inside code spans so we really shouldn't
+            // escape anything. We can safely ignore the escapes defined by `needs_escape`, but
+            // there's at least one case where updated indentation can lead to a code span being
+            // interpreted as a table.
+            self.write_str(s)?;
+            return Ok(());
+        }
+
         // FIXME(ytmimi) I'm adding alot of checks here. They mostly duplicate what's defined
         // in `needs_escape`, but only apply in certain scenarios. There's probably a much
         // better way to handle this.
@@ -98,8 +109,6 @@ impl WriteContext<'_> for Paragraph {
         {
             self.buffer.push('\\');
         }
-
-        let needs_escape = needs_escape(s);
 
         // FIXME(ytmimi) let-chains would make this a little nicer to write.
         if let Some(escape_kind) = needs_escape {
