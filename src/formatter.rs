@@ -480,7 +480,11 @@ where
         let mut output = s;
         for indent in self.indentation.iter() {
             if indent.starts_with('>') {
-                output = output.trim_start();
+                // If there aren't any `>` then this could be a lazy-continuation line.
+                // In that case don't strip anything for blockquotes
+                if output.contains('>') {
+                    output = output.trim_start();
+                }
                 output = output
                     .strip_prefix('>')
                     .map(|o| o.strip_prefix(char::is_whitespace).unwrap_or(o))
@@ -885,7 +889,13 @@ where
                         .map(|w| w.saturating_sub(self.indentation_len()));
                     (width, c.reflow_text())
                 });
-                let paragraph = Paragraph::new(max_width, should_reflow_text, capacity);
+
+                let leading_spaces = count_trailing_spaces(self.trim_leading_indentation(
+                    &self.input[self.last_position..range.start].trim_start_matches('\n'),
+                ));
+
+                let paragraph =
+                    Paragraph::new(max_width, should_reflow_text, capacity, leading_spaces);
                 self.writers.push(paragraph.into());
             }
             Tag::Heading { .. } => {

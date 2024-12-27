@@ -187,6 +187,12 @@ impl EscapeKind {
             )
         )
     }
+
+    /// Is this an [EscapeKind::SingleLine]? Single line escapes represents text that looks like
+    /// it could be an ATX heading (#), blockquote (>), unordered list (*, +, -), etc.
+    pub(crate) fn is_single_line_escape(&self) -> bool {
+        matches!(self, Self::SingleLine(_))
+    }
 }
 
 /// Escapes for Markdown constructs that are defined on a single line

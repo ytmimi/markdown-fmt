@@ -17,6 +17,8 @@ pub(super) struct Paragraph {
     buffer: String,
     max_width: Option<usize>,
     should_reflow_text: bool,
+    // The number of leading spaces before the start of the paragraph
+    leading_spaces: usize,
 }
 
 impl WriteContext<'_> for Paragraph {
@@ -97,15 +99,43 @@ impl WriteContext<'_> for Paragraph {
             self.buffer.push('\\');
         }
 
-        let needs_escape = needs_escape(s).is_some();
+        let needs_escape = needs_escape(s);
+
+        // FIXME(ytmimi) let-chains would make this a little nicer to write.
+        if let Some(escape_kind) = needs_escape {
+            if self.buffer.is_empty()
+                && self.leading_spaces >= 4
+                && escape_kind.is_single_line_escape()
+            {
+                // FIXME(ytmimi)
+                // This is a really strange case. You'd expect 4 or more spaces to start an indented
+                // code block, but the parser thinks text immediately following a link reference
+                // definition is a paragraph. Not sure if this is something that will get fixed in
+                // the parser, but until then we need to escape any text that looks like markdown
+                if escape_kind.multi_character_escape() {
+                    let marker = escape_kind.marker();
+                    for c in s.chars() {
+                        if marker == c {
+                            self.write_char('\\')?;
+                        }
+                        self.write_char(c)?;
+                    }
+                } else {
+                    self.buffer.push('\\');
+                    self.write_str(s)?;
+                }
+
+                return Ok(());
+            }
+        }
 
         // Prevent the next pass from ignoring the hard break or misinterpreting `s`
         // as something other than text in a paragraph
-        if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape {
+        if self.buffer.ends_with(MARKDOWN_HARD_BREAK) && needs_escape.is_some() {
             self.buffer.push('\\');
         }
 
-        if self.buffer.ends_with('\n') && s.starts_with('#') && needs_escape {
+        if self.buffer.ends_with('\n') && s.starts_with('#') && needs_escape.is_some() {
             self.buffer.push('\\');
         }
 
@@ -154,11 +184,17 @@ impl Write for Paragraph {
 }
 
 impl Paragraph {
-    pub(super) fn new(max_width: Option<usize>, should_reflow_text: bool, capacity: usize) -> Self {
+    pub(super) fn new(
+        max_width: Option<usize>,
+        should_reflow_text: bool,
+        capacity: usize,
+        leading_spaces: usize,
+    ) -> Self {
         Self {
             max_width,
             buffer: String::with_capacity(capacity),
             should_reflow_text,
+            leading_spaces,
         }
     }
 
