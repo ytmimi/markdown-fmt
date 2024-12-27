@@ -1332,8 +1332,11 @@ where
             Tag::DefinitionList => {
                 let mut newlines = self.count_newlines(&range);
 
-                if matches!(self.last_event, Some((Event::End(TagEnd::List(..)), _))) {
-                    // At least two lines between the end of a list and the start of a
+                if matches!(
+                    self.last_event,
+                    Some((Event::End(TagEnd::List(..) | TagEnd::BlockQuote(..)), _))
+                ) {
+                    // At least two lines between the end of a list or blockquote and the start of a
                     // definition list. This ensures that the output is idempotent.
                     newlines = std::cmp::max(newlines, 2);
                 }

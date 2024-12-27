@@ -216,3 +216,13 @@ C
 
      fenced-code-block 
      notice one less space of indentation than the cases above
+
+
+<!-- Needs an extra space to separate the definition list from the blockquote -->
+>
+><Y|
+:-|
++*
+\UUU
+
+:<!T
