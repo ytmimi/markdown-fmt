@@ -1214,9 +1214,13 @@ where
                 let newlines = self.count_newlines(&range);
                 self.write_newlines(newlines)?;
 
-                // Anchor the last_position at the start of the footnote definition. This prevents
-                // picking up extra newlines in case we need to recover refernce link definitions
-                self.last_position = range.start;
+                // Anchor the last_position just after the `:` at the start of the footnote
+                // definition. This prevents picking up extra newlines in case we need to
+                // recover refernce link definitions
+                let snippet = &self.input[range.clone()];
+                let colon_index = snippet.find(':').expect("footnote definition has a `:`");
+                // +1 to move past the `:`
+                self.last_position = range.start + colon_index + 1;
 
                 let recover_link_defs = |range: Range<usize>| -> Vec<LinkReferenceDefinition> {
                     let start = range.start;
@@ -1228,9 +1232,11 @@ where
 
                 let link_defs = match self.events.peek() {
                     Some((Event::End(TagEnd::FootnoteDefinition), _)) => {
-                        recover_link_defs(range.clone())
+                        recover_link_defs(self.last_position..range.end)
                     }
-                    Some((_, next_range)) => recover_link_defs(range.start..next_range.start),
+                    Some((_, next_range)) => {
+                        recover_link_defs(self.last_position..next_range.start)
+                    }
                     None => {
                         // Peeking at the next event should always return `Some()` for start events
                         unreachable!(
