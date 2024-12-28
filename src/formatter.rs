@@ -22,7 +22,8 @@ use crate::list::{LIST_START_CHARS, ListMarker};
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
 use crate::utils::{
-    count_newlines, count_trailing_spaces, get_spaces, sequence_ends_on_escape, split_lines,
+    count_leading_spaces, count_newlines, count_trailing_spaces, get_spaces,
+    sequence_ends_on_escape, split_lines,
 };
 use crate::writer::{
     MarkdownContext, MarkdownWriter, WriteContext, write_context, writeln_context,
@@ -525,9 +526,21 @@ where
             let needs_escape = self.needs_escape(line, true);
 
             match needs_escape {
-                _ if matches!(event, Event::Code(_)) => {
-                    // Don't escape any text within code
-                    write_context!(self, event, "{line}{trailing_spaces}")?;
+                Some(_) if matches!(event, Event::Code(_)) => {
+                    let has_lazy_continutation_line =
+                        count_leading_spaces(line) < 4 && self.indentation.len() > 0;
+                    if has_lazy_continutation_line {
+                        // FIXME(ytmimi)
+                        // Escapes don't really work inside code spans. Instead we'll add extra
+                        // spaces if this looks like a lazy continuation line.
+                        // I'm not sure if this is necessarily the right thing to do, since adding
+                        // spaces technically changes the content of the code span, but I think
+                        // browsers collapse the consecutive spaces when rendering. If anyone has a
+                        // better idea on how to handle this that stays idempotent I'm all for it!
+                        write_context!(self, event, "    {line}{trailing_spaces}")?;
+                    } else {
+                        write_context!(self, event, "{line}{trailing_spaces}")?;
+                    }
                 }
                 Some(escape_kind) if escape_kind.multi_character_escape() => {
                     let marker = escape_kind.marker();

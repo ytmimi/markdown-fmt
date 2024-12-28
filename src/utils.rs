@@ -16,6 +16,14 @@ pub(crate) fn count_trailing_spaces(s: &str) -> usize {
         .count()
 }
 
+/// Count the number of leading spaces at the start of input
+pub(crate) fn count_leading_spaces(s: &str) -> usize {
+    s.chars()
+        .take_while(|c| c.is_whitespace())
+        .filter(|c| matches!(*c, NON_BREAKING_SPACE | SPACE))
+        .count()
+}
+
 /// Get the number of trailing spaces that you need.
 pub(crate) fn get_spaces(n: usize) -> Cow<'static, str> {
     if n <= SPACES.len() {

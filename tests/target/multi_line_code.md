@@ -19,3 +19,11 @@ $```
 
 >> `
 >> |`
+
+<!--
+    Instead of escaping multi-line code with lazy-continuations indent what would have been
+    escpaed by 4 spaces.
+-->
+* - `start of code
+        --
+    end of code`
