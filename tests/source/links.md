@@ -72,3 +72,6 @@
 
 [some text2\
 <]
+
+<!-- Properly parse label in reference links when there's an escape -->
+ [*][^\ ][q]

@@ -147,9 +147,9 @@ pub(crate) fn is_balanced(s: &str, opener: char, closer: char) -> bool {
 /// Search for enclosing balanced brackets
 fn find_text_within_last_set_of_balance_bracket(
     label: &str,
-    opener: u8,
-    closer: u8,
-    halt_condition: Option<fn(u8) -> bool>,
+    opener: char,
+    closer: char,
+    halt_condition: Option<fn(char) -> bool>,
 ) -> (usize, usize) {
     let mut stack = vec![];
     let mut was_last_escape = false;
@@ -157,29 +157,29 @@ fn find_text_within_last_set_of_balance_bracket(
     let mut start = 0;
     let mut end = label.len();
 
-    let mut bytes = label.bytes().enumerate().peekable();
+    let mut iter = label.char_indices().peekable();
 
-    while let Some((index, byte)) = bytes.next() {
-        if !was_last_escape && byte == opener {
+    while let Some((index, c)) = iter.next() {
+        if !was_last_escape && c == opener {
             stack.push(index)
         }
 
-        if !was_last_escape && byte == closer {
+        if !was_last_escape && c == closer {
             if let Some(start_index) = stack.pop() {
                 start = start_index;
                 end = index;
             }
 
             if stack.is_empty() && halt_condition.is_some() {
-                match (bytes.peek(), halt_condition) {
-                    (Some((_, byte)), Some(halt_condition)) if halt_condition(*byte) => {
+                match (iter.peek(), halt_condition) {
+                    (Some((_, c)), Some(halt_condition)) if halt_condition(*c) => {
                         break;
                     }
                     _ => {}
                 }
             }
         }
-        was_last_escape = byte == b'\\'
+        was_last_escape = is_char_esacped(c, was_last_escape);
     }
     (start, end + 1)
 }
@@ -188,7 +188,7 @@ fn find_text_within_last_set_of_balance_bracket(
 /// [foo][bar] -> bar
 /// [link \[bar][ref] -> ref
 pub(super) fn find_reference_link_label(input: &str) -> &str {
-    let (start, end) = find_text_within_last_set_of_balance_bracket(input, b'[', b']', None);
+    let (start, end) = find_text_within_last_set_of_balance_bracket(input, '[', ']', None);
     // +1 to move past '['
     // -1 to move before ']'
     input[start + 1..end - 1].trim()
@@ -199,7 +199,7 @@ pub(super) fn find_reference_link_label(input: &str) -> &str {
 /// [link](</my uri>) -> '/my uri'
 pub(super) fn find_inline_url_and_title(input: &str) -> Option<(String, Option<(String, char)>)> {
     let (_, end) =
-        find_text_within_last_set_of_balance_bracket(input, b'[', b']', Some(|b| b == b'('));
+        find_text_within_last_set_of_balance_bracket(input, '[', ']', Some(|b| b == '('));
     // +1 to move past '('
     // -1 to move before ')'
     let inline_url = input[end + 1..input.len() - 1].trim();
