@@ -515,18 +515,22 @@ bar]
 [first
 second]
 [^third
-fourth]"##,r##"[\^foo bar]\: not a footnote definition
+fourth]"##,r##"[^foo\
+bar]: not a footnote definition
 
 [baz\ quux]: https://rust-lang.org
 
 [first second]: https://rust-lang.org
 
-[\^third fourth]\: not a footnote definition
+[^third
+fourth]: not a footnote definition
 
 [baz quux]
-[\^foo bar]
+[^foo\
+bar]
 [first second]
-[\^third fourth]"##);
+[^third
+fourth]"##);
 }
 
 // using the test macro because we need to add escapes

@@ -231,7 +231,7 @@
   },
   {
     "markdown": "[^foo\\\nbar]: not a footnote definition\n\n[baz\\\nquux]: https://rust-lang.org\n\n[first\nsecond]: https://rust-lang.org\n\n[^third\nfourth]: not a footnote definition\n\n[baz\\\nquux]\n[^foo\\\nbar]\n[first\nsecond]\n[^third\nfourth]\n",
-    "formattedMarkdown": "[\\^foo bar]\\: not a footnote definition\n\n[baz\\ quux]: https://rust-lang.org\n\n[first second]: https://rust-lang.org\n\n[\\^third fourth]\\: not a footnote definition\n\n[baz quux]\n[\\^foo bar]\n[first second]\n[\\^third fourth]",
+    "formattedMarkdown": "[^foo\\\nbar]: not a footnote definition\n\n[baz\\ quux]: https://rust-lang.org\n\n[first second]: https://rust-lang.org\n\n[^third\nfourth]: not a footnote definition\n\n[baz quux]\n[^foo\\\nbar]\n[first second]\n[^third\nfourth]",
     "html": "<p>[^foo<br>\nbar]: not a footnote definition</p>\n<p>[^third\nfourth]: not a footnote definition</p>\n<p><a href=\"https://rust-lang.org\">baz<br>\nquux</a>\n[^foo<br>\nbar]\n<a href=\"https://rust-lang.org\">first\nsecond</a>\n[^third\nfourth]</p>\n",
     "example": 22,
     "start_line": 580,

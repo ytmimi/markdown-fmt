@@ -1447,10 +1447,6 @@ fn gfm_markdown_link_reference_definitions_166() {
 
 with blank line'
 
-[foo]"##,r##"[foo]\: /url 'title
-
-with blank line'
-
 [foo]"##);
 }
 
@@ -1470,8 +1466,6 @@ fn gfm_markdown_link_reference_definitions_168() {
     // https://github.github.com/gfm/#example-168
     test_identical_markdown_events!(r##"[foo]:
 
-[foo]"##,r##"[foo]\:
-
 [foo]"##);
 }
 
@@ -1489,8 +1483,6 @@ fn gfm_markdown_link_reference_definitions_169() {
 fn gfm_markdown_link_reference_definitions_170() {
     // https://github.github.com/gfm/#example-170
     test_identical_markdown_events!(r##"[foo]: <bar>(baz)
-
-[foo]"##,r##"[foo]\: <bar>(baz)
 
 [foo]"##);
 }
@@ -1561,7 +1553,7 @@ bar"##);
 #[test]
 fn gfm_markdown_link_reference_definitions_178() {
     // https://github.github.com/gfm/#example-178
-    test_identical_markdown_events!(r##"[foo]: /url "title" ok"##,r##"[foo]\: /url "title" ok"##);
+    test_identical_markdown_events!(r##"[foo]: /url "title" ok"##);
 }
 
 #[test]
@@ -1594,9 +1586,6 @@ fn gfm_markdown_link_reference_definitions_182() {
     // https://github.github.com/gfm/#example-182
     test_identical_markdown_events!(r##"Foo
 [bar]: /baz
-
-[bar]"##,r##"Foo
-[bar]\: /baz
 
 [bar]"##);
 }

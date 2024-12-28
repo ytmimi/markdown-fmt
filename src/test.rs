@@ -162,9 +162,6 @@ mod tester {
         let result = rewrite_markdown(input).unwrap();
         assert_eq!(result, "<?*?'\n");
 
-        let result = rewrite_markdown("[`\r``]").unwrap();
-        assert_eq!(result, "[` ``]");
-
         let input = ">z\\\rS[\nz\\\rS#`~\\\r33~[\n#";
         let result = rewrite_markdown(input).unwrap();
         assert_eq!(result, "> z\\\n> S[\n> z\\\n> S#`~\\\n> 33~[\n#");

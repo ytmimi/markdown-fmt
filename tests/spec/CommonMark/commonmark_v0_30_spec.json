@@ -1647,7 +1647,6 @@
   },
   {
     "markdown": "[foo]: /url 'title\n\nwith blank line'\n\n[foo]\n",
-    "formattedMarkdown": "[foo]\\: /url 'title\n\nwith blank line'\n\n[foo]",
     "html": "<p>[foo]: /url 'title</p>\n<p>with blank line'</p>\n<p>[foo]</p>\n",
     "example": 197,
     "start_line": 3244,
@@ -1665,7 +1664,6 @@
   },
   {
     "markdown": "[foo]:\n\n[foo]\n",
-    "formattedMarkdown": "[foo]\\:\n\n[foo]",
     "html": "<p>[foo]:</p>\n<p>[foo]</p>\n",
     "example": 199,
     "start_line": 3271,
@@ -1683,7 +1681,6 @@
   },
   {
     "markdown": "[foo]: <bar>(baz)\n\n[foo]\n",
-    "formattedMarkdown":  "[foo]\\: <bar>(baz)\n\n[foo]",
     "html": "<p>[foo]: <bar>(baz)</p>\n<p>[foo]</p>\n",
     "example": 201,
     "start_line": 3294,
@@ -1751,7 +1748,6 @@
   },
   {
     "markdown": "[foo]: /url \"title\" ok\n",
-    "formattedMarkdown": "[foo]\\: /url \"title\" ok",
     "html": "<p>[foo]: /url &quot;title&quot; ok</p>\n",
     "example": 209,
     "start_line": 3388,
@@ -1784,7 +1780,6 @@
   },
   {
     "markdown": "Foo\n[bar]: /baz\n\n[bar]\n",
-    "formattedMarkdown": "Foo\n[bar]\\: /baz\n\n[bar]",
     "html": "<p>Foo\n[bar]: /baz</p>\n<p>[bar]</p>\n",
     "example": 213,
     "start_line": 3437,

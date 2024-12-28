@@ -1679,10 +1679,6 @@ fn markdown_link_reference_definitions_197() {
 
 with blank line'
 
-[foo]"##,r##"[foo]\: /url 'title
-
-with blank line'
-
 [foo]"##);
 }
 
@@ -1702,8 +1698,6 @@ fn markdown_link_reference_definitions_199() {
     // https://spec.commonmark.org/0.30/#example-199
     test_identical_markdown_events!(r##"[foo]:
 
-[foo]"##,r##"[foo]\:
-
 [foo]"##);
 }
 
@@ -1721,8 +1715,6 @@ fn markdown_link_reference_definitions_200() {
 fn markdown_link_reference_definitions_201() {
     // https://spec.commonmark.org/0.30/#example-201
     test_identical_markdown_events!(r##"[foo]: <bar>(baz)
-
-[foo]"##,r##"[foo]\: <bar>(baz)
 
 [foo]"##);
 }
@@ -1791,7 +1783,7 @@ bar"##);
 #[test]
 fn markdown_link_reference_definitions_209() {
     // https://spec.commonmark.org/0.30/#example-209
-    test_identical_markdown_events!(r##"[foo]: /url "title" ok"##,r##"[foo]\: /url "title" ok"##);
+    test_identical_markdown_events!(r##"[foo]: /url "title" ok"##);
 }
 
 #[test]
@@ -1824,9 +1816,6 @@ fn markdown_link_reference_definitions_213() {
     // https://spec.commonmark.org/0.30/#example-213
     test_identical_markdown_events!(r##"Foo
 [bar]: /baz
-
-[bar]"##,r##"Foo
-[bar]\: /baz
 
 [bar]"##);
 }

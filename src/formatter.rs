@@ -69,10 +69,13 @@ impl MarkdownFormatter {
     /// assert_eq!(rewrite, String::from("# Header!"));
     /// ```
     pub fn format(&self, input: &str) -> Result<String, std::fmt::Error> {
-        // callback that will always revcover broken links
-        let mut callback = |broken_link| {
-            tracing::trace!("found boken link: {broken_link:?}");
-            Some(("".into(), "".into()))
+        let mut callback = |_| {
+            // FIXME(ytmimi)
+            // Recovering reference links has been a source of idempotent issues when fuzz testing.
+            // To prevent those issues I'm disabling any broken link recovery. In the future I'd
+            // like to provide an option to allow users to configure link recovery similar to user
+            // defined code formatting.
+            None
         };
 
         let options = pulldown_cmark_options!();

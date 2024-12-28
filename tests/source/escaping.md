@@ -40,6 +40,9 @@ TT
 
 [.]:[: ]
 
+[.]: /url
+[:]: /url
+
 <!-- space hard break followed by paragraph with single `-` -->
 <  
     -
@@ -308,9 +311,10 @@ LL
 :
 
 
-<!-- Escape the `^` in the link and the unescaped escape in the label -->
-[\ ][^]
+<!-- Escape the `^` in the link label -->
+[^][a]
 
+[a]: url
 
 <!--
   escape the `]` in a and b so that we don't change the meaning of the markdown and
@@ -323,12 +327,15 @@ LL
  e[ ]<https://Autolink.com>
  f[ ]<Email@example.com>
 
+[^]: /reference
+
 <!--
   Make sure we escape the `]` so that we don't interpret the first `[^k]` as a link on future runs.
   It's originally parsed as text
 -->
 ][^k][^k][Z]
 
+[Z]: /url
 
 <!--
   Place an extra space between the end of the list and the start of the definition list.
