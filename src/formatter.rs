@@ -835,10 +835,14 @@ where
                 }
                 Event::Html(_) => {
                     let newlines = self.count_newlines(&range);
-                    if self.needs_indent {
-                        self.write_newlines(newlines)?;
-                    }
                     let snippet = &self.input[range].trim_end();
+                    if self.needs_indent {
+                        if snippet.is_empty() {
+                            self.write_newlines_no_trailing_whitespace(newlines)?;
+                        } else {
+                            self.write_newlines(newlines)?;
+                        }
+                    }
                     self.write_event_str(&event, snippet)?;
                     self.check_needs_indent(&event);
                 }
@@ -1742,6 +1746,13 @@ where
             TagEnd::HtmlBlock => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+
+                let rest_range = self.last_position..range.end;
+                let newlines = self.count_newlines_in_range(&rest_range);
+                if newlines > 0 {
+                    // Recover empty lines at the end of the HTML block
+                    self.write_newlines_no_trailing_whitespace(newlines)?;
+                }
 
                 if self.in_definition_list_definition() {
                     // Restore the indentation that we modified in `Tag::HtmlBlock`.
