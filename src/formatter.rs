@@ -845,6 +845,13 @@ where
                 }
                 Event::FootnoteReference(ref text) => {
                     write_context!(self, &event, "[^{text}]")?;
+                    if let Some((Event::Text(t), next_range)) = self.events.peek() {
+                        let text_right_after_definition =
+                            self.input[range.end..next_range.start].is_empty();
+                        if text_right_after_definition && t.starts_with(':') {
+                            write_context!(self, Escape, "\\")?;
+                        }
+                    }
                 }
                 Event::TaskListMarker(done) => {
                     if done {

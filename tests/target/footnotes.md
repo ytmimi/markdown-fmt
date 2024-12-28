@@ -87,3 +87,7 @@
 
 [^q]:
     > q
+
+<!-- footnote reference that's followed by a `:` -->
+<%
+[^p]\:
