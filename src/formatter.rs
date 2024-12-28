@@ -1490,7 +1490,8 @@ where
                 self.rewrite_reference_link_definitions(&ref_def_range)?;
                 let rest_range = self.last_position..range.end;
                 let newlines = self.count_newlines_in_range(&rest_range);
-                if newlines > 0 {
+                let write_trailing_newlines = newlines > 0;
+                if write_trailing_newlines {
                     // Recover empty block quote lines
                     if let Some(last) = self.indentation.last_mut() {
                         // Avoid trailing whitespace by replacing the last indentation with '>'
@@ -1514,7 +1515,7 @@ where
                 // FIXME(ytmimi) let chains would make this much nicer to write.
                 //
                 // If there's another event...
-                if let Some((event, _)) = self.events.peek() {
+                if let Some((event, next_range)) = self.events.peek() {
                     // and it's not a TagEnd::BlockQuote...
                     if !matches!(event, Event::End(TagEnd::BlockQuote(_))) {
                         // and we still have indentation on the stack...
@@ -1524,6 +1525,34 @@ where
                                 // update the indentation
                                 *last = "> ".into()
                             }
+                        }
+                    }
+
+                    // FIXME(ytmimi)
+                    // If the last event was the end of a paragraph and the next event is the start
+                    // of a paragraph, then make sure there are at least two spaces of indentation
+                    // between the end of the blockquote and the start of the next paragraph. This
+                    // ensure that the paragraph won't accidentally be considered as a lazy
+                    // continuation line of the previous paragraph on future formatting runs.
+                    //
+                    // From what I can tell, this behavior is the result of enabling definition-list
+                    // parsing. Without definition-list support enabled the input would get treated
+                    // as a lazy continuation line of the previous blockquote.
+                    // See https://github.com/pulldown-cmark/pulldown-cmark/issues/995
+                    let last_was_paragraph =
+                        matches!(self.last_event, Some((Event::End(TagEnd::Paragraph), _)));
+                    let next_is_paragraph = matches!(event, Event::Start(Tag::Paragraph));
+                    if !write_trailing_newlines && last_was_paragraph && next_is_paragraph {
+                        let rest_range = range.end..next_range.start;
+                        let newlines = self.count_newlines_in_range(&rest_range);
+                        if newlines == 0 {
+                            // write two newline here. The `Event::Start(Tag::Paragraph)`
+                            // somehow doesn't have a newline before it.
+                            self.write_newlines_no_trailing_whitespace(2)?;
+                        } else if newlines == 1 {
+                            // write one newline here. The `Event::Start(Tag::Paragraph)`
+                            // should handle the other.
+                            self.write_newlines_no_trailing_whitespace(1)?;
                         }
                     }
                 }
