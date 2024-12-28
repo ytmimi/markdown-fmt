@@ -31,6 +31,17 @@ impl MarkdownWriter<'_> {
             Self::DefinitionListTitle(d) => d.is_empty(),
         }
     }
+
+    /// Some writers add their indentation to each line after rewriting their content and
+    /// others support writing indentation while they're being formatted.
+    pub(super) fn support_indentation_while_formatting(&self) -> bool {
+        match self {
+            Self::Header(_) | Self::Paragraph(_) | Self::DefinitionListTitle(_) | Self::Link(_) => {
+                false
+            }
+            _ => true,
+        }
+    }
 }
 
 impl std::fmt::Write for MarkdownWriter<'_> {

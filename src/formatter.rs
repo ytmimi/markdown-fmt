@@ -234,14 +234,6 @@ where
             .any(|t| matches!(t, Tag::BlockQuote(_)))
     }
 
-    /// Check if we're formatting a link
-    fn in_link_or_image(&self) -> bool {
-        matches!(
-            self.nested_context.last(),
-            Some(Tag::Link { .. } | Tag::Image { .. })
-        )
-    }
-
     /// Check if we're currently formatting an HTML block
     fn in_html_block(&self) -> bool {
         matches!(self.nested_context.last(), Some(Tag::HtmlBlock))
@@ -261,13 +253,6 @@ where
             self.nested_context.last(),
             Some(Tag::DefinitionListDefinition)
         )
-    }
-
-    /// Check if we're currently formatting a definition list title
-    fn in_definition_list_title(&self) -> bool {
-        self.writers
-            .last()
-            .is_some_and(|w| matches!(w, MarkdownWriter::DefinitionListTitle(_)))
     }
 
     /// Check if we're in a Table
@@ -293,6 +278,14 @@ where
             "   "
         } else {
             "    "
+        }
+    }
+
+    /// Check if the current rewrite buffer support indentation
+    fn writer_supports_indentation_while_formatting(&self) -> bool {
+        match self.writers.last() {
+            Some(w) => w.support_indentation_while_formatting(),
+            None => true,
         }
     }
 
@@ -816,11 +809,7 @@ where
 
                     writeln_context!(self, &event)?;
 
-                    // paraphraphs write their indentation after reformatting the text
-                    if !(self.in_paragraph()
-                        || self.in_definition_list_title()
-                        || self.in_link_or_image())
-                    {
+                    if self.writer_supports_indentation_while_formatting() {
                         self.write_indentation(false)?;
                     }
                 }
@@ -929,14 +918,7 @@ where
                     self.needs_indent = false;
                 }
                 let full_header = self.input[range].trim();
-                let header = Header::new(
-                    // Take the indentaiton so that we don't accidentally write indentation into the
-                    // headers for setext headers that may span multiple lines.
-                    // We will restore the indentation after we're done formatting the header.
-                    std::mem::take(&mut self.indentation),
-                    full_header,
-                    tag,
-                );
+                let header = Header::new(full_header, tag);
                 self.writers.push(header.into())
             }
             // `pulldown_cmark::Options::ENABLE_GFM` is not configured so we shouldn't have
@@ -1259,13 +1241,10 @@ where
 
                 write!(self, "[^{label}]:")?;
 
-                let footnote = FootnoteDefinition::new(
-                    // Take the indentaiton so that nested items are written without indentation.
-                    // We will restore the indentation after we're done formatting the footnote def.
-                    std::mem::take(&mut self.indentation),
-                    (range.end - range.start) * 2,
-                );
+                let footnote_indentation = FootnoteDefinition::indentation();
+                let footnote = FootnoteDefinition::new((range.end - range.start) * 2);
 
+                self.indentation.push(footnote_indentation.into());
                 self.writers.push(footnote.into());
                 self.rewrite_reference_link_definitions_inner(link_defs)?;
             }
@@ -1464,7 +1443,7 @@ where
                     unreachable!("Should have popped a MarkdownWriter::Header")
                 };
                 let header_kind = h.kind();
-                let (buffer, indentation) = h.into_parts()?;
+                let buffer = h.into_buffer()?;
 
                 if let HeaderKind::Atx(level) = header_kind {
                     let atx_header = match level {
@@ -1482,7 +1461,6 @@ where
                         write!(self, "{atx_header} ")?;
                     }
                 }
-                self.indentation = indentation;
                 self.join_with_indentation(&buffer, false)?;
             }
             TagEnd::BlockQuote(..) => {
@@ -1634,15 +1612,15 @@ where
                     unreachable!("Should have popped a MarkdownWriter::FootnoteDefinition")
                 };
 
-                let (buffer, indentation, footnote_indent) = f.into_parts();
-                self.indentation = indentation;
+                let buffer = f.into_buffer();
 
                 if !buffer.is_empty() {
-                    writeln!(self)?;
-                    self.indentation.push(footnote_indent);
-                    self.join_with_indentation(&buffer, true)?;
-                    self.indentation.pop();
+                    self.write_newlines(1)?;
+                    self.write_str(&buffer)?;
                 }
+
+                let popped_indentation = self.indentation.pop();
+                debug_assert!(popped_indentation.is_some());
 
                 if let Some(Event::Start(Tag::FootnoteDefinition(_))) = self.peek() {
                     // separte consecutive footnote definitinons by at least one line

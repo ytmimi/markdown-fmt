@@ -2,14 +2,12 @@ use crate::escape::needs_escape;
 use crate::utils::sequence_ends_on_escape;
 use crate::writer::{MarkdownContext, WriteContext};
 use pulldown_cmark::{CowStr, Event, HeadingLevel, Tag};
-use std::borrow::Cow;
 use std::fmt::Write;
 
 /// A buffer where we write the content of markdown headers
 #[derive(Debug, PartialEq)]
 pub(super) struct Header<'i> {
     buffer: String,
-    indentation: Vec<Cow<'static, str>>,
     kind: HeaderKind<'i>,
     attrs_on_own_line: bool,
     id: Option<CowStr<'i>>,
@@ -56,11 +54,7 @@ impl Write for Header<'_> {
 }
 
 impl<'i> Header<'i> {
-    pub(super) fn new(
-        indentation: Vec<Cow<'static, str>>,
-        full_header: &'i str,
-        tag: Tag<'i>,
-    ) -> Self {
+    pub(super) fn new(full_header: &'i str, tag: Tag<'i>) -> Self {
         let Tag::Heading {
             level,
             id,
@@ -105,7 +99,6 @@ impl<'i> Header<'i> {
 
         Self {
             buffer: String::with_capacity(full_header.len() * 2),
-            indentation,
             kind,
             attrs_on_own_line,
             id,
@@ -131,9 +124,7 @@ impl<'i> Header<'i> {
 
     /// Consume `self` and return the buffer along with any indentaion that we took
     /// when creating `Self`.
-    pub(super) fn into_parts(
-        mut self,
-    ) -> Result<(String, Vec<Cow<'static, str>>), std::fmt::Error> {
+    pub(super) fn into_buffer(mut self) -> Result<String, std::fmt::Error> {
         if matches!(self.kind(), HeaderKind::Atx(_)) && self.buffer.trim_end().ends_with('#') {
             if self.has_attributes() {
                 // Make sure we properly escape trailing `#` at the end of the header.
@@ -148,7 +139,7 @@ impl<'i> Header<'i> {
         self.escape_trailing_empty_attribute_brackets();
         self.write_header_attributes()?;
         self.write_setext_header()?;
-        Ok((self.buffer, self.indentation))
+        Ok(self.buffer)
     }
 
     fn remove_trailing_hashtags(&mut self) {

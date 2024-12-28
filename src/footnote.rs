@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::Write;
 
 static FOOTNOTE_INDENTATION: &str = "    ";
@@ -7,7 +6,6 @@ static FOOTNOTE_INDENTATION: &str = "    ";
 #[derive(Debug, PartialEq)]
 pub(crate) struct FootnoteDefinition {
     buffer: String,
-    indentation: Vec<Cow<'static, str>>,
 }
 
 impl Write for FootnoteDefinition {
@@ -18,11 +16,15 @@ impl Write for FootnoteDefinition {
 }
 
 impl FootnoteDefinition {
-    pub(super) fn new(indentation: Vec<Cow<'static, str>>, capacity: usize) -> Self {
+    pub(super) fn new(capacity: usize) -> Self {
         Self {
             buffer: String::with_capacity(capacity),
-            indentation,
         }
+    }
+
+    /// Get the indentation for footnote definitions
+    pub(super) fn indentation() -> &'static str {
+        FOOTNOTE_INDENTATION
     }
 
     /// Check if the internal buffer is empty
@@ -31,7 +33,7 @@ impl FootnoteDefinition {
     }
 
     /// Consume Self and return the formatted buffer
-    pub(super) fn into_parts(self) -> (String, Vec<Cow<'static, str>>, Cow<'static, str>) {
-        (self.buffer, self.indentation, FOOTNOTE_INDENTATION.into())
+    pub(super) fn into_buffer(self) -> String {
+        self.buffer
     }
 }
