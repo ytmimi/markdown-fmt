@@ -2111,3 +2111,10 @@ definition-list-Y
 
 > * > [b----extra-lazy]: url
 >   > \-\-\-
+
+<!-- escape what looks like a footnote reference -->
+Some text
+[\^  p] -- not a footnote reference
+
+Some text
+[\^ [] p] -- not a footnote reference

@@ -1,4 +1,5 @@
 use super::formatter::FormatState;
+use crate::links::is_balanced;
 use crate::list::UnorderedListMarker;
 use pulldown_cmark::Event;
 
@@ -99,6 +100,8 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
         !info_string.contains(['`', '~'])
     };
 
+    let is_footnote_reference = || is_balanced(input, '[', ']') && input.starts_with("[^");
+
     match first_char {
         '#' if is_atx_heading() => Some(EscapeKind::SingleLine(SingleLineEscape::AtxHeader)),
         '=' if is_setext_heading(b'=') => {
@@ -150,6 +153,9 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
         ':' => Some(EscapeKind::SingleLine(
             SingleLineEscape::DefinitionListColon,
         )),
+        '[' if is_footnote_reference() => {
+            Some(EscapeKind::SingleLine(SingleLineEscape::FootnoteReference))
+        }
         _ => None,
     }
 }
@@ -172,6 +178,7 @@ impl EscapeKind {
             Self::SingleLine(SingleLineEscape::BlockQuote) => '>',
             Self::SingleLine(SingleLineEscape::DefinitionListColon) => ':',
             Self::SingleLine(SingleLineEscape::FencedCodeBlock(marker)) => (*marker).into(),
+            Self::SingleLine(SingleLineEscape::FootnoteReference) => '^',
             Self::SingleLine(SingleLineEscape::ThematicBreak(marker)) => (*marker).into(),
             Self::SingleLine(SingleLineEscape::UnorderedList(marker)) => marker.into(),
             Self::MultiLine(MultiLineEscape::SetextHeader(marker)) => (*marker).into(),
@@ -183,7 +190,9 @@ impl EscapeKind {
         matches!(
             self,
             EscapeKind::SingleLine(
-                SingleLineEscape::FencedCodeBlock(_) | SingleLineEscape::ThematicBreak(_)
+                SingleLineEscape::FencedCodeBlock(_)
+                    | SingleLineEscape::ThematicBreak(_)
+                    | SingleLineEscape::FootnoteReference
             )
         )
     }
@@ -223,6 +232,8 @@ pub(crate) enum SingleLineEscape {
     DefinitionListColon,
     /// Escape ``` or ~~~ that might look like a fenced code block.
     FencedCodeBlock(FencedCodeBlockMarker),
+    /// Escape text that looks like a footnote reference `[^foo]`
+    FootnoteReference,
 }
 
 /// Escapes for Markdown constructs that are defined over multiple lines.
