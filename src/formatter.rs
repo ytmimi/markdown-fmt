@@ -9,7 +9,7 @@ use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
-use crate::adapters::{ListEndAtLastItemExt, LooseListExt};
+use crate::adapters::{ListEndAtLastItemExt, LooseListExt, MergeBracketedTextExt};
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::config::Config;
 use crate::definition_list::DefinitionListTitle;
@@ -84,7 +84,8 @@ impl MarkdownFormatter {
         let iter = parser
             .into_offset_iter()
             .all_loose_lists()
-            .list_end_at_last_item();
+            .list_end_at_last_item()
+            .merge_bracketed_text(input);
 
         let fmt_state = FormatState::new(input, self, iter);
         fmt_state.format()
