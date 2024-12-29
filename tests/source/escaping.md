@@ -408,6 +408,10 @@ G
 ```@`` 
 `
 
+<!-- The info string can contain a `~` so escape all `~` if we think this is a ~ code fence -->
+=
+    ~~~ ~
+
 <!-- We don't need to worry about escaping when the code is on a single line -->
 ` ```@``  `
 

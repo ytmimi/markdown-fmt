@@ -96,8 +96,10 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
             return true;
         }
 
-        // opening code fences can't contain backtick (`) or tilde (~) in the info string.
-        !info_string.contains(['`', '~'])
+        // opening code fences can't contain backtick (`)
+        // The reason for this restriction is that otherwise some inline code would be incorrectly
+        // interpreted as the beginning of a fenced code block
+        !info_string.contains('`')
     };
 
     let is_footnote_reference = || is_balanced(input, '[', ']') && input.starts_with("[^");
