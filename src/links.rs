@@ -371,7 +371,7 @@ impl LinkReferenceDefinition<'_> {
 
     pub(super) fn write<W: std::fmt::Write>(&self, writer: &mut W) -> std::fmt::Result {
         write!(writer, "[")?;
-        self.label.write(writer)?;
+        self.label.write(writer, LinkPart::Label)?;
         write!(writer, "]: ")?;
         self.destination.0.write(writer)?;
         if let Some(title) = self.title.as_ref() {
@@ -383,6 +383,13 @@ impl LinkReferenceDefinition<'_> {
     }
 }
 
+/// Determine which part of a link reference definition we're writing.
+enum LinkPart {
+    /// The label in a link reference definition. e.g `[foo]`
+    Label,
+    /// The title in a link reference definition e.g `"title"`
+    Title,
+}
 /// [Link Destination]
 ///
 /// [link destination]: https://spec.commonmark.org/0.31.2/#link-destination
@@ -430,7 +437,7 @@ impl<'a> LinkTitle<'a> {
 
     fn write<W: std::fmt::Write>(&self, writer: &mut W) -> std::fmt::Result {
         write!(writer, "{}", self.kind.opener())?;
-        self.value.write(writer)?;
+        self.value.write(writer, LinkPart::Title)?;
         write!(writer, "{}", self.kind.closer())
     }
 }
@@ -508,7 +515,7 @@ impl<'a> LinkLines<'a> {
         self.0.is_empty()
     }
 
-    fn write<W: std::fmt::Write>(&self, writer: &mut W) -> std::fmt::Result {
+    fn write<W: std::fmt::Write>(&self, writer: &mut W, link_part: LinkPart) -> std::fmt::Result {
         let mut buffer = String::new();
         // FIXME(ytmimi) probably should provide an option to allow multi-line lines.
         // right now everything gets formatted on a single line.
@@ -529,6 +536,11 @@ impl<'a> LinkLines<'a> {
                 write!(buffer, "{text}")?;
             }
         }
+
+        if matches!(link_part, LinkPart::Label) && buffer.starts_with('^') {
+            write!(writer, "\\")?;
+        }
+
         write!(writer, "{}", buffer.trim())
     }
 }

@@ -2177,3 +2177,7 @@ Some text
 
 Some text
     [^ [] p] -- not a footnote reference
+
+<!-- Escape `^` in link reference definition  -->
+
+[                   ^.]:  /url
