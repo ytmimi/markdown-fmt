@@ -591,7 +591,7 @@ definition-list-Y
 #######
 
 [A:]: url 'title'
-\:
+:
 
 [A```]: url 'title'
 \`\`\`
@@ -645,7 +645,7 @@ definition-list-Y
 #######
 
 [B:]: url
-\:
+:
 
 [B```]: url
 \`\`\`
@@ -702,7 +702,7 @@ definition-list-Y
 > #######
 
 > [C:]: url 'title'
-> \:
+> :
 
 > [C```]: url 'title'
 > \`\`\`
@@ -756,7 +756,7 @@ definition-list-Y
 > #######
 
 > [D:]: url
-> \:
+> :
 
 > [D```]: url
 > \`\`\`
@@ -813,7 +813,7 @@ definition-list-Y
   #######
 
 * [E:]: url 'title'
-  \:
+  :
 
 * [E```]: url 'title'
   \`\`\`
@@ -867,7 +867,7 @@ definition-list-Y
   #######
 
 * [F:]: url
-  \:
+  :
 
 * [F```]: url
   \`\`\`
@@ -924,7 +924,7 @@ definition-list-Y
   > #######
 
 * > [G:]: url 'title'
-  > \:
+  > :
 
 * > [G```]: url 'title'
   > \`\`\`
@@ -978,7 +978,7 @@ definition-list-Y
   > #######
 
 * > [H:]: url
-  > \:
+  > :
 
 * > [H```]: url
   > \`\`\`
@@ -1035,7 +1035,7 @@ definition-list-Y
   >> #######
 
 * >> [I:]: url 'title'
-  >> \:
+  >> :
 
 * >> [I```]: url 'title'
   >> \`\`\`
@@ -1089,7 +1089,7 @@ definition-list-Y
   >> #######
 
 * >> [J:]: url
-  >> \:
+  >> :
 
 * >> [J```]: url
   >> \`\`\`
@@ -1147,7 +1147,7 @@ definition-list-Y
 > #######
 
 > [K:-lazy]: url 'title'
-> \:
+> :
 
 > [K```-lazy]: url 'title'
 > \`\`\`
@@ -1201,7 +1201,7 @@ definition-list-Y
 > #######
 
 > [L:-lazy]: url
-> \:
+> :
 
 > [L```-lazy]: url
 > \`\`\`
@@ -1258,7 +1258,7 @@ definition-list-Y
   > #######
 
 * > [M:-lazy]: url 'title'
-  > \:
+  > :
 
 * > [M```-lazy]: url 'title'
   > \`\`\`
@@ -1312,7 +1312,7 @@ definition-list-Y
   > #######
 
 * > [N:-lazy]: url
-  > \:
+  > :
 
 * > [N```-lazy]: url
   > \`\`\`
@@ -1369,7 +1369,7 @@ definition-list-Y
   >> #######
 
 * >> [O:-lazy]: url 'title'
-  >> \:
+  >> :
 
 * >> [O```-lazy]: url 'title'
   >> \`\`\`
@@ -1423,7 +1423,7 @@ definition-list-Y
   >> #######
 
 * >> [P:-lazy]: url
-  >> \:
+  >> :
 
 * >> [P```-lazy]: url
   >> \`\`\`
@@ -1481,7 +1481,7 @@ definition-list-Y
   >> #######
 
 * >> [Q:-extra-lazy]: url 'title'
-  >> \:
+  >> :
 
 * >> [Q```-extra-lazy]: url 'title'
   >> \`\`\`
@@ -1535,7 +1535,7 @@ definition-list-Y
   >> #######
 
 * >> [R:-extra-lazy]: url
-  >> \:
+  >> :
 
 * >> [R```-extra-lazy]: url
   >> \`\`\`
@@ -1592,7 +1592,7 @@ definition-list-Y
 >   #######
 
 > * [S:]: url 'title'
->   \:
+>   :
 
 > * [S```]: url 'title'
 >   \`\`\`
@@ -1646,7 +1646,7 @@ definition-list-Y
 >   #######
 
 > * [T:]: url
->   \:
+>   :
 
 > * [T```]: url
 >   \`\`\`
@@ -1703,7 +1703,7 @@ definition-list-Y
 >   > #######
 
 > * > [U:]: url 'title'
->   > \:
+>   > :
 
 > * > [U```]: url 'title'
 >   > \`\`\`
@@ -1757,7 +1757,7 @@ definition-list-Y
 >   > #######
 
 > * > [V:]: url
->   > \:
+>   > :
 
 > * > [V```]: url
 >   > \`\`\`
@@ -1814,7 +1814,7 @@ definition-list-Y
 >   #######
 
 > * [W:-lazy]: url 'title'
->   \:
+>   :
 
 > * [W```-lazy]: url 'title'
 >   \`\`\`
@@ -1868,7 +1868,7 @@ definition-list-Y
 >   #######
 
 > * [X:-lazy]: url
->   \:
+>   :
 
 > * [X```-lazy]: url
 >   \`\`\`
@@ -1925,7 +1925,7 @@ definition-list-Y
 >   > #######
 
 > * > [Y:-lazy]: url 'title'
->   > \:
+>   > :
 
 > * > [Y```-lazy]: url 'title'
 >   > \`\`\`
@@ -1979,7 +1979,7 @@ definition-list-Y
 >   > #######
 
 > * > [Z:-lazy]: url
->   > \:
+>   > :
 
 > * > [Z```-lazy]: url
 >   > \`\`\`
@@ -2036,7 +2036,7 @@ definition-list-Y
 >   > #######
 
 > * > [a:-extra-lazy]: url 'title'
->   > \:
+>   > :
 
 > * > [a```-extra-lazy]: url 'title'
 >   > \`\`\`
@@ -2090,7 +2090,7 @@ definition-list-Y
 >   > #######
 
 > * > [b:-extra-lazy]: url
->   > \:
+>   > :
 
 > * > [b```-extra-lazy]: url
 >   > \`\`\`

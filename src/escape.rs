@@ -32,9 +32,7 @@ where
 
             // Don't interpret the `:` as a definition list definition or blockquote
             if first_char == ':' {
-                return Some(EscapeKind::SingleLine(
-                    SingleLineEscape::DefinitionListColon,
-                ));
+                return Some(EscapeKind::MultiLine(MultiLineEscape::DefinitionListColon));
             } else if first_char == '>' {
                 return Some(EscapeKind::SingleLine(SingleLineEscape::BlockQuote));
             }
@@ -152,9 +150,7 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
             Some(EscapeKind::SingleLine(escape))
         }
         '>' => Some(EscapeKind::SingleLine(SingleLineEscape::BlockQuote)),
-        ':' => Some(EscapeKind::SingleLine(
-            SingleLineEscape::DefinitionListColon,
-        )),
+        ':' => Some(EscapeKind::MultiLine(MultiLineEscape::DefinitionListColon)),
         '[' if is_footnote_reference() => {
             Some(EscapeKind::SingleLine(SingleLineEscape::FootnoteReference))
         }
@@ -178,11 +174,11 @@ impl EscapeKind {
         match self {
             Self::SingleLine(SingleLineEscape::AtxHeader) => '#',
             Self::SingleLine(SingleLineEscape::BlockQuote) => '>',
-            Self::SingleLine(SingleLineEscape::DefinitionListColon) => ':',
             Self::SingleLine(SingleLineEscape::FencedCodeBlock(marker)) => (*marker).into(),
             Self::SingleLine(SingleLineEscape::FootnoteReference) => '^',
             Self::SingleLine(SingleLineEscape::ThematicBreak(marker)) => (*marker).into(),
             Self::SingleLine(SingleLineEscape::UnorderedList(marker)) => marker.into(),
+            Self::MultiLine(MultiLineEscape::DefinitionListColon) => ':',
             Self::MultiLine(MultiLineEscape::SetextHeader(marker)) => (*marker).into(),
         }
     }
@@ -230,8 +226,6 @@ pub(crate) enum SingleLineEscape {
     /// - - -
     /// ```
     ThematicBreak(ThematicBreakMarker),
-    /// Escape text that looks like the `:` in a definition list definition.
-    DefinitionListColon,
     /// Escape ``` or ~~~ that might look like a fenced code block.
     FencedCodeBlock(FencedCodeBlockMarker),
     /// Escape text that looks like a footnote reference `[^foo]`
@@ -253,6 +247,8 @@ pub(crate) enum MultiLineEscape {
     /// -
     /// ```
     SetextHeader(SetextHeaderMarker),
+    /// Escape text that looks like the `:` in a definition list definition.
+    DefinitionListColon,
 }
 
 /// Types of fenced code block markers.
