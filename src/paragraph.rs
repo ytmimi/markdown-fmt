@@ -271,7 +271,7 @@ fn could_be_table(text: &str) -> bool {
     static TABLE_ALIGNMENT_ROW_REGEX: OnceLock<Regex> = OnceLock::new();
     TABLE_ALIGNMENT_ROW_REGEX
         .get_or_init(|| {
-            Regex::new(r"^((\|(\s?-+\s?)+)+\|?)+|((\s?-+\s?)+\|)+((\s?-+\s?))?$")
+            Regex::new(r"^((\|([\s:]*-+[\s:]*)+)+\|?)+|(([\s:]*-+[\s:]*)+\|)+(([\s:]*-+[\s:]*))?$")
                 .expect("valid regex")
         })
         .is_match_at(text, 0)
@@ -282,6 +282,47 @@ fn test_could_be_table() {
     let expected_matches = &[
         "|-- - --- - |- -|- - -|  -",
         "-|--|---|-",
+        "| -:",
+        "  -: |",
+        "| - :",
+        "  - :|",
+        "|   - :",
+        "   - : |",
+        "| -   :",
+        "  -   :|",
+        "| :-:",
+        "  :-:|",
+        "| : - :",
+        "  : - : |",
+        "| :  - :",
+        "  :  - : |",
+        "| :  -   :",
+        "  :  -   : |",
+        "| -::",
+        "  -:: |",
+        "| - ::",
+        "  - :: |",
+        "|   - : :",
+        "   - : : |",
+        "| -   ::",
+        "  -   ::|",
+        "| ::-::",
+        "  ::-:: |",
+        "| :: - ::",
+        "  :: - :: |",
+        "| ::  - ::",
+        "  ::  - :: |",
+        "| ::  -   ::",
+        "  ::  -   :: |",
+        "| ::  - : -  ::",
+        "  ::  - : -  :: |",
+        "| :- : --",
+        "  :- : -- |",
+        "| - : - : --- |",
+        "| ::- --- : - : --- |",
+        "| ::- --- : - : --- | - |",
+        "| ::- --- : - : --- | ::: - |",
+        "| ::- --- : - : --- |  - :::",
         "-|-",
         "|-|",
         "|-",
@@ -289,7 +330,10 @@ fn test_could_be_table() {
     ];
 
     for line in expected_matches {
-        assert!(could_be_table(line))
+        assert!(
+            could_be_table(line),
+            "{line:?} couldn't be a table when it should be"
+        )
     }
 
     let expected_rejections = &[
@@ -303,6 +347,9 @@ fn test_could_be_table() {
     ];
 
     for line in expected_rejections {
-        assert!(!could_be_table(line))
+        assert!(
+            !could_be_table(line),
+            "{line:?} could be a table when it shouldn't be"
+        )
     }
 }

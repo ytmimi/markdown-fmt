@@ -6,8 +6,18 @@
 
 <!-- Don't interpret as a table without a leading `|` -->
 
-> 6|
+> a|
 > \-|
+
+> b|
+> \-:|
+
+* c|
+  \:-:|
+
+* d|
+  \:-|
+
 
 <!-- Escape `|-|` so it's not interpreted as a table -->
 - |\!
