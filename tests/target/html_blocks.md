@@ -88,6 +88,10 @@ Exampl Six (Trailing text)
 
   Six
 
+Example Seven (found when fuzzing)
+: _
+    <p
+
 <!-- some edge case from fuzz testing -->
 <?*?'
 

@@ -1319,7 +1319,10 @@ where
                 let is_next_leading_whitespace =
                     matches!(self.peek(), Some(Event::Text(t)) if t.trim().is_empty());
 
-                if self.in_definition_list_definition() && is_next_leading_whitespace {
+                if self.in_definition_list_definition()
+                    && self.empty_definition_list_definition_marker
+                    && is_next_leading_whitespace
+                {
                     // Because of how leading whitespace gets parsed for HTML blocks
                     // we need to update the definition list's indentation. so that the output
                     // stays idempotent.
