@@ -2136,3 +2136,87 @@ Some text
 <!-- Escape `^` in link reference definition  -->
 
 [\^.]: /url
+
+
+<!--
+Add a dummy escape header when we parse a definition list without a title.
+This keeps the output idempotent.
+See https://github.com/pulldown-cmark/pulldown-cmark/issues/997
+-->
+
+[a]: /url
+<!-- Did you mean for this to be a definiton list? -->
+<!-- If not, you should escape the `:` below -->
+\\
+
+:
+     1
+     2
+     3
+
+> [b]: /url
+> <!-- Did you mean for this to be a definiton list? -->
+> <!-- If not, you should escape the `:` below -->
+> \\
+> :
+>      1
+>      2
+>      3
+
+[c]: [.]:
+
+<!-- Did you mean for this to be a definiton list? -->
+<!-- If not, you should escape the `:` below -->
+\\
+
+:
+
+<!-- Don't absorb code block into definition list -->
+<!-- Consider a fenced code block instead -->
+    ]
+
+> [d]: [.]:
+> <!-- Did you mean for this to be a definiton list? -->
+> <!-- If not, you should escape the `:` below -->
+> \\
+> :
+>
+> <!-- Don't absorb code block into definition list -->
+> <!-- Consider a fenced code block instead -->
+>     ]
+
+* > [e]: [.]:
+  > <!-- Did you mean for this to be a definiton list? -->
+  > <!-- If not, you should escape the `:` below -->
+  > \\
+  > :
+  >
+  > <!-- Don't absorb code block into definition list -->
+  > <!-- Consider a fenced code block instead -->
+  >     ]
+
+[f]: [.]:
+
+<!-- Did you mean for this to be a definiton list? -->
+<!-- If not, you should escape the `:` below -->
+\\
+
+:
+
+    ]
+
+> [g]: [.]:
+> <!-- Did you mean for this to be a definiton list? -->
+> <!-- If not, you should escape the `:` below -->
+> \\
+> :
+>
+>     ]
+
+* > [h]: [.]:
+  > <!-- Did you mean for this to be a definiton list? -->
+  > <!-- If not, you should escape the `:` below -->
+  > \\
+  > :
+  >
+  >     ]

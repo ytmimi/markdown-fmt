@@ -2191,3 +2191,55 @@ Some text
 <!-- Escape `^` in link reference definition  -->
 
 [                   ^.]:  /url
+
+
+<!--
+Add a dummy escape header when we parse a definition list without a title.
+This keeps the output idempotent.
+See https://github.com/pulldown-cmark/pulldown-cmark/issues/997
+-->
+
+[a]: /url
+    
+   :     1
+         2
+         3
+
+> [b]: /url
+>     
+>    :     1
+>          2
+>          3
+
+[c]: [.]:  
+    
+   :  
+    ]
+
+> [d]: [.]:  
+>     
+>    :  
+>     ]
+
+* > [e]: [.]:  
+  >     
+  >    :  
+  >     ]
+
+[f]: [.]:  
+    
+   :  
+
+    ]
+
+> [g]: [.]:  
+>     
+>    :  
+>
+>     ]
+
+* > [h]: [.]:  
+  >     
+  >    :  
+  >
+  >     ]

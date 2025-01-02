@@ -162,6 +162,9 @@ where
     /// position of the first piece of content within the definition list, and not the starting
     /// position of the `:`.
     empty_definition_list_definition_marker: bool,
+    /// I think there's a parser bug that incorrectly parses paragraphs into definition lists with
+    /// empty definition list titles
+    empty_definition_list_title: bool,
 }
 
 /// Depnding on the formatting context there are a few different buffers where we might want to
@@ -275,7 +278,10 @@ where
 
     /// Dynamically determine how much indentation to use for indented code blocks
     fn indented_code_block_indentation(&self) -> &'static str {
-        if self.empty_definition_list_definition_marker && self.in_definition_list_definition() {
+        if self.empty_definition_list_definition_marker
+            && self.in_definition_list_definition()
+            && !self.empty_definition_list_title
+        {
             "   "
         } else {
             "    "
@@ -586,6 +592,7 @@ where
             last_event: None,
             formatter,
             empty_definition_list_definition_marker: false,
+            empty_definition_list_title: false,
         }
     }
 
@@ -1361,8 +1368,25 @@ where
                 self.nested_context.push(tag);
             }
             Tag::DefinitionListTitle => {
-                let newlines = self.count_newlines(&range);
-                self.write_newlines(newlines)?;
+                if matches!(self.peek(), Some(Event::End(TagEnd::DefinitionListTitle))) {
+                    // FIXME(ytmimi)
+                    // I feel like there should be some text in the defintion list tile, but if
+                    // there isn't then this is probably a parsing error.
+                    // See https://github.com/pulldown-cmark/pulldown-cmark/issues/997
+                    //
+                    // To keep the output idempotent push an escaped header
+                    write!(
+                        self,
+                        "<!-- Did you mean for this to be a definiton list? -->"
+                    )?;
+                    self.write_newlines(1)?;
+                    write!(self, "<!-- If not, you should escape the `:` below -->")?;
+                    self.write_newlines(1)?;
+                    write!(self, "\\\\")?;
+                } else {
+                    let newlines = self.count_newlines(&range);
+                    self.write_newlines(newlines)?;
+                }
                 let capacity = (range.end - range.start) * 2;
                 let definition_list_title = DefinitionListTitle::new(capacity);
                 self.writers.push(definition_list_title.into());
@@ -1792,6 +1816,23 @@ where
             TagEnd::DefinitionList => {
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
+
+                let mut next_start: Option<usize> = None;
+                if let Some((Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)), next_range)) = self.events.peek() {
+                    next_start = Some(next_range.start);
+                }
+
+                if let Some(next_start) = next_start {
+                    let newlines = self.count_newlines_in_range(&(self.last_position..next_start));
+                    if newlines <= 1 {
+                        self.write_newlines(2)?;
+                        write!(self, "<!-- Don't absorb code block into definition list -->")?;
+                        self.write_newlines(1)?;
+                        write!(self, "<!-- Consider a fenced code block instead -->")?;
+                    }
+                }
+
+                self.empty_definition_list_title = false;
             }
             TagEnd::DefinitionListTitle => {
                 debug_assert!(matches!(
