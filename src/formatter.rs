@@ -1343,6 +1343,20 @@ where
                     self.write_newlines(newlines)?;
                 }
 
+                let was_last_end_of_definition_list = matches!(
+                    self.last_event,
+                    Some((Event::End(TagEnd::DefinitionList), _))
+                );
+
+                if is_next_leading_whitespace && was_last_end_of_definition_list {
+                    write_context!(
+                        self,
+                        &tag,
+                        "<!-- Don't absorb HTML block into definition list -->"
+                    )?;
+                    self.write_newlines(1)?;
+                }
+
                 self.nested_context.push(tag);
                 self.last_position = range.start;
             }
@@ -1817,18 +1831,28 @@ where
                 let popped_tag = self.nested_context.pop();
                 debug_assert_eq!(popped_tag.as_ref().map(|t| t.to_end()), Some(tag));
 
+                let mut is_next_indented_code_block = false;
                 let mut next_start: Option<usize> = None;
-                if let Some((Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)), next_range)) = self.events.peek() {
+                if let Some((Event::Start(tag), next_range)) = self.events.peek() {
+                    is_next_indented_code_block =
+                        matches!(tag, Tag::CodeBlock(CodeBlockKind::Indented));
                     next_start = Some(next_range.start);
                 }
 
                 if let Some(next_start) = next_start {
                     let newlines = self.count_newlines_in_range(&(self.last_position..next_start));
                     if newlines <= 1 {
-                        self.write_newlines(2)?;
-                        write!(self, "<!-- Don't absorb code block into definition list -->")?;
-                        self.write_newlines(1)?;
-                        write!(self, "<!-- Consider a fenced code block instead -->")?;
+                        if is_next_indented_code_block {
+                            self.write_newlines(2)?;
+                            write!(
+                                self,
+                                "<!-- Don't absorb code block into definition list -->"
+                            )?;
+                            self.write_newlines(1)?;
+                            write!(self, "<!-- Consider a fenced code block instead -->")?;
+                        } else {
+                            self.write_newlines_no_trailing_whitespace(2)?;
+                        }
                     }
                 }
 

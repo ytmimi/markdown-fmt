@@ -201,6 +201,7 @@ level one!
 
 some title
 :
+
 new paragraph
 
 <!-- Looks like a definition list but it's not -->
@@ -239,3 +240,34 @@ C
 \UUU
 
 : <!T
+
+
+<!--
+  Prevent HTML block from getting absorbed into the definition list by writing out
+  an HTML comment. Parsing seems to be different if we're in a blockquote or list.
+-->
+a
+:
+
+<!-- Don't absorb HTML block into definition list -->
+ <?
+
+> b
+> :
+>  <?
+
+* c
+  :
+   <? ?>
+
+
+<!--
+  Separate the paragrph after the definition list by at least 2 newlines.
+  This prevents it from accidentally getting abosrbed into the definition list
+-->
+
+\:
+: ^
+  :
+
+^:
