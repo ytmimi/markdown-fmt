@@ -88,7 +88,7 @@ impl ListMarker {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(super) enum OrderedListMarker {
     Period,
     Parenthesis,

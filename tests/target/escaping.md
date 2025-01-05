@@ -2220,3 +2220,62 @@ See https://github.com/pulldown-cmark/pulldown-cmark/issues/997
   > :
   >
   >     ]
+
+<!-- Escape text that looks like an ordered list -->
+a
+\1) text
+
+b
+\01) text
+
+c
+\001) text
+
+d
+\1. text
+
+e
+\01. text
+
+f
+\001. text
+
+<!-- Don't need to escape number besides 1 -->
+
+a
+2) text
+
+b
+02) text
+
+c
+002) text
+
+d
+2. text
+
+e
+02. text
+
+f
+002. text
+
+<!-- Don't need to escape text if it's an empty list -->
+
+a
+1)
+
+b
+01)
+
+c
+001)
+
+d
+1.
+
+e
+01.
+
+f
+001.

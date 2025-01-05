@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 use super::formatter::FormatState;
 use crate::links::is_balanced;
-use crate::list::UnorderedListMarker;
+use crate::list::{ListMarker, OrderedListMarker, UnorderedListMarker};
 use pulldown_cmark::Event;
 
 impl<'i, I> FormatState<'i, '_, I>
@@ -154,6 +156,30 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
         '[' if is_footnote_reference() => {
             Some(EscapeKind::SingleLine(SingleLineEscape::FootnoteReference))
         }
+        '0' | '1' => {
+            // Text that looks like an orderd list starting with 1 may interrupt a paragraph.
+            // See: https://spec.commonmark.org/0.30/#list-items
+            let Ok(ListMarker::Ordered {
+                number: 1, marker, ..
+            }) = ListMarker::from_str(input)
+            else {
+                return None;
+            };
+
+            let marker_index = input
+                .find(char::from(&marker))
+                .expect("We just parsed an ordered list");
+
+            // + 1 to move past the marker
+            //
+            // Check if there's more text. An empty list marker can't interrupt a paragraph
+            if !input[(marker_index + 1)..].is_empty() {
+                let escape = EscapeKind::SingleLine(SingleLineEscape::OrderedList(marker));
+                Some(escape)
+            } else {
+                None
+            }
+        }
         _ => None,
     }
 }
@@ -178,6 +204,7 @@ impl EscapeKind {
             Self::SingleLine(SingleLineEscape::FootnoteReference) => '^',
             Self::SingleLine(SingleLineEscape::ThematicBreak(marker)) => (*marker).into(),
             Self::SingleLine(SingleLineEscape::UnorderedList(marker)) => marker.into(),
+            Self::SingleLine(SingleLineEscape::OrderedList(marker)) => marker.into(),
             Self::MultiLine(MultiLineEscape::DefinitionListColon) => ':',
             Self::MultiLine(MultiLineEscape::SetextHeader(marker)) => (*marker).into(),
         }
@@ -209,6 +236,16 @@ pub(crate) enum SingleLineEscape {
     AtxHeader,
     /// Escape text that looks like a blockquote `>`.
     BlockQuote,
+    /// Escape text that looks like an ordered list.
+    ///
+    /// The Markdown spec mentions that the list number must be a 1.
+    /// ```markdown
+    /// 1.
+    /// 01.
+    /// 1)
+    /// 01)
+    /// ```
+    OrderedList(OrderedListMarker),
     /// Escape text that looks like an unordered list.
     /// ```markdown
     /// *
