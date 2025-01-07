@@ -126,7 +126,6 @@ where
             | Event::HardBreak
             | Event::Code(_)
             | Event::FootnoteReference(_)
-            | Event::TaskListMarker(_)
             | Event::InlineHtml(_)
             | Event::Start(
                 Tag::Link { .. }
@@ -206,7 +205,8 @@ where
             tracing::debug!(event=?current_event, range=?current_range);
 
             match current_event {
-                Event::Start(Tag::Item | Tag::DefinitionListDefinition) => {
+                Event::Start(Tag::Item | Tag::DefinitionListDefinition)
+                | Event::TaskListMarker(_) => {
                     self.stashed_events
                         .push_back((current_event, current_range));
 
