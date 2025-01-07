@@ -905,6 +905,13 @@ where
 
         match tag {
             Tag::Paragraph => {
+                if matches!(self.peek(), Some(Event::End(TagEnd::Paragraph))) {
+                    // Weird case, but if the parser parses an empty paragrah let's skip it.
+                    let (_, next_range) = self.events.next().expect("we know we have an event");
+                    self.last_position = next_range.end;
+                    return Ok(());
+                }
+
                 if self.needs_indent {
                     let newlines = self.count_newlines(&range);
                     self.write_newlines(newlines)?;
