@@ -38,7 +38,8 @@ TT
 
 <!--
     Escape the multi-line code text that looks like the delimter rows of a
-    GitHub Flavored Markdown Table, so it won't be interpreted as one on future formatting runs.
+    GitHub Flavored Markdown Table, by adding extra indentation.
+    This ensures it won't be interpreted as a table on future formatting runs.
 -->
  >*  `qy|?-
 -|-
@@ -2302,3 +2303,28 @@ e
 
 f
     001.
+
+<!-- Escape table delimiter row in Header. This is a little more aggressive than it needs to be -->
+H1(A)
+    -|
+=
+
+H2(B)
+    -|
+-
+
+<!-- Escape table delimiter row in Definition List Title. This is a little more aggressive than it needs to be -->
+
+C
+    -|
+:
+
+<!-- Escape table delimiter row in Paragraph because previous line has a `|` character.  -->
+
+D |
+    -|
+
+<!-- Don't need to escape the delimiter row in the Paragraph because the previous row doesn't have a `|` character -->
+
+E
+    -|

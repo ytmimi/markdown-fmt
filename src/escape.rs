@@ -3,6 +3,7 @@ use std::str::FromStr;
 use super::formatter::FormatState;
 use crate::links::is_balanced;
 use crate::list::{ListMarker, OrderedListMarker, UnorderedListMarker};
+use crate::paragraph::could_be_table;
 use pulldown_cmark::Event;
 
 impl<'i, I> FormatState<'i, '_, I>
@@ -120,6 +121,9 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
             } else if is_setext_heading(b'-') {
                 let escape = MultiLineEscape::SetextHeader(SetextHeaderMarker::H2);
                 Some(EscapeKind::MultiLine(escape))
+            } else if could_be_table(input) {
+                let escape = MultiLineEscape::TableDelimiterRow;
+                Some(EscapeKind::MultiLine(escape))
             } else {
                 None
             }
@@ -152,7 +156,14 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
             Some(EscapeKind::SingleLine(escape))
         }
         '>' => Some(EscapeKind::SingleLine(SingleLineEscape::BlockQuote)),
-        ':' => Some(EscapeKind::MultiLine(MultiLineEscape::DefinitionListColon)),
+        ':' => {
+            if could_be_table(input) {
+                let escape = MultiLineEscape::TableDelimiterRow;
+                Some(EscapeKind::MultiLine(escape))
+            } else {
+                Some(EscapeKind::MultiLine(MultiLineEscape::DefinitionListColon))
+            }
+        }
         '[' if is_footnote_reference() => {
             Some(EscapeKind::SingleLine(SingleLineEscape::FootnoteReference))
         }
@@ -179,6 +190,10 @@ pub(crate) fn needs_escape(input: &str) -> Option<EscapeKind> {
             } else {
                 None
             }
+        }
+        '|' if could_be_table(input) => {
+            let escape = MultiLineEscape::TableDelimiterRow;
+            Some(EscapeKind::MultiLine(escape))
         }
         _ => None,
     }
@@ -207,6 +222,7 @@ impl EscapeKind {
             Self::SingleLine(SingleLineEscape::OrderedList(marker)) => marker.into(),
             Self::MultiLine(MultiLineEscape::DefinitionListColon) => ':',
             Self::MultiLine(MultiLineEscape::SetextHeader(marker)) => (*marker).into(),
+            Self::MultiLine(MultiLineEscape::TableDelimiterRow) => '|',
         }
     }
 
@@ -286,6 +302,17 @@ pub(crate) enum MultiLineEscape {
     SetextHeader(SetextHeaderMarker),
     /// Escape text that looks like the `:` in a definition list definition.
     DefinitionListColon,
+    /// Escape text that looks like the delimiter row in a GitHub Flavored Markdown table.
+    /// The delimiter row comes after the header row.
+    ///
+    /// ```markdown
+    /// | A   | B   |
+    /// | --- | --- |
+    /// ^^^^^^^^^^^^^
+    ///      |
+    ///      | This is the delimiter row
+    /// ```
+    TableDelimiterRow,
 }
 
 /// Types of fenced code block markers.

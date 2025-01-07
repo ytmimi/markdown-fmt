@@ -262,7 +262,7 @@ impl Paragraph {
 /// |  a  |  b  |  c  |
 /// | --- | --- | --- | <-- This is the alignment row
 /// |     |     |     |
-fn could_be_table(text: &str) -> bool {
+pub(crate) fn could_be_table(text: &str) -> bool {
     // I don't know why, but the regex still matches if there are escaped characters.
     // so I'm adding this check to prevent that.
     if text.contains('\\') {
@@ -327,6 +327,7 @@ fn test_could_be_table() {
         "|-|",
         "|-",
         "-|",
+        "        -|",
     ];
 
     for line in expected_matches {
