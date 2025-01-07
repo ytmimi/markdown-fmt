@@ -10,10 +10,10 @@
     Parser Bug. Manually escaping the text helps work around the issue.
     See https://github.com/pulldown-cmark/pulldown-cmark/issues/999
 -->
-- * [x] A
+- [x] * A
 
 - [x] \* B
 
-- 3. [ ] C
+- [ ] 3. C
 
-- 4. - * 1) [x] D
+- [x] 4. - * 1) D

@@ -1178,6 +1178,21 @@ where
                         let snippet = &self.input[range.start..end];
                         (just_list_marker || is_empty_list(snippet), link_defs)
                     }
+                    Some((Event::TaskListMarker(_), next_range))
+                        if next_range.start < range.start =>
+                    {
+                        // This is a parser bug
+                        // See https://github.com/pulldown-cmark/pulldown-cmark/issues/999
+                        let issue_url =
+                            "https://github.com/pulldown-cmark/pulldown-cmark/issues/999";
+                        tracing::warn!(
+                            "You likely just hit a parser bug. See {issue_url:?} for more details"
+                        );
+                        tracing::warn!(
+                            "Escape text that looks like a list marker if it follows a task list"
+                        );
+                        (false, Vec::new())
+                    }
                     Some((_, next_range)) => {
                         let snippet = &self.input[range.start..next_range.start];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
