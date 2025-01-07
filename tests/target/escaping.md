@@ -2305,3 +2305,20 @@ D |
 
 E
 -|
+
+
+<!-- Need to escape the `:` if it might later get interpreted as a link reference definition -->
+> [A]\:        
+> \=
+
+> [B]\:        
+> \=
+
+> [C]\:        
+> \=
+
+> leadin text [D]\:        
+> \=
+
+> [E]\:        
+> = with extra text

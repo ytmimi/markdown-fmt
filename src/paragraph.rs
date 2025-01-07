@@ -1,6 +1,6 @@
 use crate::escape::needs_escape;
 use crate::links::is_balanced;
-use crate::utils::sequence_ends_on_escape;
+use crate::utils::{count_trailing_spaces, sequence_ends_on_escape};
 use crate::writer::{MarkdownContext, WriteContext};
 
 use pulldown_cmark::{Event, LinkType, Tag};
@@ -87,6 +87,27 @@ impl WriteContext<'_> for Paragraph {
             }
             _ => {
                 return self.write_str(s);
+            }
+        }
+
+        // Case for text that looks like a link reference definition, but was
+        // parsed as a paragraph
+        if matches!(ctx, MarkdownContext::Event(Event::Text(_)))
+            && self.buffer.trim_start().starts_with('[')
+            && self.buffer.trim_end().ends_with("]:")
+            && is_balanced(&self.buffer, '[', ']')
+            && could_be_link_destination(s)
+        {
+            let mut stack = Vec::with_capacity(count_trailing_spaces(&self.buffer));
+
+            while !self.buffer.ends_with(':') {
+                stack.push(self.buffer.pop().expect("we have text before the `:`"));
+            }
+            self.buffer.pop();
+            self.buffer.push_str("\\:");
+
+            while !stack.is_empty() {
+                self.buffer.push(stack.pop().expect("stack isn't empty"));
             }
         }
 
@@ -279,6 +300,25 @@ pub(crate) fn could_be_table(text: &str) -> bool {
                 .expect("valid regex")
         })
         .is_match_at(text, 0)
+}
+
+/// Check if this text could be interpreted as a [link destination] within a
+/// link reference definition.
+///
+/// [link destination]: https://spec.commonmark.org/0.30/#link-destination
+fn could_be_link_destination(text: &str) -> bool {
+    // a sequence of zero or more characters between an opening `<` and a closing `>` that contains
+    // no line breaks or unescaped `<` or `>` characters
+    if text.starts_with('<') {
+        !text.contains('\n') && text.ends_with('>') && is_balanced(text, '<', '>')
+    } else {
+        // a nonempty sequence of characters that does not start with `<`, does not include ASCII
+        // space or control characters, and includes parentheses only if (a) they are
+        // backslash-escaped or (b) they are part of a balanced pair of unescaped parentheses.
+        !text.is_empty()
+            && !text.contains(|c: char| c.is_whitespace() || c.is_ascii_control())
+            && is_balanced(text, '(', ')')
+    }
 }
 
 #[test]
