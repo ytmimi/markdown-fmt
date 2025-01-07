@@ -27,6 +27,10 @@ impl WriteContext<'_> for Paragraph {
         // `Event::Code` since they might contain characters that look like other Markdown
         // constructs, but they're really just text.
         match ctx {
+            MarkdownContext::Event(Event::HardBreak) if self.is_empty() => {
+                // Don't write a Hardbreak at the start of an empty paragraph.
+                return Ok(());
+            }
             MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_)) => {
                 if s.is_empty() {
                     return self.write_str(s);

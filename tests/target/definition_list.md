@@ -1,3 +1,8 @@
+<!-- Definition list with a paragraph that starts with a hardbreak -->
+z
+: [.]: ]
+  ]
+
 <!-- empty definition list  -->
 empty!
 :

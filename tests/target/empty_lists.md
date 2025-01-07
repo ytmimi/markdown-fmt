@@ -108,8 +108,7 @@
     -z*
 
 <!-- Tight list that starts with a hard break should be idempotent -->
-* \
-  ~
+* ~
 
 <!-- list with emphasis -->
 *
