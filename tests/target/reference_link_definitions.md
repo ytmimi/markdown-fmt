@@ -126,3 +126,15 @@
 
 
 >>> [D]: >< "title"
+
+<!-- need to escape the trailing `\` in the label -->
+[A \\]: /url
+
+[B \\]: /url "title"
+
+[C \\]: /url "title"
+
+<!-- Another strange test case found when fuzzing -->
+
+[.]: [
+> [\ >]: [][]]]:9=V

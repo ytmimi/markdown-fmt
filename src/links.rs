@@ -541,7 +541,13 @@ impl<'a> LinkLines<'a> {
             write!(writer, "\\")?;
         }
 
-        write!(writer, "{}", buffer.trim())
+        let output = buffer.trim();
+
+        if sequence_ends_on_escape(output) {
+            write!(writer, "{}\\", buffer.trim())
+        } else {
+            write!(writer, "{}", output)
+        }
     }
 }
 
@@ -641,7 +647,9 @@ fn parse_link_reference_definition(
                             "Transition to LinkParserPhase::HandleNewline(MultiLinePhase::Label)"
                         );
                         phase = LinkParserPhase::HandleNewline(MultiLinePhase::Label);
+                        is_escaped = false
                     }
+                    is_escaped = is_char_esacped(c, is_escaped);
                     start = iter.peek().map(|(idx, _)| *idx)?;
                     continue;
                 }
@@ -665,6 +673,7 @@ fn parse_link_reference_definition(
                 parsed_until = idx;
             }
             LinkParserPhase::HandleNewline(next_phase) => {
+                is_escaped = is_char_esacped(c, is_escaped);
                 let next_is_important = match (next_phase, iter.peek()) {
                     (MultiLinePhase::Label, Some((_, ']'))) => true,
                     (MultiLinePhase::Title(marker), Some((_, c))) => {
@@ -674,7 +683,7 @@ fn parse_link_reference_definition(
                 };
                 // FIXME(ytmimi) Assuming that `>` indicates a blockquote, but maybe there's a
                 // chance that its part of the title or label
-                if !next_is_important && (c.is_whitespace() || c == '>') {
+                if !is_escaped && !next_is_important && (c.is_whitespace() || c == '>') {
                     continue;
                 }
                 start = idx;
