@@ -1386,9 +1386,21 @@ where
                 self.nested_context.push(tag);
                 self.last_position = range.start;
             }
-            Tag::MetadataBlock(_meta) => {
+            Tag::MetadataBlock(ref meta) => {
                 let newlines = self.count_newlines(&range);
                 self.write_newlines(newlines)?;
+                // Parser Bug
+                // An `Event::Rule` is misinterpreted as a `Tag::MetadataBlock`.
+                // See https://github.com/pulldown-cmark/pulldown-cmark/issues/1000
+                if let Some((Event::End(TagEnd::MetadataBlock(next_meta)), next_range)) =
+                    self.peek_with_range()
+                {
+                    if meta == next_meta && range == *next_range {
+                        // The end event is exactly the same as the start event.
+                        // Skip it so we don't write the "Rule" twice.
+                        self.events.next();
+                    }
+                };
                 rewrite_marker(self.input, &range, self)?;
                 self.needs_indent = true;
             }
