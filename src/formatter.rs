@@ -1282,7 +1282,11 @@ where
                     }
                 };
 
-                write!(self, "[^{label}]:")?;
+                if sequence_ends_on_escape(label) {
+                    write!(self, "[^{label}\\]:")?;
+                } else {
+                    write!(self, "[^{label}]:")?;
+                }
 
                 let footnote_indentation = FootnoteDefinition::indentation();
                 let footnote = FootnoteDefinition::new((range.end - range.start) * 2);

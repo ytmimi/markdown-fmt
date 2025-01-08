@@ -2322,3 +2322,7 @@ E
 
 > [E]\:        
 > = with extra text
+
+<!-- Escape trailing escape in footnote definition -->
+[^\`@%\@\\]:
+    [       `~z)C\`
