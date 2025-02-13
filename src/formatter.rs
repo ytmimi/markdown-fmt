@@ -1061,6 +1061,12 @@ where
             Tag::DefinitionList | Tag::DefinitionListTitle | Tag::DefinitionListDefinition => {
                 unreachable!("pulldown_cmark::Options::ENABLE_DEFINITION_LIST is not configured")
             }
+            Tag::Superscript => {
+                unreachable!("pulldown_cmark::Options::ENABLE_SUPERSCRIPT is not configured")
+            }
+            Tag::Subscript => {
+                unreachable!("pulldown_cmark::Options::ENABLE_SUBSCRIPT is not configured")
+            }
         }
         Ok(())
     }
@@ -1276,6 +1282,9 @@ where
                     LinkType::Collapsed | LinkType::CollapsedUnknown => write!(self, "][]")?,
                     LinkType::Shortcut | LinkType::ShortcutUnknown => write!(self, "]")?,
                     LinkType::Autolink | LinkType::Email => write!(self, ">")?,
+                    LinkType::WikiLink { .. } => {
+                        unreachable!("pulldown_cmark::Options::ENABLE_WIKILINKS is not configured")
+                    }
                 }
             }
             TagEnd::Table => {
@@ -1313,6 +1322,12 @@ where
             | TagEnd::DefinitionListTitle
             | TagEnd::DefinitionListDefinition => {
                 unreachable!("pulldown_cmark::Options::ENABLE_DEFINITION_LIST is not configured")
+            }
+            TagEnd::Superscript => {
+                unreachable!("pulldown_cmark::Options::ENABLE_SUPERSCRIPT is not configured")
+            }
+            TagEnd::Subscript => {
+                unreachable!("pulldown_cmark::Options::ENABLE_SUBSCRIPT is not configured")
             }
         }
         Ok(())
