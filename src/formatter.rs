@@ -675,9 +675,11 @@ where
                 );
                 self.writers.push(header.into())
             }
-            // `pulldown_cmark::Options::ENABLE_GFM` is not configured so we shouldn't have
-            // a `BlockQuoteKind`` in the `Tag::BlockQuote`
-            Tag::BlockQuote(_) => {
+            Tag::BlockQuote(kind) => {
+                debug_assert!(
+                    kind.is_none(),
+                    "pulldown_cmark::Options::ENABLE_GFM is not configured"
+                );
                 // Just in case we're starting a new block quote in a nested context where
                 // We alternate indentation levels we want to remove trailing whitespace
                 // from the blockquote that we're about to push on top of
