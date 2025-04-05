@@ -11,6 +11,9 @@ use std::num::ParseIntError;
 //
 const LIST_INDENTATION: &str = "                    ";
 const ZERO_PADDING: &str = "00000000000000000000";
+pub(crate) static LIST_START_CHARS: &[char] = &[
+    '*', '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+];
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum ListMarker {

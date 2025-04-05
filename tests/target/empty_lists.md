@@ -94,3 +94,15 @@
 08.
 09.
 010.
+
+<!-- case with tabs (found when fuzzing)
+     To prevent the `-` from getting interpreted as a setext header the list is given another
+     newline separator.
+-->
+
+*[
+-       +*[
+  [
+
+  -
+    -z*
