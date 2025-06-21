@@ -138,7 +138,7 @@ impl<'a> TableState<'a> {
             .map(|grapheme| unicode_str_width(grapheme).saturating_sub(1))
             .sum();
         size = size.saturating_sub(offset);
-        write!(buffer, " {value:<0$} |", size)
+        write!(buffer, " {value:<size$} |")
     }
 
     fn rewrite_header(&self, buffer: &mut String) -> std::fmt::Result {
