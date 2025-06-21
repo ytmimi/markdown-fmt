@@ -173,7 +173,7 @@ where
     }
 
     /// Peek at the next Markdown Event and it's original position in the input
-    fn peek_with_range(&mut self) -> Option<(&Event, &Range<usize>)> {
+    fn peek_with_range(&mut self) -> Option<(&Event<'i>, &Range<usize>)> {
         self.events.peek().map(|(e, r)| (e, r))
     }
 
@@ -595,9 +595,9 @@ where
                         let code = split_lines(snippet)
                             .map(|s| self.trim_leading_indentation(s))
                             .join("\n");
-                        write!(self, "{}", code)?;
+                        write!(self, "{code}")?;
                     } else {
-                        write!(self, "{}", snippet)?;
+                        write!(self, "{snippet}")?;
                     }
                 }
                 Event::SoftBreak => {

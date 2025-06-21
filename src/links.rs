@@ -507,10 +507,10 @@ impl<'a> From<Vec<(Cow<'a, str>, std::ops::Range<usize>)>> for LinkLines<'a> {
     }
 }
 
-pub fn parse_link_reference_definitions(
-    input: &str,
+pub fn parse_link_reference_definitions<'i>(
+    input: &'i str,
     mut offset: usize,
-) -> Vec<LinkReferenceDefinition> {
+) -> Vec<LinkReferenceDefinition<'i>> {
     let mut refernce_definitions = vec![];
     let mut input = input;
 
@@ -550,10 +550,10 @@ enum MultiLinePhase {
 }
 
 /// Parse a single reference definition from
-fn parse_link_reference_definition(
-    input: &str,
+fn parse_link_reference_definition<'i>(
+    input: &'i str,
     offset: usize,
-) -> Option<(LinkReferenceDefinition, usize)> {
+) -> Option<(LinkReferenceDefinition<'i>, usize)> {
     let mut phase = LinkParserPhase::FindOpeningBracket;
     let mut builder = LinkReferenceDefinitionBuilder::new();
     let mut start = 0;
