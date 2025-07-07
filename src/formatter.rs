@@ -554,7 +554,7 @@ where
                         current_input_snippet
                             .lines()
                             .last()
-                            .map_or(false, sequence_ends_on_escape)
+                            .is_some_and(sequence_ends_on_escape)
                     };
                     let newlines = self.count_newlines(&range);
                     let text_from_source = &self.input[range.clone()];
