@@ -17,7 +17,9 @@ use crate::links::{LinkReferenceDefinition, LinkWriter, parse_link_reference_def
 use crate::list::{LIST_START_CHARS, ListMarker};
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
-use crate::utils::{count_newlines, count_trailing_spaces, get_spaces, split_lines};
+use crate::utils::{
+    count_newlines, count_trailing_spaces, get_spaces, sequence_ends_on_escape, split_lines,
+};
 use crate::writer::MarkdownWriter;
 
 // Defined using a macro so that the parsing options can be shared with tests for consistency.
