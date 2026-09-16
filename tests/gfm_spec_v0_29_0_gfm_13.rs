@@ -990,7 +990,9 @@ fn gfm_markdown_fenced_code_blocks_117() {
     // https://github.github.com/gfm/#example-117
     test_identical_markdown_events!(r##"```
 ``` aaa
-```"##);
+```"##,r##"````
+``` aaa
+````"##);
 }
 
 #[test]

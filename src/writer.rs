@@ -1,15 +1,15 @@
 use std::fmt::Write;
 
+use crate::code_block::CodeBlock;
 use crate::footnote::FootnoteDefinition;
 use crate::header::Header;
 use crate::links::LinkWriter;
 use crate::paragraph::Paragraph;
 use crate::table::TableState;
-use pulldown_cmark::CodeBlockKind;
 
 #[derive(Debug, PartialEq)]
 pub(super) enum MarkdownWriter<'i> {
-    CodeBlock((String, CodeBlockKind<'i>)),
+    CodeBlock(CodeBlock<'i>),
     Header(Header<'i>),
     FootnoteDefinition(FootnoteDefinition),
     Paragraph(Paragraph),
@@ -20,7 +20,7 @@ pub(super) enum MarkdownWriter<'i> {
 impl MarkdownWriter<'_> {
     pub(super) fn is_empty(&self) -> bool {
         match self {
-            Self::CodeBlock((c, _)) => c.is_empty(),
+            Self::CodeBlock(c) => c.is_empty(),
             Self::FootnoteDefinition(f) => f.is_empty(),
             Self::Header(h) => h.is_empty(),
             Self::Paragraph(p) => p.is_empty(),
@@ -33,7 +33,7 @@ impl MarkdownWriter<'_> {
 impl std::fmt::Write for MarkdownWriter<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         match self {
-            Self::CodeBlock((c, _)) => c.write_str(s),
+            Self::CodeBlock(c) => c.write_str(s),
             Self::FootnoteDefinition(f) => f.write_str(s),
             Self::Header(h) => h.write_str(s),
             Self::Paragraph(p) => p.write_str(s),
@@ -51,6 +51,12 @@ impl WriteContext<'_> for MarkdownWriter<'_> {
             Self::Link(l) => l.write_context_str(ctx, s),
             _ => self.write_str(s),
         }
+    }
+}
+
+impl<'i> From<CodeBlock<'i>> for MarkdownWriter<'i> {
+    fn from(value: CodeBlock<'i>) -> Self {
+        Self::CodeBlock(value)
     }
 }
 
