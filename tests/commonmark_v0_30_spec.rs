@@ -1208,7 +1208,9 @@ fn markdown_fenced_code_blocks_147() {
     // https://spec.commonmark.org/0.30/#example-147
     test_identical_markdown_events!(r##"```
 ``` aaa
-```"##);
+```"##,r##"````
+``` aaa
+````"##);
 }
 
 #[test]

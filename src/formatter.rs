@@ -6,11 +6,12 @@ use std::ops::Range;
 use std::str::FromStr;
 
 use itertools::Itertools;
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, TagEnd};
+use pulldown_cmark::{Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
 use crate::adapters::{ListEndAtLastItemExt, LooseListExt};
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
+use crate::code_block::{CodeBlock, CodeBlockKind, Fence, INDENTED_CODE_BLOCK_INDENTATION};
 use crate::config::Config;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
@@ -972,55 +973,36 @@ where
                     self.write_newlines(newlines)?;
                     self.needs_indent = false;
                 }
-                let capacity = (range.end - range.start) * 2;
-                let code_block_buffer = String::with_capacity(capacity);
-                match &kind {
-                    CodeBlockKind::Fenced(info_string) => {
-                        rewrite_marker(self.input, &range, self)?;
 
-                        if info_string.is_empty() {
-                            writeln!(self)?;
-                            let writer = MarkdownWriter::CodeBlock((code_block_buffer, kind));
-                            self.writers.push(writer);
-                            return Ok(());
-                        }
-
+                let fence = match kind {
+                    pulldown_cmark::CodeBlockKind::Fenced(_) => {
                         let marker_char = self.input[range.start..]
                             .chars()
                             .next()
-                            .expect("should have found a ` or ~");
-
-                        let starts_with_space = self.input[range.clone()]
-                            .trim_start_matches(marker_char)
-                            .starts_with(char::is_whitespace);
-
-                        let info_string = self.input[range]
+                            .expect("fence is not empty");
+                        let marker = find_marker(self.input, &range, |c| c != marker_char);
+                        let info_string = self.input[range.start..]
                             .lines()
                             .next()
-                            .unwrap_or_else(|| info_string.as_ref())
+                            .expect("we have a code fence")
                             .trim_start_matches(marker_char)
                             .trim();
-
-                        if starts_with_space {
-                            writeln!(self, " {info_string}")?;
-                        } else {
-                            writeln!(self, "{info_string}")?;
-                        }
+                        Some(Fence::new(marker_char, marker.len(), info_string))
                     }
-                    CodeBlockKind::Indented => {
-                        // TODO(ytmimi) support tab as an indent
-                        let indentation = "    ";
-
+                    pulldown_cmark::CodeBlockKind::Indented => {
                         if !matches!(self.peek(), Some(Event::End(TagEnd::CodeBlock))) {
                             // Only write indentation if this isn't an empty indented code block
-                            self.write_str(indentation)?;
+                            self.write_str(INDENTED_CODE_BLOCK_INDENTATION)?;
                         }
-
-                        self.indentation.push(indentation.into());
+                        self.indentation
+                            .push(INDENTED_CODE_BLOCK_INDENTATION.into());
+                        None
                     }
-                }
+                };
 
-                let writer = MarkdownWriter::CodeBlock((code_block_buffer, kind));
+                let code_block_kind = CodeBlockKind::new(fence);
+                let capacity = (range.end - range.start) * 2;
+                let writer = CodeBlock::new(capacity, code_block_kind).into();
                 self.writers.push(writer);
             }
             Tag::List(_) => {
@@ -1370,26 +1352,35 @@ where
                     Some(MarkdownWriter::CodeBlock(_))
                 ));
 
-                let Some(MarkdownWriter::CodeBlock((code_block, kind))) = self.writers.pop() else {
+                let Some(MarkdownWriter::CodeBlock(code_block)) = self.writers.pop() else {
                     unreachable!("Should have popped a MarkdownWriter::CodeBlock")
                 };
 
+                let (buffer, kind) = code_block.into_parts();
+
                 match kind {
-                    CodeBlockKind::Fenced(info_string) => {
-                        self.write_code_block_buffer(Some(info_string.as_ref()), code_block)?;
-                        // write closing code fence
+                    CodeBlockKind::Fenced(fence) => {
+                        let fence_marker = fence.marker();
+                        let info_string = fence.info_string();
+                        let starts_with_space = !info_string.trim().is_empty()
+                            && self.input[range.clone()]
+                                .trim_start_matches(fence.marker_char())
+                                .starts_with(char::is_whitespace);
+
+                        let space = if starts_with_space { " " } else { "" };
+                        writeln!(self, "{fence_marker}{space}{info_string}")?;
+                        self.write_code_block_buffer(Some(info_string), buffer)?;
                         self.write_indentation(false)?;
-                        rewrite_marker(self.input, &range, self)?;
+                        writeln!(self, "{fence_marker}")?;
                     }
                     CodeBlockKind::Indented => {
-                        // Maybe we'll consider formatting indented code blocks??
-                        self.write_code_block_buffer(None, code_block)?;
-
-                        let popped_indentation = self
-                            .indentation
-                            .pop()
-                            .expect("we added 4 spaces in start_tag");
-                        debug_assert_eq!(popped_indentation, "    ");
+                        self.write_code_block_buffer(None, buffer)?;
+                        let popped_indentation = self.indentation.pop();
+                        debug_assert!(
+                            popped_indentation
+                                .is_some_and(|i| i == INDENTED_CODE_BLOCK_INDENTATION),
+                            "popped indented code block indentation didn't match"
+                        );
                     }
                 }
             }
@@ -1405,7 +1396,9 @@ where
                 //     To separate consecutive lists of the same type, or to separate a list from an
                 //     indented code block that would otherwise be parsed as a subparagraph of the
                 //     final list item, you can insert a blank HTML comment
-                if let Some(Event::Start(Tag::CodeBlock(CodeBlockKind::Indented))) = self.peek() {
+                if let Some(Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Indented))) =
+                    self.peek()
+                {
                     self.write_newlines(1)?;
                     writeln!(self, "<!-- Don't absorb code block into list -->")?;
                     write!(self, "<!-- Consider a fenced code block instead -->")?;

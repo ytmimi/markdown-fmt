@@ -67,6 +67,7 @@
 
 mod adapters;
 mod builder;
+mod code_block;
 mod config;
 mod escape;
 mod footnote;
