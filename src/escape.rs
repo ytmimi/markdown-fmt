@@ -1,10 +1,10 @@
 use super::formatter::FormatState;
+use crate::events::MdEvent;
 use crate::list::UnorderedListMarker;
-use pulldown_cmark::Event;
 
 impl<'i, I> FormatState<'i, '_, I>
 where
-    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+    I: Iterator<Item = MdEvent<'i>>,
 {
     pub(super) fn needs_escape(
         &mut self,

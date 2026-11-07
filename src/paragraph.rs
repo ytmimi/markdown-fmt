@@ -1,4 +1,5 @@
 use crate::escape::needs_escape;
+use crate::events::MdEvent;
 use crate::links::is_balanced;
 use crate::utils::sequence_ends_on_escape;
 use crate::writer::{MarkdownContext, WriteContext};
@@ -25,12 +26,15 @@ impl WriteContext<'_> for Paragraph {
         // `Event::Code` since they might contain characters that look like other Markdown
         // constructs, but they're really just text.
         match ctx {
-            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_)) => {
+            MarkdownContext::Event(MdEvent::Standard(
+                Event::Text(_) | Event::InlineHtml(_),
+                _,
+            )) => {
                 if s.is_empty() {
                     return self.write_str(s);
                 }
             }
-            MarkdownContext::Event(Event::Code(_)) => {
+            MarkdownContext::Event(MdEvent::Standard(Event::Code(_), _)) => {
                 if s.starts_with(char::is_whitespace) || s.is_empty() {
                     return self.write_str(s);
                 }

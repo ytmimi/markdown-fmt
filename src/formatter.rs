@@ -9,10 +9,11 @@ use itertools::Itertools;
 use pulldown_cmark::{Event, HeadingLevel, TagEnd};
 use pulldown_cmark::{LinkType, Parser, Tag};
 
-use crate::adapters::{ListEndAtLastItemExt, LooseListExt};
+use crate::adapters::{MarkdownEventExt, ListEndAtLastItemExt, LooseListExt, LinkReferenceDefinitionEventExt};
 use crate::builder::{CodeBlockContext, CodeBlockFormatter};
 use crate::code_block::{CodeBlock, CodeBlockKind, Fence, INDENTED_CODE_BLOCK_INDENTATION};
 use crate::config::Config;
+use crate::events::MdEvent;
 use crate::footnote::FootnoteDefinition;
 use crate::header::{Header, HeaderKind};
 use crate::html::starts_with_html_block_identifier;
@@ -76,7 +77,9 @@ impl MarkdownFormatter {
         let iter = parser
             .into_offset_iter()
             .all_loose_lists()
-            .list_end_at_last_item();
+            .list_end_at_last_item()
+            .md_events()
+            .inject_list_reference_definition_events(input);
 
         let fmt_state = FormatState::new(input, self, iter);
         fmt_state.format()
@@ -155,7 +158,7 @@ where
 /// write formatted markdown events. The Write impl helps us centralize this logic.
 impl<'i, I> Write for FormatState<'i, '_, I>
 where
-    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+    I: Iterator<Item = MdEvent<'i>>,
 {
     fn write_str(&mut self, text: &str) -> std::fmt::Result {
         let writer = self.current_buffer();
@@ -171,7 +174,7 @@ where
 /// Pass along context about the current [Event] that's being rewritten
 impl<'i, I> WriteContext<'i> for FormatState<'i, '_, I>
 where
-    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+    I: Iterator<Item = MdEvent<'i>>,
 {
     fn write_context_str(&mut self, ctx: MarkdownContext<'_, 'i>, s: &str) -> std::fmt::Result {
         let writer = self.current_buffer();
@@ -181,38 +184,49 @@ where
 
 impl<'i, I> FormatState<'i, '_, I>
 where
-    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+    I: Iterator<Item = MdEvent<'i>>,
 {
     /// Peek at the next Markdown Event
-    fn peek(&mut self) -> Option<&Event<'i>> {
-        self.events.peek().map(|(e, _)| e)
+    fn peek(&mut self) -> Option<&MdEvent<'i>> {
+        self.events.peek()
     }
 
     /// Peek at the next Markdown Event and it's original position in the input
-    fn peek_with_range(&mut self) -> Option<(&Event<'i>, &Range<usize>)> {
-        self.events.peek().map(|(e, r)| (e, r))
+    fn peek_with_range(&mut self) -> Option<&MdEvent<'i>> {
+        self.events.peek()
     }
 
     /// Check if the next Event is an `Event::End`
     fn is_next_end_event(&mut self) -> bool {
-        matches!(self.peek(), Some(Event::End(_)))
+        matches!(self.peek(), Some(MdEvent::Standard(Event::End(_), _)))
     }
 
     /// Check if we should write newlines and indentation before the next Start Event
-    fn check_needs_indent(&mut self, event: &Event<'i>) {
+    fn check_needs_indent(&mut self, event: &MdEvent<'i>) {
         self.needs_indent = match self.peek() {
-            Some(Event::Start(_) | Event::Rule | Event::Html(_) | Event::End(TagEnd::Item)) => true,
-            Some(Event::End(TagEnd::BlockQuote(..))) => matches!(event, Event::End(_)),
-            Some(Event::Text(_)) => matches!(event, Event::End(_) | Event::Start(Tag::Item)),
-            _ => matches!(event, Event::Rule),
+            Some(MdEvent::Standard(
+                Event::Start(_) | Event::Rule | Event::Html(_) | Event::End(TagEnd::Item),
+                _,
+            )) => true,
+            Some(MdEvent::Standard(Event::End(TagEnd::BlockQuote(..)), _)) => {
+                matches!(event, MdEvent::Standard(Event::End(_), _))
+            }
+            Some(MdEvent::Standard(Event::Text(_), _)) => matches!(
+                event,
+                MdEvent::Standard(Event::End(_) | Event::Start(Tag::Item), _)
+            ),
+            _ => matches!(event, MdEvent::Standard(Event::Rule, _)),
         };
     }
 
     /// Check if the last event was a `Event::SoftBreak` or `Event::HardBreak`
     pub(crate) fn last_was_line_break(&self) -> bool {
-        self.last_event
-            .as_ref()
-            .is_some_and(|(e, _)| matches!(e, Event::SoftBreak | Event::HardBreak))
+        self.last_event.as_ref().is_some_and(|e| {
+            matches!(
+                e,
+                MdEvent::Standard(Event::SoftBreak | Event::HardBreak, _)
+            )
+        })
     }
 
     /// check if we're in a blockquote
@@ -381,15 +395,14 @@ where
 
     fn rewrite_reference_link_definitions_inner(
         &mut self,
-        link_defs: Vec<LinkReferenceDefinition>,
+        link_defs: Vec<(LinkReferenceDefinition,std::ops::Range<usize>)>,
     ) -> std::fmt::Result {
         // TODO(ytmimi) Add an option to defer writing links until the end
-        for link_def in link_defs {
-            let link_range = link_def.range();
-            let newlines = self.count_newlines(&link_range);
+        for (link_def, range) in link_defs {
+            let newlines = self.count_newlines(&range);
             self.write_newlines(newlines)?;
             link_def.write(self)?;
-            self.last_position = link_range.end;
+            self.last_position = range.end;
             self.needs_indent = true;
         }
         Ok(())
@@ -463,7 +476,11 @@ where
     }
 
     /// Rewrite a single [`Event`] that spans over multiple lines
-    fn rewrite_multiline_event(&mut self, event: &Event<'i>, snippet: &'i str) -> std::fmt::Result {
+    fn rewrite_multiline_event(
+        &mut self,
+        event: &MdEvent<'i>,
+        snippet: &'i str,
+    ) -> std::fmt::Result {
         // check if the input snippet ends with a newline so we can preserve it.
         let ends_with_newline = snippet.ends_with('\n');
 
@@ -518,7 +535,7 @@ where
 
 impl<'i, 'm, I> FormatState<'i, 'm, I>
 where
-    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+    I: Iterator<Item = MdEvent<'i>>,
 {
     pub(crate) fn new(input: &'i str, formatter: &'m MarkdownFormatter, iter: I) -> Self {
         Self {
@@ -601,210 +618,241 @@ where
 
     /// The main entry point for markdown formatting.
     pub fn format(mut self) -> Result<String, std::fmt::Error> {
-        while let Some((event, range)) = self.events.next() {
-            tracing::debug!(?event, ?range, last_position = self.last_position);
-            let mut last_position = if matches!(event, Event::HardBreak) {
-                range.end
-            } else {
-                self.input[..range.end]
-                    .bytes()
-                    .rposition(|b| !b.is_ascii_whitespace())
-                    .map(
-                        |offset| offset + 1, /* +1 to start on the whitespace or end of input */
-                    )
-                    .unwrap_or(0)
-            };
-            let last_range = range.clone();
+        while let Some(event) = self.events.next() {
             match event {
-                Event::Start(ref tag) => {
-                    last_position = range.start;
-                    self.start_tag(tag.clone(), range)?;
-                    // self.last_position might be modified in `start_tag` if we need to recover
-                    // link reference definitions. To prevent resetting it, make sure
-                    // it stays at self.last_position
-                    if last_position < self.last_position {
-                        last_position = self.last_position;
+                MdEvent::Custom(ref custom_event, ref range) => {
+                    tracing::debug!(
+                        ?custom_event,
+                        ?range,
+                        last_position = self.last_position
+                    );
+                    match custom_event {
+                        crate::events::Custom::LinkReferenceDefinition(link_def) => {
+                            // TODO(ytmimi) Add an option to defer writing links until the end
+                            let newlines = self.count_newlines(&range);
+                            self.write_newlines(newlines)?;
+                            link_def.write(&mut self)?;
+                            self.last_position = range.end;
+                            self.needs_indent = true;
+                        }
                     }
                 }
-                Event::End(ref tag) => {
-                    self.end_tag(*tag, range.clone())?;
-                    self.check_needs_indent(&event);
-                }
-                Event::Text(ref parsed_text) => {
-                    last_position = range.end;
-                    let current_input_snippet = &self.input[..range.start];
-                    let starts_with_escape = if current_input_snippet.ends_with('\n') {
-                        // Can't start with an esacpe if it ends on a newline
-                        false
+                MdEvent::Standard(ref pulldown_cmark_event, ref range) => {
+                    tracing::debug!(
+                        ?pulldown_cmark_event,
+                        ?range,
+                        last_position = self.last_position
+                    );
+                    let mut last_position = if matches!(pulldown_cmark_event, Event::HardBreak) {
+                        range.end
                     } else {
-                        //
-                        current_input_snippet
-                            .lines()
-                            .last()
-                            .is_some_and(sequence_ends_on_escape)
+                        self.input[..range.end]
+                        .bytes()
+                        .rposition(|b| !b.is_ascii_whitespace())
+                        .map(
+                            |offset| offset + 1, /* +1 to start on the whitespace or end of input */
+                        )
+                        .unwrap_or(0)
                     };
-                    let newlines = self.count_newlines(&range);
-                    let text_from_source = &self.input[range.clone()];
-                    let text = if text_from_source.is_empty() || self.in_html_block() {
-                        // This seems to happen when the parsed text is whitespace only.
-                        // To preserve leading whitespace use the parsed text instead.
-                        parsed_text.as_ref()
-                    } else {
-                        text_from_source
-                    };
-
-                    if self.needs_indent {
-                        self.write_newlines(newlines)?;
-                        self.needs_indent = false;
-                    }
-
-                    let needs_escape = self.needs_escape(text, false);
-
-                    let could_be_interpreted_as_html =
-                        |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
-                            if state.last_was_line_break()
-                                && t == "<"
-                                && matches!(
-                                    state.peek(),
-                                    Some(Event::Text(t))
-                                        if starts_with_html_block_identifier(t)
-                                )
-                            {
-                                return true;
+                    match pulldown_cmark_event {
+                        Event::Start(ref tag) => {
+                            last_position = range.start;
+                            self.start_tag(tag.clone(), range.clone())?;
+                            // self.last_position might be modified in `start_tag` if we need to
+                            // recover link reference definitions. To prevent resetting it, make
+                            // sure it stays at self.last_position
+                            if last_position < self.last_position {
+                                last_position = self.last_position;
                             }
-
-                            if !state.in_blockquote() {
-                                return false;
-                            }
-
-                            // IF we're in a blockquote it means that a softbreak could lead to
-                            // a scenario where we add a `>`, which causes `<!` + `>` to get
-                            // interpreted as an inline html element.
-                            let last_was_lt = matches!(
-                                &state.last_event, Some((Event::Text(t), _)) if t.ends_with('<')
-                            );
-
-                            last_was_lt && t.starts_with('!')
-                        };
-
-                    // Prevent the next pass from interpreting this as a hard break
-                    let should_escape_an_escape =
-                        |t: &str, state: &mut FormatState<'i, 'm, I>, r: Range<usize>| -> bool {
-                            let not_empty_paragraph =
-                                !state.in_paragraph() && !state.is_current_buffer_empty();
-                            if not_empty_paragraph || !t.chars().all(|c| c == '\\') {
-                                return false;
-                            }
-
-                            // If the next is a soft break then we want to escape this `\\`
-                            let Some(Event::SoftBreak) = state.peek() else {
-                                return false;
+                        }
+                        Event::End(ref tag) => {
+                            self.end_tag(*tag, range.clone())?;
+                            self.check_needs_indent(&event);
+                        }
+                        Event::Text(ref parsed_text) => {
+                            last_position = range.end;
+                            let current_input_snippet = &self.input[..range.start];
+                            let starts_with_escape = if current_input_snippet.ends_with('\n') {
+                                // Can't start with an esacpe if it ends on a newline
+                                false
+                            } else {
+                                //
+                                current_input_snippet
+                                    .lines()
+                                    .last()
+                                    .is_some_and(sequence_ends_on_escape)
+                            };
+                            let newlines = self.count_newlines(range);
+                            let text_from_source = &self.input[range.clone()];
+                            let text = if text_from_source.is_empty() || self.in_html_block() {
+                                // This seems to happen when the parsed text is whitespace only.
+                                // To preserve leading whitespace use the parsed text instead.
+                                parsed_text.as_ref()
+                            } else {
+                                text_from_source
                             };
 
-                            let Some(last_line) = &self.input[..r.end].lines().last() else {
-                                return false;
+                            if self.needs_indent {
+                                self.write_newlines(newlines)?;
+                                self.needs_indent = false;
+                            }
+
+                            let needs_escape = self.needs_escape(text, false);
+
+                            let could_be_interpreted_as_html =
+                                |t: &str, state: &mut FormatState<'i, 'm, I>| -> bool {
+                                    if state.last_was_line_break()
+                                        && t == "<"
+                                        && matches!(
+                                            state.peek(),
+                                            Some(MdEvent::Standard(Event::Text(t), _))
+                                                if starts_with_html_block_identifier(t)
+                                        )
+                                    {
+                                        return true;
+                                    }
+
+                                    if !state.in_blockquote() {
+                                        return false;
+                                    }
+
+                                    // IF we're in a blockquote it means that a softbreak could lead
+                                    // to a scenario where we add a `>`, which causes `<!` + `>` to
+                                    // get interpreted as an inline html element.
+                                    let last_was_lt = matches!(
+                                        &state.last_event,
+                                        Some(MdEvent::Standard(Event::Text(t), _))
+                                            if t.ends_with('<')
+                                    );
+
+                                    last_was_lt && t.starts_with('!')
+                                };
+
+                            // Prevent the next pass from interpreting this as a hard break
+                            let should_escape_an_escape = |t: &str,
+                                                           state: &mut FormatState<'i, 'm, I>,
+                                                           r: Range<usize>|
+                             -> bool {
+                                let not_empty_paragraph =
+                                    !state.in_paragraph() && !state.is_current_buffer_empty();
+                                if not_empty_paragraph || !t.chars().all(|c| c == '\\') {
+                                    return false;
+                                }
+
+                                // If the next is a soft break then we want to escape this `\\`
+                                let Some(MdEvent::Standard(Event::SoftBreak, _)) = state.peek()
+                                else {
+                                    return false;
+                                };
+
+                                let Some(last_line) = &self.input[..r.end].lines().last() else {
+                                    return false;
+                                };
+
+                                sequence_ends_on_escape(last_line)
                             };
 
-                            sequence_ends_on_escape(last_line)
-                        };
-
-                    match needs_escape {
-                        Some(escape_kind)
-                            if escape_kind.multi_character_escape() && !starts_with_escape =>
-                        {
-                            let marker = escape_kind.marker();
-                            for c in text.chars() {
-                                if marker == c {
-                                    write_context!(self, Escape, "\\{c}")?;
-                                } else {
-                                    self.write_char(c)?;
+                            match needs_escape {
+                                Some(escape_kind)
+                                    if escape_kind.multi_character_escape()
+                                        && !starts_with_escape =>
+                                {
+                                    let marker = escape_kind.marker();
+                                    for c in text.chars() {
+                                        if marker == c {
+                                            write_context!(self, Escape, "\\{c}")?;
+                                        } else {
+                                            self.write_char(c)?;
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    if starts_with_escape
+                                        || needs_escape.is_some()
+                                        || could_be_interpreted_as_html(text, &mut self)
+                                        || should_escape_an_escape(text, &mut self, range.clone())
+                                        || (self.in_table() && text.starts_with('|'))
+                                    {
+                                        // recover escape characters
+                                        write_context!(self, Escape, "\\{text}")?;
+                                    } else {
+                                        write_context!(self, &event, "{text}")?;
+                                    }
                                 }
                             }
+                            self.check_needs_indent(&event);
                         }
-                        _ => {
-                            if starts_with_escape
-                                || needs_escape.is_some()
-                                || could_be_interpreted_as_html(text, &mut self)
-                                || should_escape_an_escape(text, &mut self, range)
-                                || (self.in_table() && text.starts_with('|'))
-                            {
-                                // recover escape characters
-                                write_context!(self, Escape, "\\{text}")?;
+                        Event::Code(_) => {
+                            let snippet = &self.input[range.clone()];
+                            if count_newlines(snippet) > 0 {
+                                let snippet = snippet.trim_matches('`');
+                                // write the opening and closing markers separately so they
+                                // aren't escaped.
+                                rewrite_marker(self.input, range, &mut self)?;
+                                self.rewrite_multiline_event(&event, snippet)?;
+                                rewrite_marker(self.input, range, &mut self)?;
                             } else {
-                                write_context!(self, &event, "{text}")?;
+                                write!(self, "{snippet}")?;
                             }
                         }
-                    }
-                    self.check_needs_indent(&event);
-                }
-                Event::Code(_) => {
-                    let snippet = &self.input[range.clone()];
-                    if count_newlines(snippet) > 0 {
-                        let snippet = snippet.trim_matches('`');
-                        // write the opening and closing markers separately so they aren't escaped.
-                        rewrite_marker(self.input, &range, &mut self)?;
-                        self.rewrite_multiline_event(&event, snippet)?;
-                        rewrite_marker(self.input, &range, &mut self)?;
-                    } else {
-                        write!(self, "{snippet}")?;
-                    }
-                }
-                Event::InlineHtml(_) => {
-                    let snippet = &self.input[range.clone()];
-                    self.rewrite_multiline_event(&event, snippet)?;
-                }
-                Event::SoftBreak => {
-                    last_position = range.end;
+                        Event::InlineHtml(_) => {
+                            let snippet = &self.input[range.clone()];
+                            self.rewrite_multiline_event(&event, snippet)?;
+                        }
+                        Event::SoftBreak => {
+                            last_position = range.end;
 
-                    writeln_context!(self, &event)?;
+                            writeln_context!(self, &event)?;
 
-                    // paraphraphs write their indentation after reformatting the text
-                    if !(self.in_paragraph() || self.in_link_or_image()) {
-                        self.write_indentation(false)?;
-                    }
-                }
-                Event::HardBreak => {
-                    let hard_break = match &self.input[range] {
-                        "\\\r" | "\\\r\n" | "\\\n" => "\\\n",
-                        "  \r" | "  \r\n" | "  \n" => "  \n",
-                        h => h,
-                    };
+                            // paraphraphs write their indentation after reformatting the text
+                            if !(self.in_paragraph() || self.in_link_or_image()) {
+                                self.write_indentation(false)?;
+                            }
+                        }
+                        Event::HardBreak => {
+                            let hard_break = match &self.input[range.clone()] {
+                                "\\\r" | "\\\r\n" | "\\\n" => "\\\n",
+                                "  \r" | "  \r\n" | "  \n" => "  \n",
+                                h => h,
+                            };
 
-                    self.write_event_str(&event, hard_break)?;
-                }
-                Event::Html(_) => {
-                    let newlines = self.count_newlines(&range);
-                    if self.needs_indent {
-                        self.write_newlines(newlines)?;
+                            self.write_event_str(&event, hard_break)?;
+                        }
+                        Event::Html(_) => {
+                            let newlines = self.count_newlines(range);
+                            if self.needs_indent {
+                                self.write_newlines(newlines)?;
+                            }
+                            let snippet = &self.input[range.clone()].trim_end();
+                            self.write_event_str(&event, snippet)?;
+                            self.check_needs_indent(&event);
+                        }
+                        Event::Rule => {
+                            let reference_definition_range = self.last_position..range.start;
+                            self.rewrite_reference_link_definitions(&reference_definition_range)?;
+                            let newlines = self.count_newlines(range);
+                            self.write_newlines(newlines)?;
+                            self.write_event_str(&event, self.input[range.clone()].trim_end())?;
+                            self.check_needs_indent(&event)
+                        }
+                        Event::FootnoteReference(ref text) => {
+                            write_context!(self, &event, "[^{text}]")?;
+                        }
+                        Event::TaskListMarker(done) => {
+                            if *done {
+                                write_context!(self, &event, "[x] ")?;
+                            } else {
+                                write_context!(self, &event, "[ ] ")?;
+                            }
+                        }
+                        Event::DisplayMath(..) | Event::InlineMath(..) => {
+                            unreachable!("pulldown_cmark::Options::ENABLE_MATH is not configured")
+                        }
                     }
-                    let snippet = &self.input[range].trim_end();
-                    self.write_event_str(&event, snippet)?;
-                    self.check_needs_indent(&event);
-                }
-                Event::Rule => {
-                    let reference_definition_range = self.last_position..range.start;
-                    self.rewrite_reference_link_definitions(&reference_definition_range)?;
-                    let newlines = self.count_newlines(&range);
-                    self.write_newlines(newlines)?;
-                    self.write_event_str(&event, self.input[range].trim_end())?;
-                    self.check_needs_indent(&event)
-                }
-                Event::FootnoteReference(ref text) => {
-                    write_context!(self, &event, "[^{text}]")?;
-                }
-                Event::TaskListMarker(done) => {
-                    if done {
-                        write_context!(self, &event, "[x] ")?;
-                    } else {
-                        write_context!(self, &event, "[ ] ")?;
-                    }
-                }
-                Event::DisplayMath(..) | Event::InlineMath(..) => {
-                    unreachable!("pulldown_cmark::Options::ENABLE_MATH is not configured")
+                    self.last_position = last_position;
+                    self.last_event = Some(event);
                 }
             }
-            self.last_position = last_position;
-            self.last_event = Some((event, last_range));
         }
         debug_assert!(self.nested_context.is_empty());
 
@@ -896,8 +944,8 @@ where
 
                 // FIXME(ytmimi) recovering link-reference-definitions adds some complexity here.
                 // Hoping to find a way to simplify this in the future.
-                match self.peek_with_range().map(|(e, r)| (e.clone(), r.clone())) {
-                    Some((Event::End(TagEnd::BlockQuote(..)), _)) => {
+                match self.peek_with_range().cloned() {
+                    Some(MdEvent::Standard(Event::End(TagEnd::BlockQuote(..)), _)) => {
                         let snippet = &self.input[range.clone()];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
                         if !link_defs.is_empty() {
@@ -913,7 +961,7 @@ where
                         // If there are any other trailing lines those should be handled by
                         // The End(BlockQuote) event.
                     }
-                    Some((Event::Start(Tag::BlockQuote(_)), next_range)) => {
+                    Some(MdEvent::Standard(Event::Start(Tag::BlockQuote(_)), next_range)) => {
                         let snippet = &self.input[range.start..next_range.start];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
 
@@ -923,7 +971,8 @@ where
                             let newlines = count_newlines(snippet);
                             self.write_newlines(newlines)?;
                         } else {
-                            let end = link_defs.first().expect("we have link_defs").range().start;
+                            let (_, link_def_range) = link_defs.first().expect("we have link_defs");
+                            let end = link_def_range.start;
                             let leading_newline_snippet = &self.input[range.start..end];
                             let newlines = count_newlines(leading_newline_snippet);
 
@@ -937,13 +986,13 @@ where
                             self.rewrite_reference_link_definitions_inner(link_defs)?;
                         }
                     }
-                    Some((_, next_range)) => {
+                    Some(MdEvent::Standard(_, next_range)) | Some(MdEvent::Custom(_, next_range)) => {
                         let snippet = &self.input[range.start..next_range.start];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
 
                         let end = link_defs
                             .first()
-                            .map(|l| l.range().start)
+                            .map(|(_, range)| range.start)
                             .unwrap_or(next_range.start);
                         let newline_snippet = &self.input[self.last_position..end];
                         let newlines = count_newlines(newline_snippet);
@@ -990,7 +1039,10 @@ where
                         Some(Fence::new(marker_char, marker.len(), info_string))
                     }
                     pulldown_cmark::CodeBlockKind::Indented => {
-                        if !matches!(self.peek(), Some(Event::End(TagEnd::CodeBlock))) {
+                        if !matches!(
+                            self.peek(),
+                            Some(MdEvent::Standard(Event::End(TagEnd::CodeBlock), _))
+                        ) {
                             // Only write indentation if this isn't an empty indented code block
                             self.write_str(INDENTED_CODE_BLOCK_INDENTATION)?;
                         }
@@ -1017,8 +1069,10 @@ where
                     // Depending on how things get formated we might accidentally parse the
                     // paragraph and list start as a Setext header
                     let needs_extra_newline = |mut newlines: usize, range: Range<usize>| -> usize {
-                        let last_was_paragraph =
-                            matches!(self.last_event, Some((Event::End(TagEnd::Paragraph), _)));
+                        let last_was_paragraph = matches!(
+                            self.last_event,
+                            Some(MdEvent::Standard(Event::End(TagEnd::Paragraph), _))
+                        );
                         let starts_with_dash = self.input[range].starts_with('-');
                         if newlines < 2 && last_was_paragraph && starts_with_dash {
                             newlines += 1;
@@ -1075,26 +1129,30 @@ where
                 // complicated for list items, but the implementations are very similar, so
                 // hopefully there's some simple refactoring that can be done later.
                 let (empty_list_item, link_defs) = match self.events.peek() {
-                    Some((Event::End(TagEnd::Item), _)) => {
+                    Some(MdEvent::Standard(Event::End(TagEnd::Item), _)) => {
                         let snippet = &self.input[range.clone()];
                         let just_list_marker = snippet.trim().len() == list_marker.len();
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
                         let end = link_defs
                             .first()
-                            .map(|l| l.range().start)
+                            .map(|(_, range)| range.start)
                             .unwrap_or(range.end);
                         let snippet = &self.input[range.start..end];
                         (just_list_marker || is_empty_list(snippet), link_defs)
                     }
-                    Some((_, next_range)) => {
+                    Some(MdEvent::Standard(e, next_range)) => {
+                        println!("Next Standard event: {e:?}");
                         let snippet = &self.input[range.start..next_range.start];
                         let link_defs = parse_link_reference_definitions(snippet, range.start);
                         let end = link_defs
                             .first()
-                            .map(|l| l.range().start)
+                            .map(|(_, range)| range.start)
                             .unwrap_or(next_range.start);
                         let snippet = &self.input[range.start..end];
                         (is_empty_list(snippet), link_defs)
+                    }
+                    Some(MdEvent::Custom(_, _)) => {
+                        (false, vec![])
                     }
                     None => {
                         // Peeking at the next event should always return `Some()` for start events
@@ -1138,7 +1196,7 @@ where
                 // list_marker.increment_count();
                 // self.list_markers.push(list_marker)
 
-                self.rewrite_reference_link_definitions_inner(link_defs)?;
+                // self.rewrite_reference_link_definitions_inner(link_defs)?;
             }
             Tag::FootnoteDefinition(ref label) => {
                 let newlines = self.count_newlines(&range);
@@ -1148,7 +1206,7 @@ where
                 // picking up extra newlines in case we need to recover refernce link definitions
                 self.last_position = range.start;
 
-                let recover_link_defs = |range: Range<usize>| -> Vec<LinkReferenceDefinition> {
+                let recover_link_defs = |range: Range<usize>| -> Vec<(LinkReferenceDefinition<'i>, std::ops::Range<usize>)> {
                     let start = range.start;
                     let snippet = &self.input[range];
                     let colon_index = snippet.find(':').unwrap_or(0);
@@ -1157,10 +1215,12 @@ where
                 };
 
                 let link_defs = match self.events.peek() {
-                    Some((Event::End(TagEnd::FootnoteDefinition), _)) => {
+                    Some(MdEvent::Standard(Event::End(TagEnd::FootnoteDefinition), _)) => {
                         recover_link_defs(range.clone())
                     }
-                    Some((_, next_range)) => recover_link_defs(range.start..next_range.start),
+                    Some(MdEvent::Standard(_, next_range) | MdEvent::Custom(_, next_range)) => {
+                        recover_link_defs(range.start..next_range.start)
+                    }
                     None => {
                         // Peeking at the next event should always return `Some()` for start events
                         unreachable!(
@@ -1225,7 +1285,10 @@ where
                 }
             }
             Tag::TableCell => {
-                if !matches!(self.peek(), Some(Event::End(TagEnd::TableCell))) {
+                if !matches!(
+                    self.peek(),
+                    Some(MdEvent::Standard(Event::End(TagEnd::TableCell), _))
+                ) {
                     return Ok(());
                 }
 
@@ -1332,9 +1395,12 @@ where
                 // FIXME(ytmimi) let chains would make this much nicer to write.
                 //
                 // If there's another event...
-                if let Some((event, _)) = self.events.peek() {
+                if let Some(event) = self.events.peek() {
                     // and it's not a TagEnd::BlockQuote...
-                    if !matches!(event, Event::End(TagEnd::BlockQuote(_))) {
+                    if !matches!(
+                        event,
+                        MdEvent::Standard(Event::End(TagEnd::BlockQuote(_)), _)
+                    ) {
                         // and we still have indentation on the stack...
                         if let Some(last) = self.indentation.last_mut() {
                             // and the indentaion is ">"...
@@ -1396,8 +1462,10 @@ where
                 //     To separate consecutive lists of the same type, or to separate a list from an
                 //     indented code block that would otherwise be parsed as a subparagraph of the
                 //     final list item, you can insert a blank HTML comment
-                if let Some(Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Indented))) =
-                    self.peek()
+                if let Some(MdEvent::Standard(
+                    Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Indented)),
+                    _,
+                )) = self.peek()
                 {
                     self.write_newlines(1)?;
                     writeln!(self, "<!-- Don't absorb code block into list -->")?;
@@ -1417,7 +1485,10 @@ where
                 debug_assert!(popped_indentation.is_some());
 
                 // if the next event is a Start(Item), then we need to set needs_indent
-                self.needs_indent = matches!(self.peek(), Some(Event::Start(Tag::Item)));
+                self.needs_indent = matches!(
+                    self.peek(),
+                    Some(MdEvent::Standard(Event::Start(Tag::Item), _))
+                );
             }
             TagEnd::FootnoteDefinition => {
                 debug_assert!(matches!(
@@ -1442,7 +1513,9 @@ where
                     self.indentation.pop();
                 }
 
-                if let Some(Event::Start(Tag::FootnoteDefinition(_))) = self.peek() {
+                if let Some(MdEvent::Standard(Event::Start(Tag::FootnoteDefinition(_)), _)) =
+                    self.peek()
+                {
                     // separte consecutive footnote definitinons by at least one line
                     self.write_newlines(1)?;
                 };

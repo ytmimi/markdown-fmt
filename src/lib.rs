@@ -70,6 +70,7 @@ mod builder;
 mod code_block;
 mod config;
 mod escape;
+mod events;
 mod footnote;
 mod formatter;
 mod header;

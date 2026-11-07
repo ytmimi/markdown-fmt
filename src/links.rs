@@ -1,4 +1,5 @@
 use super::formatter::FormatState;
+use crate::events::MdEvent;
 use crate::utils::{count_newlines, is_char_esacped, sequence_ends_on_escape, split_lines};
 use crate::writer::{MarkdownContext, WriteContext};
 use pulldown_cmark::Event;
@@ -16,7 +17,10 @@ impl WriteContext<'_> for LinkWriter {
     fn write_context_str(&mut self, ctx: MarkdownContext<'_, '_>, s: &str) -> std::fmt::Result {
         if matches!(
             ctx,
-            MarkdownContext::Event(Event::HardBreak | Event::SoftBreak)
+            MarkdownContext::Event(MdEvent::Standard(
+                Event::HardBreak | Event::SoftBreak,
+                _
+            ))
         ) {
             self.write_str(" ")
         } else {
@@ -84,7 +88,7 @@ impl LinkWriter {
 
 impl<'i, I> FormatState<'i, '_, I>
 where
-    I: Iterator<Item = (Event<'i>, std::ops::Range<usize>)>,
+    I: Iterator<Item = MdEvent<'i>>,
 {
     pub(super) fn write_inline_link<S: AsRef<str>>(
         &mut self,
@@ -333,8 +337,9 @@ impl<'a> LinkReferenceDefinitionBuilder<'a> {
         self.title = None;
     }
 
-    fn build(self) -> Option<LinkReferenceDefinition<'a>> {
+    fn build(self, start: usize) -> Option<LinkReferenceDefinition<'a>> {
         Some(LinkReferenceDefinition {
+            start,
             label: self.label?,
             destination: self.destination?,
             title: self.title,
@@ -349,22 +354,22 @@ impl<'a> LinkReferenceDefinitionBuilder<'a> {
 /// [label]: /destination "title"
 /// ```
 /// [link reference definition]: https://spec.commonmark.org/0.31.2/#link-reference-definition
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct LinkReferenceDefinition<'a> {
+    start: usize,
     label: LinkLines<'a>,
     destination: (LinkDestination<'a>, std::ops::Range<usize>),
     title: Option<LinkTitle<'a>>,
 }
 
 impl LinkReferenceDefinition<'_> {
-    pub(super) fn range(&self) -> std::ops::Range<usize> {
-        let start = self.label.range().expect("we have a label").start;
+    fn range(&self) -> std::ops::Range<usize> {
         let end = if let Some(title) = self.title.as_ref() {
             title.range().expect("we have a title").end
         } else {
             self.destination.1.end
         };
-        start..end
+        self.start..end
     }
 
     pub(super) fn write<W: std::fmt::Write>(&self, writer: &mut W) -> std::fmt::Result {
@@ -384,7 +389,7 @@ impl LinkReferenceDefinition<'_> {
 /// [Link Destination]
 ///
 /// [link destination]: https://spec.commonmark.org/0.31.2/#link-destination
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum LinkDestination<'a> {
     /// A link destination with brackets e.g. <some/url/>
     Bracketed(Cow<'a, str>),
@@ -404,7 +409,7 @@ impl LinkDestination<'_> {
 /// [Link Title]
 ///
 /// [link title]: https://spec.commonmark.org/0.31.2/#link-title
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct LinkTitle<'a> {
     kind: TitleMarker,
     value: LinkLines<'a>,
@@ -480,7 +485,7 @@ impl TryFrom<char> for TitleMarker {
 }
 
 /// Collection of snippets that make up a reference link definition
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct LinkLines<'a>(Vec<(Cow<'a, str>, std::ops::Range<usize>)>);
 
 impl<'a> LinkLines<'a> {
@@ -552,14 +557,16 @@ impl<'a> From<Vec<(Cow<'a, str>, std::ops::Range<usize>)>> for LinkLines<'a> {
 pub fn parse_link_reference_definitions<'i>(
     input: &'i str,
     mut offset: usize,
-) -> Vec<LinkReferenceDefinition<'i>> {
+) -> Vec<(LinkReferenceDefinition<'i>, std::ops::Range<usize>)> {
     let mut refernce_definitions = vec![];
-    let mut input = input;
+    let mut chunk = input;
 
-    while let Some((def, idx)) = parse_link_reference_definition(input, offset) {
-        refernce_definitions.push(def);
-        offset += idx;
-        input = &input[idx..];
+    // start and end are relative to the start of the input.
+    while let Some((def, end)) = parse_link_reference_definition(chunk, offset) {
+        let range = def.range();
+        refernce_definitions.push((def, range));
+        offset += end;
+        chunk = &input[offset..];
     }
     refernce_definitions
 }
@@ -602,6 +609,7 @@ fn parse_link_reference_definition<'i>(
     let mut parsed_until = 0;
     let mut newline_count = 0;
     let mut is_escaped: bool = false;
+    let mut opening_brace = 0;
 
     let mut iter = input.char_indices().peekable();
 
@@ -613,6 +621,7 @@ fn parse_link_reference_definition<'i>(
                     continue;
                 }
                 start = iter.peek().map(|(idx, _)| *idx)?;
+                opening_brace = idx;
                 tracing::trace!("Transition to LinkParserPhase::Label");
                 phase = LinkParserPhase::Label;
             }
@@ -824,7 +833,9 @@ fn parse_link_reference_definition<'i>(
         }
     }
 
-    builder.build().map(|def| (def, parsed_until))
+    builder.build(offset + opening_brace).map(|def| {
+        (def, parsed_until)
+    })
 }
 
 #[cfg(test)]
@@ -1039,34 +1050,42 @@ mod test {
 [baz]: /baz ''
 "#;
         let result = parse_link_reference_definitions(definition, 0);
-        let expected = vec![
+        let expected = vec![(
             LinkReferenceDefinition {
+                start: 1,
                 label: ("foo", 2..5).into(),
                 destination: (LinkDestination::Regular("/foo".into()), 8..12),
                 title: None,
-            },
-            LinkReferenceDefinition {
+            }, 1..12),
+            (LinkReferenceDefinition {
+                start: 13,
                 label: ("bar", 14..17).into(),
                 destination: (LinkDestination::Regular("/bar".into()), 20..24),
                 title: Some(LinkTitle {
                     kind: TitleMarker::Parentheses,
                     value: ("title", 26..31).into(),
                 }),
-            },
-            LinkReferenceDefinition {
+            }, 13..31),
+            (LinkReferenceDefinition {
+                start: 33,
                 label: ("baz", 34..37).into(),
                 destination: (LinkDestination::Regular("/baz".into()), 40..44),
                 title: Some(LinkTitle {
                     kind: TitleMarker::SingleQuote,
                     value: ("", 46..46).into(),
                 }),
-            },
+            }, 33..46),
         ];
         assert_eq!(result, expected);
     }
 
     #[test]
     fn parse_multi_line_link_reference_definitions() {
+        // use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+        // tracing_subscriber::registry()
+        //     .with(fmt::layer())
+        //     .with(EnvFilter::from_env("MARKDOWN_FMT_LOG"))
+        //     .init();
         let definition = r#"
 [foo]:
    /foo
@@ -1080,27 +1099,30 @@ mod test {
 
         let result = parse_link_reference_definitions(definition, 0);
         let expected = vec![
-            LinkReferenceDefinition {
+            (LinkReferenceDefinition {
+                start: 1,
                 label: ("foo", 2..5).into(),
                 destination: (LinkDestination::Regular("/foo".into()), 11..15),
                 title: None,
-            },
-            LinkReferenceDefinition {
+            }, 1..15),
+            (LinkReferenceDefinition {
+                start: 16,
                 label: ("bar", 17..20).into(),
                 destination: (LinkDestination::Regular("/bar".into()), 26..30),
                 title: Some(LinkTitle {
                     kind: TitleMarker::Parentheses,
                     value: ("title", 35..40).into(),
                 }),
-            },
-            LinkReferenceDefinition {
+            }, 16..40),
+            (LinkReferenceDefinition {
+                start: 42,
                 label: ("baz", 43..46).into(),
                 destination: (LinkDestination::Regular("/baz".into()), 52..56),
                 title: Some(LinkTitle {
                     kind: TitleMarker::SingleQuote,
                     value: ("", 61..61).into(),
                 }),
-            },
+            }, 42..61),
         ];
         assert_eq!(result, expected);
     }
@@ -1113,11 +1135,12 @@ mod test {
 "#;
 
         let result = parse_link_reference_definitions(definition, 0);
-        let expected = vec![LinkReferenceDefinition {
+        let expected = vec![(LinkReferenceDefinition {
+            start: 3,
             label: ("foo", 4..7).into(),
             destination: (LinkDestination::Regular("/foo".into()), 14..18),
             title: None,
-        }];
+        }, 3..18)];
         assert_eq!(result, expected);
     }
 
@@ -1138,7 +1161,8 @@ mod test {
         let result = parse_link_reference_definitions(definition, 0);
         #[rustfmt::skip]
         let expected = vec![
-            LinkReferenceDefinition {
+            (LinkReferenceDefinition {
+                start: 1,
                 label: vec![
                     (Cow::from("foo"), 2..5),
                     (Cow::from("bar"), 7..10),
@@ -1146,8 +1170,9 @@ mod test {
                 ].into(),
                 destination: (LinkDestination::Regular("/foo-bar".into()), 17..25),
                 title: None,
-            },
-            LinkReferenceDefinition {
+            }, 1..25),
+            (LinkReferenceDefinition {
+                start: 26,
                 label: vec![
                     (Cow::from(""), 27..27),
                     (Cow::from("oof"), 32..35),
@@ -1159,7 +1184,7 @@ mod test {
                     kind: TitleMarker::DoubleQuote,
                     value: (Cow::from("this is a title"), 57..72).into()
                 }),
-            }
+            }, 26..72)
         ];
         assert_eq!(result, expected);
     }
@@ -1178,7 +1203,8 @@ title
         let result = parse_link_reference_definitions(definition, 0);
         #[rustfmt::skip]
         let expected = vec![
-            LinkReferenceDefinition {
+            (LinkReferenceDefinition {
+                start: 0, 
                 label: ("fizz-buzz", 1..10).into(),
                 destination: (LinkDestination::Bracketed("fizz-buzz".into()), 13..23),
                 title: Some(LinkTitle {
@@ -1192,7 +1218,7 @@ title
                         (Cow::from(""), 55..55),
                     ].into()
                 }),
-            }
+            }, 0..55)
         ];
         assert_eq!(result, expected);
     }

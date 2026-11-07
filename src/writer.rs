@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 use crate::code_block::CodeBlock;
+use crate::events::MdEvent;
 use crate::footnote::FootnoteDefinition;
 use crate::header::Header;
 use crate::links::LinkWriter;
@@ -98,7 +99,7 @@ pub(crate) trait WriteContext<'i>: std::fmt::Write {
     fn write_context_str(&mut self, ctx: MarkdownContext<'_, 'i>, s: &str) -> std::fmt::Result;
 
     /// Write a &str with additional context about which [pulldown_cmark::Event] is being written.
-    fn write_event_str(&mut self, e: &pulldown_cmark::Event<'i>, s: &str) -> std::fmt::Result {
+    fn write_event_str(&mut self, e: &MdEvent<'i>, s: &str) -> std::fmt::Result {
         self.write_context_str(e.into(), s)
     }
 
@@ -126,7 +127,7 @@ pub(crate) trait WriteContext<'i>: std::fmt::Write {
     #[allow(dead_code)]
     fn write_event_fmt(
         &mut self,
-        e: &pulldown_cmark::Event<'i>,
+        e: &MdEvent<'i>,
         args: std::fmt::Arguments<'_>,
     ) -> std::fmt::Result {
         self.write_context_fmt(e.into(), args)
@@ -147,13 +148,13 @@ pub(crate) trait WriteContext<'i>: std::fmt::Write {
 /// Context about the [pulldown_cmark::Evet] or [pulldown_cmark::Tag] that's being written.
 #[derive(Debug, Clone)]
 pub(crate) enum MarkdownContext<'a, 'i> {
-    Event(&'a pulldown_cmark::Event<'i>),
+    Event(&'a MdEvent<'i>),
     Tag(&'a pulldown_cmark::Tag<'i>),
     Escape,
 }
 
-impl<'a, 'i> From<&'a pulldown_cmark::Event<'i>> for MarkdownContext<'a, 'i> {
-    fn from(value: &'a pulldown_cmark::Event<'i>) -> Self {
+impl<'a, 'i> From<&'a MdEvent<'i>> for MarkdownContext<'a, 'i> {
+    fn from(value: &'a MdEvent<'i>) -> Self {
         Self::Event(value)
     }
 }

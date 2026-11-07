@@ -1,4 +1,5 @@
 use crate::escape::needs_escape;
+use crate::events::MdEvent;
 use crate::utils::sequence_ends_on_escape;
 use crate::writer::{MarkdownContext, WriteContext};
 use pulldown_cmark::{CowStr, Event, HeadingLevel, Tag};
@@ -21,7 +22,10 @@ impl<'i> WriteContext<'i> for Header<'_> {
     fn write_context_str(&mut self, ctx: MarkdownContext<'_, 'i>, s: &str) -> std::fmt::Result {
         let ctx_does_not_need_escape = !matches!(
             ctx,
-            MarkdownContext::Event(Event::Text(_) | Event::InlineHtml(_) | Event::Code(_))
+            MarkdownContext::Event(MdEvent::Standard(
+                Event::Text(_) | Event::InlineHtml(_) | Event::Code(_),
+                _
+            ))
         );
 
         if ctx_does_not_need_escape || !self.is_setext_header() || !self.buffer.ends_with('\n') {
