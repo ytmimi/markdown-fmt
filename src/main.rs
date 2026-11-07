@@ -15,6 +15,12 @@ struct Cli {
     /// original file will be overwritten
     #[arg(long, default_value_t = false)]
     stdout: bool,
+    /// echo the input to stderr before formatting.
+    #[arg(long, default_value_t = false)]
+    echo: bool,
+    /// run the formatter on the output to check if it's idempotent.
+    #[arg(long, default_value_t = false)]
+    idempotent: bool,
     /// The max width to use when reformatting paragraphs.
     #[arg(short, long)]
     max_width: Option<usize>,
@@ -41,10 +47,20 @@ fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
 
     let input = fs::read_to_string(&cli.input)?;
+    if cli.echo {
+        eprintln!("{input}");
+    }
     let mut builder = FormatBuilder::default();
     builder
         .max_width(cli.max_width)
         .reflow_text(cli.reflow_text);
-    let result = rewrite_markdown_with_builder(&input, builder)?;
-    output_result(&cli.input, &result, cli.stdout)
+    let result = rewrite_markdown_with_builder(&input, builder.clone())?;
+    output_result(&cli.input, &result, cli.stdout)?;
+
+    if cli.idempotent {
+        let idmpotent_result = rewrite_markdown_with_builder(&result, builder)?;
+        eprintln!("{idmpotent_result}");
+    }
+
+    Ok(())
 }

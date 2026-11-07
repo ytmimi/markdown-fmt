@@ -1,4 +1,4 @@
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Config {
     max_width: Option<usize>,
     reflow_text: bool,

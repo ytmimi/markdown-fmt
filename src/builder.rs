@@ -1,4 +1,5 @@
 use crate::config::Config;
+use std::rc::Rc;
 
 /// Provides info that custom code block formatters can use
 /// when formatting code.
@@ -44,9 +45,10 @@ impl CodeBlockContext {
     }
 }
 
-pub(crate) type CodeBlockFormatter = Box<dyn Fn(&CodeBlockContext, &str, String) -> String>;
+pub(crate) type CodeBlockFormatter = Rc<dyn Fn(&CodeBlockContext, &str, String) -> String>;
 
 /// Builder for the [MarkdownFormatter](crate::MarkdownFormatter)
+#[derive(Clone)]
 pub struct FormatBuilder {
     code_block_formatter: CodeBlockFormatter,
     config: Config,
@@ -105,7 +107,7 @@ impl FormatBuilder {
     where
         F: Fn(&CodeBlockContext, &str, String) -> String + 'static,
     {
-        self.code_block_formatter = Box::new(formatter);
+        self.code_block_formatter = Rc::new(formatter);
         self
     }
 
@@ -197,7 +199,7 @@ impl std::fmt::Debug for FormatBuilder {
 impl Default for FormatBuilder {
     fn default() -> Self {
         FormatBuilder {
-            code_block_formatter: Box::new(|_ctx, _info_str, code_block| code_block),
+            code_block_formatter: Rc::new(|_ctx, _info_str, code_block| code_block),
             config: Config::default(),
         }
     }
