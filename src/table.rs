@@ -207,3 +207,61 @@ impl<'a> TableState<'a> {
         Ok(())
     }
 }
+
+/// For a GitHub flavored markdown table to be recognized,
+/// the header row must be the same size as the delimiter row.
+/// For example, the following has 4 cells per row.
+/// |  a  |  b  |  c  |  d  |
+/// | --- | --- | --- | --- |
+/// |     |     |     |     |
+pub(crate) fn count_table_cells(text: &str) -> usize {
+    if text.contains("|") {
+        // FIXME(ytmimi) when we're ready to bump the MSRV to 1.100.0
+        // we can try using `trim_prefix` and `trim_suffix`.
+        //
+        // Take a look at the example above. There are 4 cells. After triming the leading
+        // and trailing `|` we're left with 3 `|` in between.
+        let text = text.trim();
+        let text = text.strip_prefix('|').unwrap_or(text);
+        let text = text.strip_suffix('|').unwrap_or(text);
+
+        text.bytes().filter(|b| *b == b'|').count() + 1
+    } else {
+        0
+    }
+}
+
+#[test]
+fn test_count_table_cells() {
+    let cases = [
+        ("", 0),
+        ("a", 0),
+        ("|b", 1),
+        ("c|", 1),
+        ("|d|", 1),
+        ("e|e", 2),
+        ("|f|f", 2),
+        ("g|g|", 2),
+        ("|h|h|", 2),
+        ("i|i|i", 3),
+        ("|j|j|j", 3),
+        ("k|k|k|", 3),
+        ("|l|l|l|", 3),
+        ("m|m|m|m", 4),
+        ("|n|n|n|n", 4),
+        ("o|o|o|o|", 4),
+        ("|p|p|p|p|", 4),
+        ("q|q|q|q|q", 5),
+        ("|r|r|r|r|r", 5),
+        ("s|s|s|s|s|", 5),
+        ("|t|t|t|t|t|", 5),
+        ("u|u|u|u|u|u", 6),
+        ("|v|v|v|v|v|v", 6),
+        ("w|w|w|w|w|w|", 6),
+        ("|x|x|x|x|x|x|", 6),
+    ];
+
+    for (input, expected) in cases {
+        assert_eq!(count_table_cells(input), expected)
+    }
+}

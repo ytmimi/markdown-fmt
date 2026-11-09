@@ -32,7 +32,7 @@
 -->
 > * `qy|?-
 >   \-|-
->   \|-
+>   |-
 >   \|-   ` -`
 >   `
 
@@ -395,3 +395,35 @@ end of clode`
 - ` start of code
       ~~~
   end of clode`
+
+<!-- https://github.com/pulldown-cmark/pulldown-cmark/issues/1191 -->
+|a|b|
+\|- -|-|
+
+|1|1|
+\|:- -|-|
+
+|2|2|
+\|:-|- -|
+
+|3|3|
+\|: -|--|
+
+|4|4|
+\|: - :|--|
+
+|5|5|
+\|: -:|--|
+
+|6|6|
+\|:- :|--|
+
+|7|7|
+\|:-:|- -|
+
+|8|8|
+\|: - :|--|
+
+<!-- https://github.com/pulldown-cmark/pulldown-cmark/issues/1190 -->
+a|b
+\-|:

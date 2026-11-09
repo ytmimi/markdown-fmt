@@ -1,13 +1,31 @@
 use crate::escape::needs_escape;
 use crate::links::is_balanced;
+use crate::table::count_table_cells;
 use crate::utils::sequence_ends_on_escape;
 use crate::writer::{MarkdownContext, WriteContext};
 
 use pulldown_cmark::{Event, LinkType, Tag};
 use regex::Regex;
 use std::fmt::Write;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 use textwrap::Options as TextWrapOptions;
+
+// FIXME(ytmimi)
+// pulldown-cmark is more liberal about whitespace in GitHub Flavored Markdown Tables
+// so the regex has a lot of optional whitespace. If that changes we could tighten up
+// this regex.
+// See <https://github.com/pulldown-cmark/pulldown-cmark/issues/1191>
+static TABLE_DELIMITER_ROW_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    let left_alignemnt = r"\:[-\s]*-?";
+    let right_aligment = r"[-\s]*-?\s*\:";
+    let center_aligment = r"\:[-\s]*-\s*\:";
+    let no_aligment = r"[-\s]*";
+    let regex = format!(
+        r"^(?:{}|{}|{}|{})$",
+        left_alignemnt, right_aligment, center_aligment, no_aligment,
+    );
+    Regex::new(&regex).expect("valid regex")
+});
 
 const MARKDOWN_HARD_BREAK: &str = "  \n";
 
@@ -90,9 +108,14 @@ impl WriteContext<'_> for Paragraph {
 
         // Prevent the next pass of the parser from accidentaly interpreting a table
         // without a leading |
-        if self.buffer.ends_with('\n')
-            && self.buffer.lines().last().is_some_and(|l| l.contains('|'))
-            && could_be_table(s)
+        if self.buffer.lines().last().is_some_and(|l| {
+            let header_row_cells = count_table_cells(l);
+            // For this to accidentally be treated as a table after formatting
+            // the row above needs to look like it's divided into cells with `|`
+            // and the current row (treated as the delimiter row) needs to have the
+            // same number of cells.
+            header_row_cells != 0 && header_row_cells == count_table_cells(s)
+        }) && could_be_table(s)
         {
             self.buffer.push('\\');
         }
@@ -223,30 +246,74 @@ fn could_be_table(text: &str) -> bool {
     if text.contains('\\') {
         return false;
     }
-    static TABLE_ALIGNMENT_ROW_REGEX: OnceLock<Regex> = OnceLock::new();
-    TABLE_ALIGNMENT_ROW_REGEX
-        .get_or_init(|| {
-            Regex::new(r"^((\|(\s?-+\s?)+)+\|?)+|((\s?-+\s?)+\|)+((\s?-+\s?))?$")
-                .expect("valid regex")
-        })
-        .is_match_at(text, 0)
+
+    // If the text is just `-` and whitespace it's not a valid delimiter row
+    if text
+        .trim_matches(|c: char| c.is_whitespace() || c == '-')
+        .is_empty()
+    {
+        return false;
+    }
+
+    // FIXME(ytmimi) when we're ready to bump the MSRV to 1.100.0
+    // we can try using `trim_prefix` and `trim_suffix`.
+    //
+    // To simplify the regex check we're going to remove all the pipes.
+    let text = text.trim();
+    let text = text.strip_prefix('|').unwrap_or(text);
+    let text = text.strip_suffix('|').unwrap_or(text);
+
+    if text.is_empty() {
+        return false;
+    }
+
+    text.split('|')
+        .all(|cell| TABLE_DELIMITER_ROW_REGEX.is_match_at(cell.trim(), 0))
 }
 
 #[test]
-fn test_could_be_table() {
+fn test_could_be_table_delimeter_row() {
     let expected_matches = &[
         "|-- - --- - |- -|- - -|  -",
         "-|--|---|-",
+        ":-|:--|:---|:-",
+        "-:|--:|:---|-:",
+        ":-|--|---|-:",
+        "-:|--|---|:-",
+        ":-:|:--:|:---:|:-:",
         "-|-",
+        ":-|:-",
+        "-:|-:",
+        ":-|-:",
+        "-:|:-",
+        ":-:|:-:",
         "|-|",
+        "|:-|",
+        "|-:|",
+        "|:-:|",
         "|-",
+        "|:-",
+        "|-:",
+        "|:-:",
         "-|",
+        ":-|",
+        "-:|",
+        ":-:|",
+        "-|  -   ",
+        "-|  -",
+        ":-|  :-",
+        "-:|  -:",
+        "-:|  :-",
+        ":-:|  :-:",
     ];
 
     for line in expected_matches {
         assert!(could_be_table(line))
     }
+}
 
+#[test]
+fn test_is_not_table_delimeter_row() {
     let expected_rejections = &[
         r"|\-|",
         "|",
@@ -255,6 +322,7 @@ fn test_could_be_table() {
         "|    ",
         " -  ",
         "some text",
+        "|:--: - --- - |- -|- - -|  -",
     ];
 
     for line in expected_rejections {
